@@ -1,0 +1,21 @@
+name: Coleta diária IBAMA -> Supabase
+on:
+  schedule:
+    - cron: '0 9 * * *'     # todo dia às 06:00 (horário de Brasília)
+  workflow_dispatch: {}      # botão "Run workflow" para rodar na hora
+permissions:
+  contents: read
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Coletar e gravar no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python -I coletor/coletar.py

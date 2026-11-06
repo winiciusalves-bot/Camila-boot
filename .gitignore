@@ -1,0 +1,4 @@
+NAO-PUBLICAR/
+*.zip
+saida-teste.json
+__pycache__/

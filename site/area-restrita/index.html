@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Área restrita | Ambiental Costa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="painel.css">
+</head>
+<body class="painel-body">
+
+<header class="topo">
+  <div class="wrap topo-in">
+    <a class="marca" href="../"><span class="marca-sinal" aria-hidden="true"></span><span>Ambiental <strong>Costa</strong></span></a>
+    <span class="tag-restrito">Área restrita</span>
+    <div class="usuario" id="usuario" hidden><span id="usuario-email"></span><button class="btn btn-linha btn-sm" id="sair" type="button">Sair</button></div>
+  </div>
+</header>
+
+<div class="faixa-previa" id="faixa-previa" hidden>Prévia local com dados do seu computador. Os registros de contato ficam só neste navegador. Não publique a pasta NAO-PUBLICAR.</div>
+
+<main class="wrap">
+
+  <section class="login" id="tela-login" hidden>
+    <form class="form login-form" id="form-login">
+      <h1 class="login-tit">Entrar</h1>
+      <p class="nota">Acesso só para usuários autorizados.</p>
+      <label class="campo"><span>E-mail</span><input id="l-email" type="email" autocomplete="username" required></label>
+      <label class="campo"><span>Senha</span><input id="l-senha" type="password" autocomplete="current-password" required></label>
+      <small class="erro" id="l-erro" hidden></small>
+      <button class="btn btn-wa" type="submit" style="justify-content:center">Entrar</button>
+    </form>
+  </section>
+
+  <section class="sem-config" id="tela-sem-config" hidden>
+    <h1 class="login-tit">Área restrita ainda não configurada</h1>
+    <p>Falta ligar o site ao banco de dados com login (Supabase). Veja o passo a passo no arquivo LEIA-ME.md.</p>
+  </section>
+
+  <section id="tela-painel" hidden>
+    <div class="painel-cab">
+      <div>
+        <h1 class="login-tit">Prospecção ambiental RJ</h1>
+        <p class="nota" id="p-fonte"></p>
+      </div>
+    </div>
+
+    <div class="aviso aviso-topo" role="note">
+      <strong>Antes de contatar:</strong> auto de infração <strong>não é condenação</strong> e o valor indicado <strong>não é dano</strong>. Não afirme irregularidade ao cliente. Respeite quem pedir para não ser contatado (marque “Não contatar”). Empresas baixadas ou com nome divergente devem ser conferidas antes.
+    </div>
+
+    <div class="p-kpis" id="p-kpis"></div>
+
+    <nav class="abas" role="tablist">
+      <button type="button" role="tab" class="aba" data-aba="fila" aria-selected="true">Fila de prospecção</button>
+      <button type="button" role="tab" class="aba" data-aba="empresas" aria-selected="false">Empresas</button>
+      <button type="button" role="tab" class="aba" data-aba="registro" aria-selected="false">Registro de documentos</button>
+    </nav>
+
+    <section id="aba-fila" class="painel-aba">
+      <form class="busca busca-fila" onsubmit="return false">
+        <label class="campo"><span>Prioridade</span><select id="f-pri"><option value="AB">A e B</option><option value="A">Só A</option><option value="B">Só B</option><option value="C">C</option><option value="">Todas (sem X)</option></select></label>
+        <label class="campo"><span>Município</span><select id="f-mun"><option value="">Todos</option></select></label>
+        <label class="check"><input type="checkbox" id="f-novos" checked> Só quem ainda não foi contatado</label>
+        <label class="check"><input type="checkbox" id="f-tel"> Só com telefone</label>
+      </form>
+      <p class="res-info" id="f-info" aria-live="polite"></p>
+      <div class="fila" id="f-cards"></div>
+    </section>
+
+    <section id="aba-empresas" class="painel-aba" hidden>
+
+    <form class="busca p-filtros" onsubmit="return false">
+      <label class="campo campo-grande"><span>Buscar</span><input type="search" id="p-q" placeholder="Razão social, CNPJ, nº do auto"></label>
+      <label class="campo"><span>Município do auto</span><select id="p-mun"><option value="">Todos</option></select></label>
+      <label class="campo"><span>Status</span><select id="p-st"><option value="">Todos</option></select></label>
+      <label class="campo"><span>Prioridade</span><select id="p-pri"><option value="">Todas</option><option value="A">A (alta)</option><option value="B">B</option><option value="C">C</option><option value="X">X (descartadas)</option></select></label>
+      <label class="campo"><span>Ordenar</span>
+        <select id="p-ord"><option value="pontos">Pontuação</option><option value="recente">Auto mais recente</option><option value="qtd">Mais autos</option><option value="nome">Razão social</option></select>
+      </label>
+      <label class="check"><input type="checkbox" id="p-ativas" checked> Só empresas ativas</label>
+      <label class="check"><input type="checkbox" id="p-tel"> Só com telefone</label>
+    </form>
+
+    <p class="res-info" id="p-info" aria-live="polite"></p>
+    <div class="tabela-wrap">
+      <table class="tabela p-tabela">
+        <thead><tr><th>Empresa</th><th>Autos (12 meses)</th><th>Municípios</th><th>Telefone</th><th>Status</th><th></th></tr></thead>
+        <tbody id="p-linhas"></tbody>
+      </table>
+    </div>
+    </section>
+
+    <section id="aba-registro" class="painel-aba" hidden>
+      <p class="nota">Todos os documentos encontrados, de todas as fontes. <strong>FATO</strong> = documento oficial registrado. <strong>INDÍCIO</strong> = menção em diário oficial que precisa ser lida antes de qualquer conclusão. Auto não é condenação; valor indicado não é dano.</p>
+      <form class="busca busca-reg" onsubmit="return false">
+        <label class="campo campo-grande"><span>Buscar</span><input type="search" id="r-q" placeholder="Nome, CNPJ, número, processo"></label>
+        <label class="campo"><span>Tipo</span><select id="r-tipo"><option value="">Todos</option></select></label>
+        <label class="campo"><span>Órgão / fonte</span><select id="r-org"><option value="">Todos</option></select></label>
+        <label class="campo"><span>Nível</span><select id="r-niv"><option value="">Todos</option><option>FATO</option><option>INDICIO</option></select></label>
+        <label class="check"><input type="checkbox" id="r-val" checked> Esconder cancelados e desembargados</label>
+      </form>
+      <p class="res-info" id="r-info" aria-live="polite"></p>
+      <div class="tabela-wrap">
+        <table class="tabela p-tabela">
+          <thead><tr><th>Data</th><th>Documento</th><th>Empresa</th><th>Município</th><th>Situação</th><th></th></tr></thead>
+          <tbody id="r-linhas"></tbody>
+        </table>
+      </div>
+      <p class="nota" id="r-mais"></p>
+    </section>
+  </section>
+</main>
+
+<div class="gaveta-fundo" id="gaveta-fundo" hidden></div>
+<aside class="gaveta" id="gaveta" hidden aria-modal="true" role="dialog" aria-labelledby="g-tit">
+  <button class="gaveta-x" id="gaveta-x" type="button" aria-label="Fechar">×</button>
+  <div id="gaveta-corpo"></div>
+</aside>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="../assets/config.js"></script>
+<script>
+  // Prévia local: só carrega se o arquivo existir no computador (nunca publique a pasta NAO-PUBLICAR).
+  if (!(window.SITE_CONFIG || {}).supabaseUrl) document.write('<script src="../NAO-PUBLICAR/dados-locais.js"><\/script>');
+</script>
+<script src="painel.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Trava de segurança (Netlify): nunca servir dados internos, mesmo se subirem por engano.
+/NAO-PUBLICAR/*   /404.html   404!
+/gerar_dados.py   /404.html   404!
+/LEIA-ME.md       /404.html   404!
+/*.zip            /404.html   404!
+/*.sql            /404.html   404!
