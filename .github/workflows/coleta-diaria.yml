@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: '0 14 * * *'    # reserva às 11:00 (Brasília), caso os diários não tenham rodado
   workflow_dispatch: {}      # botão "Run workflow" para rodar na hora
+concurrency:
+  group: coleta-diaria   # nunca duas coletas ao mesmo tempo (a segunda espera)
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:

@@ -47,6 +47,9 @@ jobs:
           echo "===== RESUMO ====="; cat relatorio/resumo.md
           echo "===== EDIÇÕES POR RASPADOR ====="; for f in out/*.jsonl; do echo "$(basename $f .jsonl);$(wc -l < $f) edições"; done
           echo "===== ERROS ====="; cat relatorio/erros_por_raspador.txt
+          echo "===== DIAGNÓSTICO POR RASPADOR (respostas HTTP, itens, motivo do fim) ====="
+          for f in logs/*.log; do echo "--- $(basename $f .log)"; grep -oE "'(downloader/response_status_count/[0-9]+|item_scraped_count|finish_reason|downloader/request_count)': [^,}]+" $f | tr '\n' ' '; echo; done
+          echo "===== TRACEBACK DO RIO ====="; grep -A12 'Spider error processing' logs/rj_rio_de_janeiro.log | head -30 || true
           echo "===== PRIMEIROS ERROS ====="; grep -h -m2 ' ERROR: ' logs/*.log | cut -c1-300 | head -40 || true
       - uses: actions/upload-artifact@v4
         if: always()
