@@ -396,6 +396,91 @@ def cadastro(cnpj):
     return None
 
 
+# ---------- e-mail de contato (todo CNPJ que chega e ainda não tem e-mail) ----------
+# Achado no PC em 06/11/2026: minhareceita respondeu 499 CNPJs com e-mail vazio e a BrasilAPI não traz o campo.
+# Por isso o e-mail vem de duas fontes públicas, alternadas: publica.cnpj.ws e receitaws.com.br (3 consultas/min cada).
+EMAIL_FONTES = {
+    'publica.cnpj.ws': 'https://publica.cnpj.ws/cnpj/{c}',
+    'receitaws.com.br': 'https://receitaws.com.br/v1/cnpj/{c}',
+}
+EMAIL_INTERVALO = 21      # segundos entre chamadas da MESMA fonte
+EMAIL_REVISITA = 180      # dias até reconsultar um CNPJ que veio sem e-mail
+RX_EMAIL = re.compile(r'^[^@\s]+@[^@\s]+\.[a-z]{2,}$', re.I)
+
+
+def email_de(fonte, j):
+    """Devolve (email, socios[(nome, qualificação)]) ou None se a fonte disse que o CNPJ não existe."""
+    if fonte == 'publica.cnpj.ws':
+        est = j.get('estabelecimento') or {}
+        soc = [(x.get('nome'), (x.get('qualificacao_socio') or {}).get('descricao')) for x in (j.get('socios') or [])]
+        return (est.get('email') or '').strip().lower(), soc
+    if (j.get('status') or '').upper() == 'ERROR':
+        return None
+    return (j.get('email') or '').strip().lower(), [(x.get('nome'), x.get('qual')) for x in (j.get('qsa') or [])]
+
+
+def buscar_emails(sb, hoje, minutos=40, so=None):
+    """Etapa incremental: consulta os CNPJs sem e-mail (novos primeiro) até o tempo acabar; o resto fica para amanhã."""
+    corte = (hoje - dt.timedelta(days=EMAIL_REVISITA)).isoformat()
+    base = sb.todos('empresas', 'cnpj,email,socios,email_busca_em,data_coleta,prioridade')
+    fila = [e for e in base if not (e.get('email') or '').strip()
+            and (not e.get('email_busca_em') or e['email_busca_em'] < corte) and (so is None or e['cnpj'] in so)]
+    # nunca consultados e mais recentes primeiro; depois prioridade A > B > C
+    fila.sort(key=lambda e: (bool(e.get('email_busca_em')), -(int(re.sub(r'\D', '', e.get('data_coleta') or '0') or 0)),
+                             (e.get('prioridade') or 'Z')[0]))
+    log(f'e-mail: {len(fila)} CNPJ(s) sem e-mail na fila; limite de {minutos} min nesta execução')
+    if not fila: return dict(consultados=0, achados=0, restantes=0)
+    t0, ultimo, descanso, falhas = time.time(), {f: 0.0 for f in EMAIL_FONTES}, {f: 0.0 for f in EMAIL_FONTES}, {f: 0 for f in EMAIL_FONTES}
+    ativas, consultados, achados, sem_email_seguidos, gravar = list(EMAIL_FONTES), 0, 0, 0, []
+    repetidos, k = set(), 0
+    while fila and ativas and time.time() - t0 < minutos * 60:
+        e = fila.pop(0)
+        fonte = ativas[k % len(ativas)]; k += 1
+        espera = max(ultimo[fonte] + EMAIL_INTERVALO, descanso[fonte]) - time.time()
+        if espera > 0: time.sleep(espera)
+        ultimo[fonte] = time.time()
+        c = re.sub(r'\D', '', e['cnpj'])
+        try:
+            res = email_de(fonte, get_json(EMAIL_FONTES[fonte].format(c=c)))
+            falhas[fonte] = 0
+        except urllib.error.HTTPError as err:
+            if err.code == 404: res = None
+            else:
+                if err.code == 429: descanso[fonte] = time.time() + 65
+                else: falhas[fonte] += 1
+                if e['cnpj'] not in repetidos: repetidos.add(e['cnpj']); fila.append(e)   # volta para a fila uma vez
+                if falhas[fonte] >= 6: ativas.remove(fonte); log(f'e-mail: {fonte} saiu desta execução (6 falhas seguidas)')
+                continue
+        except Exception:
+            falhas[fonte] += 1
+            if e['cnpj'] not in repetidos: repetidos.add(e['cnpj']); fila.append(e)
+            if falhas[fonte] >= 6: ativas.remove(fonte); log(f'e-mail: {fonte} saiu desta execução (6 falhas seguidas)')
+            continue
+        consultados += 1
+        linha = dict(cnpj=e['cnpj'], email_busca_em=hoje.isoformat())
+        if res:
+            em, soc = res
+            if em and RX_EMAIL.match(em):
+                linha.update(email=em, email_fonte=f'{fonte} ({hoje:%d/%m/%Y})'); achados += 1; sem_email_seguidos = 0
+            else:
+                sem_email_seguidos += 1
+            if soc and not (e.get('socios') or '').strip():
+                linha['socios'] = '; '.join(mascara(f"{n} ({q})" if q else n) for n, q in soc if n)
+        else:
+            linha['email_fonte'] = f'{fonte}: CNPJ não encontrado ({hoje:%d/%m/%Y})'
+        gravar.append(linha)
+        if len(gravar) >= 10: sb.upsert('empresas', gravar, 'cnpj'); gravar = []
+        dec = time.time() - t0
+        log(f'e-mail: {consultados} consultado(s), {achados} com e-mail · {dec/60:.1f} min · fila {len(fila)} · '
+            f'faltam ~{len(fila) * dec / max(1, consultados) / 60:.0f} min no total')
+        if sem_email_seguidos >= 40:
+            log('e-mail: 40 respostas seguidas sem e-mail. Parei para não gastar consultas; conferir se a fonte mudou o formato.')
+            break
+    if gravar: sb.upsert('empresas', gravar, 'cnpj')
+    log(f'e-mail: fim desta execução. {consultados} consultado(s), {achados} e-mail(s) novo(s), {len(fila)} para a próxima')
+    return dict(consultados=consultados, achados=achados, restantes=len(fila))
+
+
 # ---------- Supabase (REST) ----------
 class Supabase:
     def __init__(self, url, chave):
@@ -433,6 +518,7 @@ def main():
     ap.add_argument('--csv', help='usar um CSV/ZIP local em vez de baixar do IBAMA (teste)')
     ap.add_argument('--sem-supabase', action='store_true', help='não grava; salva saida-teste.json')
     ap.add_argument('--sem-cadastro', action='store_true', help='não consulta o CNPJ (teste)')
+    ap.add_argument('--minutos-email', type=int, default=40, help='tempo máximo da busca de e-mail (0 = pular)')
     ap.add_argument('--embargos', help='CSV local de termos de embargo (teste)')
     a = ap.parse_args()
     hoje = dt.date.today()
@@ -523,7 +609,7 @@ def main():
                 atividade=r.get('atividade') or '', municipio_sede=r.get('municipio_sede') or '',
                 # Pedido do usuário (06/11/2026): MEI e empresário individual entram na prospecção, com contato.
                 telefone=re.sub(r'[^\d /]', '', r.get('telefone') or ''),
-                email=(r.get('email') or '').strip().lower(),
+                email=(r.get('email') or '').strip().lower() or (empresas_bd.get(c) or {}).get('email') or '',
                 socios='; '.join(mascara(f"{n} ({q})" if q else n) for n, q in (r.get('socios') or []) if n),
                 nome_divergente=div,
                 alerta='; '.join(filter(None, [
@@ -566,6 +652,9 @@ def main():
         else:
             for e in empresas: e.update(next(p for p in pont if p['cnpj'] == e['cnpj']))
             json.dump(dict(empresas=empresas, autos=autos, embargos=embargos, ocorrencias=occ), open('saida-teste.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        if sb and a.minutos_email > 0 and not a.sem_cadastro:
+            try: buscar_emails(sb, hoje, a.minutos_email)
+            except Exception as e: log(f'e-mail: etapa interrompida ({e}); os dados da coleta já estão gravados')
         log(f'FIM: {len(autos)} autos ({len(novos)} novos), {len(empresas)} empresas gravadas/atualizadas', 100)
         print('\a', end='')
     except Exception as e:
