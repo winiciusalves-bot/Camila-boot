@@ -278,12 +278,21 @@
     if (bloq) avisos += '<p class="aviso-l verm">Marcada como <strong>Não contatar</strong>. Não envie mensagens.</p>';
 
     var contato = '';
-    if (!bloq && x.tels.length) {
+    var sc = e.site_contatos || null, siteHtml = '';
+    if (!bloq && e.site) {
+      var lst = function (rot, arr, fn) { return arr && arr.length ? '<li><strong>' + rot + ':</strong> ' + arr.map(fn).join(' · ') + '</li>' : ''; };
+      siteHtml = '<h3>No site da empresa</h3><p><a href="' + esc(e.site) + '" target="_blank" rel="noopener">' + esc(e.site) + '</a> <small>(' + esc(e.site_confirmacao || '') + ')</small></p><ul class="tels">' +
+        (sc ? lst('E-mail', sc.emails, function (m) { return '<a href="mailto:' + esc(m) + '">' + esc(m) + '</a>'; }) +
+          lst('Telefone', sc.telefones, function (t) { return '<a href="tel:+55' + esc(t) + '">' + esc(fmtTel(t)) + '</a>'; }) +
+          lst('WhatsApp', sc.whatsapp, function (t) { return '<a class="js-wa-g" data-tel="55' + esc(t) + '" href="#">' + esc(fmtTel(t)) + '</a>'; }) +
+          lst('Redes', sc.redes, function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u.replace(/^https?:\/\/(www\.)?/, '')) + '</a>'; }) : '') + '</ul>';
+    }
+    if (!bloq && (x.tels.length || e.email || e.site)) {
       contato = '<h3>Contato (cadastro da Receita)</h3><ul class="tels">' + x.tels.map(function (t) {
         return '<li><span>' + esc(fmtTel(t)) + '</span> <a class="btn btn-linha btn-sm" href="tel:+55' + t + '">Ligar</a>' +
           (celular(t) ? ' <a class="btn btn-wa btn-sm js-wa-g" data-tel="55' + t + '" href="#">WhatsApp</a>' : ' <small>fixo, sem WhatsApp</small>') + '</li>';
       }).join('') + '</ul>' + (e.email ? '<p><a href="mailto:' + esc(e.email) + '">' + esc(e.email) + '</a></p>' : '') +
-        '<label class="campo"><span>Mensagem sugerida (edite antes de enviar)</span><textarea id="g-msg" rows="5">' + esc(mensagemPadrao(x)) + '</textarea></label>';
+        siteHtml + '<label class="campo"><span>Mensagem sugerida (edite antes de enviar)</span><textarea id="g-msg" rows="5">' + esc(mensagemPadrao(x)) + '</textarea></label>';
     }
 
     var autos = x.autos.map(function (a) {

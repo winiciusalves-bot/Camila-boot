@@ -488,6 +488,111 @@ def buscar_emails(sb, hoje, minutos=40, so=None):
     return dict(consultados=consultados, achados=achados, restantes=len(fila))
 
 
+# ---------- site da empresa: contatos publicados por ela mesma ----------
+# Pedido do usuário (07/11/2026): além do e-mail da Receita, abrir o site da empresa e trazer as formas de contato.
+# Como achar o site sem buscador: o domínio do e-mail da Receita (quando não é e-mail gratuito).
+# Só páginas públicas, respeitando o robots.txt; nada de formulário, login ou captcha.
+GRATUITOS = {'gmail.com', 'hotmail.com', 'outlook.com', 'live.com', 'yahoo.com', 'yahoo.com.br', 'bol.com.br', 'uol.com.br',
+             'terra.com.br', 'ig.com.br', 'icloud.com', 'msn.com', 'globo.com', 'globomail.com', 'oi.com.br', 'r7.com',
+             'zipmail.com.br', 'outlook.com.br', 'hotmail.com.br', 'protonmail.com', 'me.com', 'gmx.com', 'aol.com',
+             'yandex.com', 'mail.com', 'live.com.br', 'superig.com.br', 'click21.com.br', 'pop.com.br'}
+SITE_PAGINAS = ['', 'contato', 'fale-conosco', 'contatos', 'contact', 'sobre', 'quem-somos']
+RX_MAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+RX_TEL = re.compile(r'(?<!\d)\(?(?:\+?55\s?)?\(?([1-9]{2})\)?[\s.-]?(9?\d{4})[\s.-]?(\d{4})(?!\d)')
+RX_WA = re.compile(r'(?:wa\.me/|api\.whatsapp\.com/send/?\?phone=|whatsapp\.com/send\?phone=)\+?(\d{10,13})', re.I)
+RX_REDE = re.compile(r'https?://(?:www\.)?(instagram\.com|facebook\.com|linkedin\.com/company|linkedin\.com/in|youtube\.com|tiktok\.com)/[A-Za-z0-9_.\-/]+', re.I)
+
+
+def baixar_texto(url, limite=600_000):
+    req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'text/html'})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        if 'html' not in (r.headers.get('Content-Type') or 'html'): return '', r.geturl()
+        return r.read(limite).decode('utf-8', 'ignore'), r.geturl()
+
+
+def robots_permite(base, caminho):
+    import urllib.robotparser
+    rp = urllib.robotparser.RobotFileParser()
+    try:
+        t, _ = baixar_texto(base + '/robots.txt', 100_000); rp.parse(t.splitlines())
+    except Exception:
+        return True       # sem robots.txt: livre
+    return rp.can_fetch(UA, base + '/' + caminho)
+
+
+def contatos_do_site(dominio, cnpj, razao, fantasia):
+    base = 'https://' + dominio
+    achado = dict(emails=set(), telefones=set(), whatsapp=set(), redes=set(), paginas=[])
+    confirma = ''
+    c14 = re.sub(r'\D', '', cnpj)
+    for pg in SITE_PAGINAS:
+        if not robots_permite(base, pg): continue
+        try:
+            html, final = baixar_texto(f'{base}/{pg}')
+        except Exception:
+            if pg == '':
+                try: html, final = baixar_texto(f'http://{dominio}/')
+                except Exception: return None
+            else: continue
+        if not html: continue
+        achado['paginas'].append(final)
+        txt = re.sub(r'<[^>]+>', ' ', html)
+        if c14 in re.sub(r'\D', '', txt) and not confirma: confirma = 'CNPJ aparece no site'
+        for m in RX_MAIL.findall(html):
+            m = m.lower().strip('.')
+            if not re.search(r'\.(png|jpe?g|gif|svg|webp|css|js)$', m) and 'sentry' not in m and 'example' not in m:
+                achado['emails'].add(m)
+        for ddd, a, b in RX_TEL.findall(txt):
+            achado['telefones'].add(f'{ddd}{a}{b}')
+        for n in RX_WA.findall(html):
+            achado['whatsapp'].add(re.sub(r'^55', '', n))
+        for m in RX_REDE.finditer(html):
+            u = m.group(0).rstrip('/')
+            if not re.search(r'/(sharer|share|plugins|tr\b|dialog|intent)', u): achado['redes'].add(u)
+        time.sleep(1)
+    if not achado['paginas']: return None
+    if not confirma:
+        nomes = [t.lower() for t in (tokens(razao) | tokens(fantasia or '')) if len(t) > 3]
+        home = ''
+        try: home = sem_acento(re.sub(r'<[^>]+>', ' ', baixar_texto(base + '/')[0]).lower())
+        except Exception: pass
+        if nomes and sum(1 for t in set(nomes) if t in home) >= max(1, len(set(nomes)) // 2):
+            confirma = 'nome da empresa aparece no site (sem CNPJ)'
+        else:
+            confirma = 'NÃO CONFIRMADO: domínio do e-mail da Receita, mas o site não traz CNPJ nem o nome'
+    return dict(site=base, confirmacao=confirma,
+                contatos={k: sorted(v)[:15] if isinstance(v, set) else v[:7] for k, v in achado.items()})
+
+
+def buscar_sites(sb, hoje, minutos=15):
+    corte = (hoje - dt.timedelta(days=EMAIL_REVISITA)).isoformat()
+    base = sb.todos('empresas', 'cnpj,email,razao_social,nome_fantasia,site_busca_em,data_coleta')
+    fila = []
+    for e in base:
+        dom = (e.get('email') or '').split('@')[-1].strip().lower() if '@' in (e.get('email') or '') else ''
+        if dom and dom not in GRATUITOS and (not e.get('site_busca_em') or e['site_busca_em'] < corte):
+            fila.append((e, dom))
+    log(f'site: {len(fila)} empresa(s) com domínio próprio no e-mail para conferir; limite de {minutos} min')
+    t0, feitos, com, gravar = time.time(), 0, 0, []
+    for e, dom in fila:
+        if time.time() - t0 > minutos * 60: break
+        try: r = contatos_do_site(dom, e['cnpj'], e.get('razao_social') or '', e.get('nome_fantasia') or '')
+        except Exception: r = None
+        feitos += 1
+        linha = dict(cnpj=e['cnpj'], site_busca_em=hoje.isoformat())
+        if r:
+            com += 1
+            # telefone/e-mail do site são do próprio site; CPF nunca entra (máscara em todo texto)
+            r['contatos'] = {k: [mascara(x) for x in v] for k, v in r['contatos'].items()}
+            linha.update(site=r['site'], site_confirmacao=r['confirmacao'], site_contatos=r['contatos'])
+        gravar.append(linha)
+        dec = time.time() - t0
+        log(f'site: {feitos}/{len(fila)} ({feitos/len(fila)*100:.0f}%) · {com} com site · {dec/60:.1f} min · faltam ~{(len(fila)-feitos)*dec/feitos/60:.0f} min')
+        if len(gravar) >= 10: gravar_lotes(sb, gravar); gravar = []
+    if gravar: gravar_lotes(sb, gravar)
+    log(f'site: fim. {feitos} conferido(s), {com} com site aberto')
+
+
 # ---------- Supabase (REST) ----------
 class Supabase:
     def __init__(self, url, chave):
@@ -668,6 +773,8 @@ def main():
         if sb and a.minutos_email > 0 and not a.sem_cadastro:
             try: buscar_emails(sb, hoje, a.minutos_email)
             except Exception as e: log(f'e-mail: etapa interrompida ({e}); os dados da coleta já estão gravados')
+            try: buscar_sites(sb, hoje)
+            except Exception as e: log(f'site: etapa interrompida ({e})')
         log(f'FIM: {len(autos)} autos ({len(novos)} novos), {len(empresas)} empresas gravadas/atualizadas', 100)
         print('\a', end='')
     except Exception as e:
