@@ -40,8 +40,11 @@
   $('form-login').addEventListener('submit', function (ev) {
     ev.preventDefault();
     $('l-erro').hidden = true;
-    sb.auth.signInWithPassword({ email: $('l-email').value.trim(), password: $('l-senha').value }).then(function (r) {
-      if (r.error) { $('l-erro').textContent = 'E-mail ou senha incorretos.'; $('l-erro').hidden = false; return; }
+    var u = $('l-email').value.trim().toLowerCase();
+    // Login por nome de usuário: "ccosta" vira ccosta@ambientalcosta.netlify.app (e-mail interno, nunca recebe mensagem)
+    if (u.indexOf('@') < 0) u = u + '@ambientalcosta.netlify.app';
+    sb.auth.signInWithPassword({ email: u, password: $('l-senha').value }).then(function (r) {
+      if (r.error) { $('l-erro').textContent = 'Usuário ou senha incorretos.'; $('l-erro').hidden = false; return; }
       entrar(r.data.session);
     });
   });
