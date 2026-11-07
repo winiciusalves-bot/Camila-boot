@@ -503,6 +503,26 @@ RX_WA = re.compile(r'(?:wa\.me/|api\.whatsapp\.com/send/?\?phone=|whatsapp\.com/
 RX_REDE = re.compile(r'https?://(?:www\.)?(instagram\.com|facebook\.com|linkedin\.com/company|linkedin\.com/in|youtube\.com|tiktok\.com)/[A-Za-z0-9_.\-/]+', re.I)
 
 
+def rdap_titular(dominio):
+    """Registro.br RDAP (API pública JSON, sem captcha). Devolve o CNPJ (14 dígitos) do titular, '' se pessoa física/sem dado, None se não existe."""
+    if not dominio.endswith('.br'): return ''
+    try:
+        j = get_json(f'https://rdap.registro.br/domain/{dominio}')
+    except urllib.error.HTTPError as e:
+        if e.code == 404: return None
+        if e.code == 429: time.sleep(60)
+        return ''
+    except Exception:
+        return ''
+    finally:
+        time.sleep(3)
+    for ent in j.get('entities') or []:
+        for pid in ent.get('publicIds') or []:
+            d = re.sub(r'\D', '', str(pid.get('identifier') or ''))
+            if len(d) == 14: return d
+    return ''
+
+
 def baixar_texto(url, limite=600_000):
     req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'text/html'})
     with urllib.request.urlopen(req, timeout=20) as r:
@@ -525,7 +545,17 @@ def contatos_do_site(dominio, cnpj, razao, fantasia):
     achado = dict(emails=set(), telefones=set(), whatsapp=set(), redes=set(), paginas=[])
     confirma = ''
     c14 = re.sub(r'\D', '', cnpj)
-    for pg in SITE_PAGINAS:
+    paginas = list(SITE_PAGINAS)
+    try:
+        h0, _ = baixar_texto(base + '/')
+        for href in re.findall(r'href=["\']([^"\'#]+)["\']', h0, re.I):
+            if re.search(r'contat|fale|atendimento', href, re.I):
+                rel = re.sub(r'^https?://[^/]+', '', href).lstrip('/')
+                if rel and not rel.startswith(('mailto:', 'tel:', 'javascript:')) and rel not in paginas: paginas.append(rel)
+                if len(paginas) >= len(SITE_PAGINAS) + 5: break
+    except Exception:
+        pass
+    for pg in paginas:
         if not robots_permite(base, pg): continue
         try:
             html, final = baixar_texto(f'{base}/{pg}')
@@ -552,14 +582,7 @@ def contatos_do_site(dominio, cnpj, razao, fantasia):
         time.sleep(1)
     if not achado['paginas']: return None
     if not confirma:
-        nomes = [t.lower() for t in (tokens(razao) | tokens(fantasia or '')) if len(t) > 3]
-        home = ''
-        try: home = sem_acento(re.sub(r'<[^>]+>', ' ', baixar_texto(base + '/')[0]).lower())
-        except Exception: pass
-        if nomes and sum(1 for t in set(nomes) if t in home) >= max(1, len(set(nomes)) // 2):
-            confirma = 'nome da empresa aparece no site (sem CNPJ)'
-        else:
-            confirma = 'NÃO CONFIRMADO: domínio do e-mail da Receita, mas o site não traz CNPJ nem o nome'
+        confirma = 'NÃO CONFIRMADO: o site não mostra o CNPJ'
     return dict(site=base, confirmacao=confirma,
                 contatos={k: sorted(v)[:15] if isinstance(v, set) else v[:7] for k, v in achado.items()})
 
@@ -569,17 +592,36 @@ def buscar_sites(sb, hoje, minutos=15):
     base = sb.todos('empresas', 'cnpj,email,razao_social,nome_fantasia,site_busca_em,data_coleta')
     fila = []
     for e in base:
-        dom = (e.get('email') or '').split('@')[-1].strip().lower() if '@' in (e.get('email') or '') else ''
-        if dom and dom not in GRATUITOS and (not e.get('site_busca_em') or e['site_busca_em'] < corte):
-            fila.append((e, dom))
-    log(f'site: {len(fila)} empresa(s) com domínio próprio no e-mail para conferir; limite de {minutos} min')
+        if e.get('site_busca_em') and e['site_busca_em'] >= corte: continue
+        email = (e.get('email') or '').lower()
+        dom = email.split('@')[-1].strip() if '@' in email else ''
+        if dom in GRATUITOS or re.match(r'(contab|contad|escritorio|assessoria)', dom): dom = ''
+        palpites = []
+        if e.get('nome_fantasia') or e.get('razao_social'):
+            w = [x.lower() for x in re.split(r'[^A-Za-z0-9]+', sem_acento(e.get('nome_fantasia') or e['razao_social'])) if x and x not in PALAVRAS_VAZIAS and len(x) > 2]
+            palpites = list(dict.fromkeys(filter(None, [''.join(w) + '.com.br' if w else '', ''.join(w[:2]) + '.com.br' if len(w) > 1 else '', (w[0] + '.com.br') if w else ''])))
+        fila.append((e, dom, palpites))
+    log(f'site: {len(fila)} empresa(s) para conferir (domínio do e-mail ou nome, decididos pelo Registro.br); limite de {minutos} min')
     t0, feitos, com, gravar = time.time(), 0, 0, []
-    for e, dom in fila:
+    for e, dom, palpites in fila:
         if time.time() - t0 > minutos * 60: break
-        try: r = contatos_do_site(dom, e['cnpj'], e.get('razao_social') or '', e.get('nome_fantasia') or '')
+        c14 = re.sub(r'\D', '', e['cnpj']); r = None; via = ''
+        # o domínio do e-mail só vale se o titular no Registro.br não for OUTRO CNPJ (ex.: contador)
+        if dom:
+            tit = rdap_titular(dom)
+            if tit and tit[:8] != c14[:8]: dom = ''; via = 'domínio do e-mail é de terceiro (provável contador)'
+            elif tit and tit[:8] == c14[:8]: via = 'Registro.br: titular é o próprio CNPJ'
+        # sem domínio útil: testa endereços prováveis pelo nome, aceitos só se o titular tiver a mesma raiz de CNPJ
+        if not dom:
+            for pal in palpites:
+                tit = rdap_titular(pal)
+                if tit and tit[:8] == c14[:8]: dom, via = pal, 'Registro.br: titular é o próprio CNPJ'; break
+        try: r = contatos_do_site(dom, e['cnpj'], '', '') if dom else None
         except Exception: r = None
+        if r and via.startswith('Registro.br') and r['confirmacao'].startswith('NÃO'): r['confirmacao'] = via
         feitos += 1
         linha = dict(cnpj=e['cnpj'], site_busca_em=hoje.isoformat())
+        if not r and via: linha.update(site_confirmacao=via)
         if r:
             com += 1
             # telefone/e-mail do site são do próprio site; CPF nunca entra (máscara em todo texto)
