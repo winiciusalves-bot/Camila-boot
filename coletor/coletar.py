@@ -535,6 +535,12 @@ def main():
         if tipo not in ('secret', 'service_role'):
             sys.exit('ERRO: SUPABASE_SERVICE_KEY não é a chave secret/service_role. No Supabase: Project Settings > API Keys > Secret keys.')
     sb = None if a.sem_supabase else Supabase(os.environ['SUPABASE_URL'].strip(), os.environ['SUPABASE_SERVICE_KEY'].strip())
+    if sb and os.environ.get('GITHUB_EVENT_NAME') == 'schedule':
+        # horário de reserva: só roda se a coleta não rodou hoje depois dos diários
+        inicio = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=8)).strftime('%Y-%m-%dT%H:%M:%S')
+        if sb.req('GET', f'/coletas?select=id&status=eq.ok&iniciada_em=gte.{inicio}&limit=1'):
+            log('coleta de hoje já rodou depois dos diários; reserva não precisa rodar'); return
+        log('reserva: a coleta não rodou depois dos diários hoje; rodando agora')
     reg = dict(fonte=FONTE_NOME + ' ' + FONTE_URL,
                metodo='UF=RJ; últimos 365 dias; só CNPJ com DV válido; CPF mascarado em todo texto; cadastro: BrasilAPI > minhareceita > cnpj.ws')
     id_coleta = None

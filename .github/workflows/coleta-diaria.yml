@@ -1,7 +1,10 @@
 name: Coleta diária IBAMA -> Supabase
 on:
+  workflow_run:              # roda logo depois dos diários municipais (que são a 1ª coisa do dia, às 08:00)
+    workflows: ['Diários oficiais municipais RJ (raspadores Querido Diário)']
+    types: [completed]
   schedule:
-    - cron: '0 9 * * *'     # todo dia às 06:00 (horário de Brasília)
+    - cron: '0 14 * * *'    # reserva às 11:00 (Brasília), caso os diários não tenham rodado
   workflow_dispatch: {}      # botão "Run workflow" para rodar na hora
 permissions:
   contents: read
