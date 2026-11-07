@@ -87,7 +87,7 @@ def dv_cpf(c):
         if (sum(c[i] * (n + 1 - i) for i in range(n)) * 10) % 11 % 10 != c[n]: return False
     return True
 
-CPF_RE = re.compile(r'(?<![\d./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?![\d./-])')
+CPF_RE = re.compile(r'(?<![\d./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?!\d|[./-]\d)')   # pega também CPF no fim de frase (seguido de ponto)
 def mascara(t):
     return CPF_RE.sub(lambda m: '[CPF omitido]' if dv_cpf(''.join(m.groups())) else m.group(0), t or '').strip()
 

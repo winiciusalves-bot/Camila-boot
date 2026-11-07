@@ -15,7 +15,7 @@
   function semAcento(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
   // CPF: mascarar qualquer sequência de 11 dígitos com DV de CPF válido (defesa extra; os dados já vêm mascarados).
   function cpfOk(c) { if (/^(\d)\1+$/.test(c)) return false; for (var n = 9; n <= 10; n++) { var s = 0; for (var i = 0; i < n; i++) s += +c[i] * (n + 1 - i); if ((s * 10) % 11 % 10 !== +c[n]) return false; } return true; }
-  function masc(t) { return String(t || '').replace(/(^|[^\d./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?![\d./-])/g, function (m, a, b, c, d, e) { return cpfOk(b + c + d + e) ? a + '[CPF omitido]' : m; }); }
+  function masc(t) { return String(t || '').replace(/(^|[^\d./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?!\d|[./-]\d)/g, function (m, a, b, c, d, e) { return cpfOk(b + c + d + e) ? a + '[CPF omitido]' : m; }); }
   function telefones(t) { return String(t || '').split('/').map(function (x) { return x.replace(/\D/g, ''); }).filter(Boolean); }
   function fmtTel(n) { return n.length === 11 ? '(' + n.slice(0, 2) + ') ' + n.slice(2, 7) + '-' + n.slice(7) : n.length === 10 ? '(' + n.slice(0, 2) + ') ' + n.slice(2, 6) + '-' + n.slice(6) : n; }
   function celular(n) { return n.length === 11 && n[2] === '9'; }
