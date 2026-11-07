@@ -1,0 +1,27 @@
+# bloqueados (o QD usa proxy pago): teste direto
+https://transparencia.mesquita.rj.gov.br/diario_oficial.php
+https://transparencia.queimados.rj.gov.br/diario_oficial.php
+https://angra.rj.gov.br/boletim-oficial
+https://www.angra.rj.gov.br/
+# robôs que não acharam edição
+https://portaltransparencia.barramansa.rj.gov.br/boletim-oficial/
+https://www.barramansa.rj.gov.br/
+https://www.cabofrio.instartecnologia.com.br/portal/diario-oficial
+https://www.cabofrio.rj.gov.br/
+https://www.campos.rj.gov.br/diario-oficial.php
+https://duquedecaxias.rj.gov.br/portal/boletim-oficial.html
+https://portal.iguaba.rj.gov.br/
+https://www.marica.rj.gov.br/jom/
+https://www.marica.rj.gov.br/
+https://plenussistemas.dioenet.com.br/list/nova-friburgo
+https://portal.arraial.rj.gov.br/diarios_oficiais_web
+https://buzios.aexecutivo.com.br/
+https://www.buzios.rj.gov.br/
+https://www.sjb.rj.gov.br/
+https://varresai.rj.gov.br/
+# fontes agregadoras e o próprio Querido Diário
+https://api.queridodiario.ok.org.br/gazettes?territory_ids=3304557&size=1
+https://queridodiario.ok.org.br/
+https://data.queridodiario.ok.org.br/
+https://www.diariomunicipal.com.br/
+https://www.ioerj.com.br/

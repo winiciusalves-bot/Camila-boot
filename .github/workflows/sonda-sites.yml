@@ -1,0 +1,32 @@
+name: Sonda de sites (diagnóstico)
+# Só lê páginas públicas e mostra o que responderam. Não contorna bloqueio, captcha ou login.
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: 'URLs separadas por espaço (vazio = lista padrão dos diários do RJ)'
+        default: ''
+permissions:
+  contents: read
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testar
+        env:
+          URLS: ${{ github.event.inputs.urls }}
+        run: |
+          [ -z "$URLS" ] && URLS=$(grep -v '^#' coletor/sonda_urls.txt | tr '\n' ' ')
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36'
+          for u in $URLS; do
+            echo "=================== $u"
+            curl -sS -L -m 40 -A "$UA" -o /tmp/p -w 'HTTP %{http_code} · final %{url_effective} · %{size_download} bytes · %{time_total}s\n' "$u" 2>&1 | tail -2
+            [ -s /tmp/p ] || continue
+            file -b /tmp/p | cut -c1-80
+            grep -oiE '<title[^>]*>[^<]{0,150}' /tmp/p | head -1
+            echo "-- links com diário/boletim/pdf/edição:"
+            grep -oiE '(href|src|action)="[^"]{0,220}"' /tmp/p | grep -iE 'diario|boletim|\.pdf|edic|jom|download|publicac|ver20|wp-json|api' | sort -u | head -25
+            echo "-- trechos de API/JS:"; grep -oiE '(ajax|fetch|axios|url)[^;]{0,160}' /tmp/p | grep -iE 'diario|boletim|edic|jom|api|get' | sort -u | head -10
+          done
