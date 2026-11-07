@@ -419,6 +419,13 @@ def email_de(fonte, j):
     return (j.get('email') or '').strip().lower(), [(x.get('nome'), x.get('qual')) for x in (j.get('qsa') or [])]
 
 
+def gravar_lotes(sb, linhas):
+    # o PostgREST exige as mesmas colunas em todas as linhas de um lote: agrupa por conjunto de colunas
+    grupos = {}
+    for l in linhas: grupos.setdefault(tuple(sorted(l)), []).append(l)
+    for g in grupos.values(): sb.upsert('empresas', g, 'cnpj')
+
+
 def buscar_emails(sb, hoje, minutos=40, so=None):
     """Etapa incremental: consulta os CNPJs sem e-mail (novos primeiro) até o tempo acabar; o resto fica para amanhã."""
     corte = (hoje - dt.timedelta(days=EMAIL_REVISITA)).isoformat()
@@ -469,14 +476,14 @@ def buscar_emails(sb, hoje, minutos=40, so=None):
         else:
             linha['email_fonte'] = f'{fonte}: CNPJ não encontrado ({hoje:%d/%m/%Y})'
         gravar.append(linha)
-        if len(gravar) >= 10: sb.upsert('empresas', gravar, 'cnpj'); gravar = []
+        if len(gravar) >= 10: gravar_lotes(sb, gravar); gravar = []
         dec = time.time() - t0
         log(f'e-mail: {consultados} consultado(s), {achados} com e-mail · {dec/60:.1f} min · fila {len(fila)} · '
             f'faltam ~{len(fila) * dec / max(1, consultados) / 60:.0f} min no total')
         if sem_email_seguidos >= 40:
             log('e-mail: 40 respostas seguidas sem e-mail. Parei para não gastar consultas; conferir se a fonte mudou o formato.')
             break
-    if gravar: sb.upsert('empresas', gravar, 'cnpj')
+    if gravar: gravar_lotes(sb, gravar)
     log(f'e-mail: fim desta execução. {consultados} consultado(s), {achados} e-mail(s) novo(s), {len(fila)} para a próxima')
     return dict(consultados=consultados, achados=achados, restantes=len(fila))
 
