@@ -8,7 +8,7 @@ on:
         description: 'Quantos dias para trás'
         default: '7'
   schedule:
-    - cron: '0 11 * * *'    # 1ª rotina do dia: 08:00 (Brasília), quando os diários do dia já saíram
+    - cron: '0 11 * * 1-5'  # 1ª rotina do dia útil: 08:00 (Brasília). Segunda olha 3 dias para pegar edição extra do fim de semana
 permissions:
   contents: read
 jobs:
