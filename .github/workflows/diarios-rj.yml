@@ -22,8 +22,13 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils >/dev/null
           git clone -q --depth 1 https://github.com/okfn-brasil/querido-diario qd
+          # robôs próprios (reservas) entram junto com os do Querido Diário
+          cp coletor/raspadores/*.py qd/querido_diario_raspadores/gazette/spiders/rj/
+          # 6 robôs vêm configurados para passar pelo proxy pago do Querido Diário (Zyte), que não temos.
+          # Aqui eles acessam o site direto; se o site recusar, a falha fica registrada (sem contornar).
+          sed -i 's/zyte_smartproxy_enabled = True/zyte_smartproxy_enabled = False/' qd/querido_diario_raspadores/gazette/spiders/rj/*.py
           cd qd/querido_diario_raspadores && uv sync -q
-      - name: Baixar diários (33 municípios do RJ)
+      - name: Baixar diários (33 municípios do RJ + AEMERJ)
         working-directory: qd/querido_diario_raspadores
         env:
           DIAS: ${{ github.event.inputs.dias || '3' }}   # rotina diária: 3 dias (cobre fim de semana e edição extra)
