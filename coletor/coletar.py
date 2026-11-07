@@ -12,6 +12,7 @@ Uso local de teste:  python coletar.py --csv arquivo.csv --sem-supabase --sem-ca
 Variáveis no Actions: SUPABASE_URL e SUPABASE_SERVICE_KEY (em Secrets, nunca no código).
 """
 import argparse, csv, datetime as dt, io, json, os, re, sys, tempfile, time, unicodedata, urllib.request, urllib.error, zipfile
+csv.field_size_limit(2**31 - 1)   # descrições muito longas em alguns CSVs do IBAMA
 
 FONTE_URL = 'https://stibamadadosabertosprd.blob.core.windows.net/dados-abertos/dados/SIFISC/auto_infracao/auto_infracao/auto_infracao_csv.zip'
 FONTE_NOME = 'IBAMA Dados Abertos - Fiscalização: Auto de Infração (auto_infracao_csv.zip)'
@@ -339,11 +340,14 @@ def pontuar_occ(e, occs, hoje, status_contato, excluidas):
                 prazo_defesa_ate=prazos[0] if prazos else None)
 
 
-def arquivos_do_zip(caminho):
+def arquivos_do_zip(caminho, ano_min=None):
+    """CSVs do zip. Com ano_min, pula os arquivos anuais antigos (auto_infracao_1999.csv etc.): a janela é de 365 dias."""
     with zipfile.ZipFile(caminho) as z:
         for n in z.namelist():
-            if n.lower().endswith('.csv'):
-                yield n, z.read(n)
+            if not n.lower().endswith('.csv'): continue
+            m = re.search(r'(19|20)\d{2}', os.path.basename(n))
+            if ano_min and m and int(m.group(0)) < ano_min: continue
+            yield n, z.read(n)
 
 
 # ---------- cadastro do CNPJ (fontes públicas, com reservas) ----------
@@ -457,7 +461,7 @@ def main():
         else:
             tmp = os.path.join(tempfile.gettempdir(), 'auto_infracao_csv.zip')
             log('baixando o arquivo do IBAMA', 0.1); baixar(FONTE_URL, tmp)
-            arqs = list(arquivos_do_zip(tmp))
+            arqs = list(arquivos_do_zip(tmp, hoje.year - 1))
         autos, lidos, occ = ler_autos(arqs, hoje)
         embargos = []
         if a.embargos:
