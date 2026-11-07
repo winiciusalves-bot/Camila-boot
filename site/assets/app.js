@@ -58,6 +58,29 @@
     document.getElementById('e-cnpj').hidden = !(v.length === 14 && !cnpjOk(v));
   });
 
+  // Campos do auto só aparecem quando o assunto é auto de infração
+  var as = document.getElementById('c-assunto');
+  if (as) { var tg = function () { document.querySelectorAll('.so-auto').forEach(function (e) { e.hidden = !/auto/i.test(as.value); }); }; as.addEventListener('change', tg); tg(); }
+
+  // Animações: entrada ao rolar e contadores (respeita quem pediu menos movimento)
+  var calmo = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rev = document.querySelectorAll('.revela');
+  if (!calmo && 'IntersectionObserver' in window) {
+    document.documentElement.classList.add('anima');
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('visivel'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    rev.forEach(function (e, i) { e.style.transitionDelay = (i % 4) * 70 + 'ms'; io.observe(e); });
+  }
+  window.contarKpis = function () {
+    document.querySelectorAll('.kpi').forEach(function (k) {
+      var alvo = parseInt(String(k.textContent).replace(/\D/g, ''), 10); if (!alvo || calmo) return;
+      var t0 = null; (function passo(t) { t0 = t0 || t; var f = Math.min(1, (t - t0) / 1200); k.textContent = Math.round(alvo * (1 - Math.pow(1 - f, 3))).toLocaleString('pt-BR'); if (f < 1) requestAnimationFrame(passo); })(performance.now());
+    });
+  };
+  var pn = document.querySelector('.painel');
+  if (pn && 'IntersectionObserver' in window) new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { o.disconnect(); window.contarKpis(); } }).observe(pn);
+
   // Formulário -> WhatsApp
   var f = document.getElementById('form-wa');
   if (f) f.addEventListener('submit', function (ev) {
@@ -69,12 +92,13 @@
     if (!document.getElementById('c-lgpd').checked) msgs.push('Marque a autorização de uso dos dados.');
     err.hidden = !msgs.length; err.textContent = msgs.join(' ');
     if (msgs.length) return;
-    var linhas = ['Olá! Vim pelo site da ' + C.nomeEmpresa + '.', 'Nome: ' + g('c-nome')];
+    var linhas = ['Olá! Vim pelo site da ' + C.nomeEmpresa + '.', 'Assunto: ' + g('c-assunto'), 'Nome: ' + g('c-nome')];
+    var ehAuto = /auto/i.test(g('c-assunto'));
     if (g('c-emp')) linhas.push('Empresa: ' + g('c-emp'));
     if (g('c-cnpj')) linhas.push('CNPJ: ' + g('c-cnpj'));
-    linhas.push('Órgão: ' + g('c-org'));
-    if (g('c-auto')) linhas.push('Nº do auto: ' + g('c-auto'));
-    if (g('c-data')) linhas.push('Recebi o auto em: ' + br(g('c-data')));
+    if (ehAuto) linhas.push('Órgão: ' + g('c-org'));
+    if (ehAuto && g('c-auto')) linhas.push('Nº do auto: ' + g('c-auto'));
+    if (ehAuto && g('c-data')) linhas.push('Recebi o auto em: ' + br(g('c-data')));
     if (g('c-msg')) linhas.push('', g('c-msg'));
     window.open(waLink(linhas.join('\n')), '_blank', 'noopener');
   });

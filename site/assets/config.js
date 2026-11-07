@@ -3,10 +3,10 @@ window.SITE_CONFIG = {
   // WhatsApp com DDI 55 + DDD + número, só dígitos. PROVISÓRIO: troque pelo número real.
   whatsapp: '5521900000000',
   whatsappProvisorio: true,      // mude para false quando colocar o número real
-  nomeEmpresa: 'Ambiental Costa',
+  nomeEmpresa: 'Origem Consultoria Ambiental',
   // Registro no CREA-RJ e responsável técnico (aparecem no rodapé). PREENCHER.
   creaRegistro: '',
-  responsavelTecnico: '',
+  responsavelTecnico: 'Camila Costa da Silva, Engenheira Ambiental e Sanitarista',
 
   // Área restrita (Supabase). Preencha com os dados do SEU projeto Supabase:
   // Project Settings > API > Project URL e "anon public key".

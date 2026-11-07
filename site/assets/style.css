@@ -139,3 +139,185 @@ details p{margin:10px 0 0;color:var(--cinza)}
 .dlg-x{position:absolute;top:8px;right:12px;border:0;background:none;font-size:1.8rem;line-height:1;cursor:pointer;color:var(--cinza)}
 @media (max-width:960px){.topo .btn-restrito{margin-left:auto}.topo .btn-restrito + .btn-sm{margin-left:8px}}
 @media (max-width:620px){.topo .txt-restrito{display:none}.topo .btn-restrito{padding:8px 11px}}
+
+/* ===== Visual novo (07/11/2026): fotos, licenciamento em primeiro plano, animações ===== */
+.hero{position:relative;overflow:hidden;background:#0b2f23;padding:120px 0 130px;min-height:min(86vh,760px);display:flex;align-items:center}
+.hero-foto{position:absolute;inset:0}
+.hero-foto img{width:100%;height:100%;object-fit:cover;object-position:center 40%;animation:zoomlento 28s ease-out both}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,32,24,.88) 0%,rgba(8,32,24,.62) 48%,rgba(8,32,24,.18) 100%)}
+.hero-in{position:relative;z-index:1;display:block;width:100%}
+.hero-txt{max-width:660px}
+.hero h1{font-size:clamp(2.2rem,5vw,3.6rem);text-shadow:0 2px 20px rgba(0,0,0,.25)}
+.lead{color:#dbe9e1}
+.btn-claro{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.7);color:#fff;backdrop-filter:blur(4px)}
+.btn-claro:hover{background:rgba(255,255,255,.22)}
+.hero-desce{position:absolute;left:50%;bottom:26px;z-index:1;width:26px;height:42px;margin-left:-13px;border:2px solid rgba(255,255,255,.7);border-radius:14px}
+.hero-desce span{position:absolute;left:50%;top:8px;width:4px;height:8px;margin-left:-2px;border-radius:2px;background:#fff;animation:rolar 1.8s infinite}
+@keyframes zoomlento{from{transform:scale(1.12)}to{transform:scale(1)}}
+@keyframes rolar{0%{opacity:0;transform:translateY(0)}40%{opacity:1}100%{opacity:0;transform:translateY(14px)}}
+
+.ico{width:42px;height:42px;padding:9px;border-radius:12px;background:var(--verde-claro);color:var(--verde);margin-bottom:14px;transition:background .25s,color .25s,transform .25s}
+.card-caminho,.card-serv{text-decoration:none;color:inherit;transition:transform .25s,box-shadow .25s,border-color .25s}
+.card-caminho:hover,.card-serv:hover{transform:translateY(-5px);box-shadow:0 18px 40px rgba(16,32,24,.12);border-color:#b7cfc2}
+.card-caminho:hover .ico,.card-serv:hover .ico{background:var(--verde);color:#fff;transform:rotate(-6deg)}
+.card-caminho h3{font-size:1.12rem}
+.grade4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:32px}
+
+.faixa-foto{position:relative;overflow:hidden;padding:110px 0;background:#0b2f23}
+.faixa-foto>picture{position:absolute;inset:0}
+.faixa-foto>picture img{width:100%;height:100%;object-fit:cover}
+.faixa-in{position:relative;z-index:1}
+.faixa-caixa{max-width:680px;background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border-radius:18px;padding:34px 36px;box-shadow:0 30px 70px rgba(0,0,0,.3)}
+.faixa-caixa .btn{margin-top:8px}
+
+.mosaico{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.3fr;gap:6px;height:300px;background:#fff}
+.mosaico figure{margin:0;overflow:hidden}
+.mosaico img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s ease}
+.mosaico figure:hover img{transform:scale(1.07)}
+
+.autos-in{display:grid;grid-template-columns:1.1fr 1fr;gap:44px;align-items:center;margin-top:12px}
+.autos-in .painel{box-shadow:var(--sombra);border:1px solid var(--linha)}
+.sub-tit{font-family:var(--serif);font-size:1.5rem;margin-top:56px;color:var(--tinta)}
+
+.wa-flutua{animation:pulso 2.8s ease-out 3s infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(31,157,85,.45),0 8px 24px rgba(0,0,0,.25)}70%{box-shadow:0 0 0 16px rgba(31,157,85,0),0 8px 24px rgba(0,0,0,.25)}100%{box-shadow:0 0 0 0 rgba(31,157,85,0),0 8px 24px rgba(0,0,0,.25)}}
+
+.anima .revela{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.anima .revela.visivel{opacity:1;transform:none}
+
+@media (max-width:960px){
+  .grade4{grid-template-columns:1fr 1fr}
+  .autos-in{grid-template-columns:1fr}
+  .mosaico{grid-template-columns:1fr 1fr;height:auto}.mosaico figure{height:180px}
+}
+@media (max-width:620px){
+  .hero{padding:84px 0 96px;min-height:auto}
+  .hero::after{background:linear-gradient(180deg,rgba(8,32,24,.55) 0%,rgba(8,32,24,.85) 70%)}
+  .grade4{grid-template-columns:1fr}
+  .faixa-foto{padding:56px 0}
+  .faixa-caixa{padding:24px 20px}
+  .hero-cta .btn{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero-foto img,.hero-desce span,.wa-flutua{animation:none}
+  .card-caminho:hover,.card-serv:hover{transform:none}
+}
+
+/* ===================== Identidade ORIGEM (07/11/2026) ===================== */
+:root{
+  --verde:#1F3B2E; --verde-2:#2B4D3C; --salvia:#6B7F62; --areia:#D9C9B1; --terra:#9B7B5A; --grafite:#2E2E2E;
+  --creme:#F5F0E8; --creme-2:#EDE5D8; --verde-claro:#E4E8E0; --ouro:#9B7B5A;
+  --tinta:#2E2E2E; --cinza:#5f645d; --linha:#ddd3c3; --fundo:#F5F0E8; --fundo-2:#EDE5D8;
+  --wa:#1F3B2E; --wa-2:#2B4D3C;
+  --serif:'Montserrat',system-ui,sans-serif; --sans:'Lato',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --sombra:0 1px 2px rgba(31,59,46,.05),0 10px 30px rgba(31,59,46,.07);
+}
+body{background:var(--creme);color:var(--grafite);font-family:var(--sans);font-weight:400}
+h1,h2,h3,.btn,.sobre,.kpi{font-family:'Montserrat',system-ui,sans-serif}
+h1{font-weight:500;letter-spacing:-.015em;color:var(--verde)}
+h2{font-weight:500;letter-spacing:-.01em;color:var(--verde)}
+h3{font-weight:600;letter-spacing:.005em}
+.sobre{color:var(--terra);letter-spacing:.28em;font-weight:500;font-size:.72rem}
+.sobre::after{content:"";display:block;width:34px;height:1px;background:var(--terra);margin-top:12px}
+.btn{font-weight:500;letter-spacing:.03em;border-radius:999px}
+.btn-wa{background:var(--verde);color:var(--creme)}.btn-wa:hover{background:var(--verde-2)}
+.btn-linha{color:var(--verde);border-color:var(--verde)}
+
+/* topo */
+.topo{background:rgba(245,240,232,.92);border-bottom:1px solid var(--linha)}
+.topo-in{height:76px}
+.marca{gap:12px}
+.marca-img{width:40px;height:40px}
+.marca-txt{display:flex;flex-direction:column;line-height:1.05}
+.marca-nome{font-family:'Montserrat',sans-serif;font-weight:400;letter-spacing:.32em;font-size:1.12rem;color:var(--verde)}
+.marca-sub{font-family:'Montserrat',sans-serif;font-size:.52rem;letter-spacing:.3em;text-transform:uppercase;color:var(--grafite);margin-top:3px}
+.menu a{font-family:'Montserrat',sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.topo .btn-restrito{color:var(--verde);border-color:var(--areia)}
+
+/* hero em duas partes: texto no creme, foto com borda orgânica */
+.hero{background:var(--creme);color:var(--grafite);padding:0;min-height:auto;display:block;overflow:hidden}
+.hero::after{display:none}
+.hero-in{display:grid;grid-template-columns:1fr 1.05fr;min-height:min(88vh,780px);position:relative;max-width:none}
+.hero-txt{align-self:center;padding:64px 56px 64px max(24px,calc((100vw - 1160px)/2 + 20px));max-width:none}
+.pilares{font-family:'Montserrat',sans-serif;font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--grafite);margin:0 0 26px}
+.pilares i{font-style:normal;color:var(--terra);margin:0 8px}
+.hero h1{color:var(--verde);font-size:clamp(2.2rem,4.4vw,3.5rem);text-shadow:none;max-width:620px}
+.hero h1 em{font-style:normal;color:var(--salvia)}
+.lead{color:var(--cinza);font-size:1.12rem;max-width:560px}
+.hero .btn-linha{color:var(--verde)}
+.assina{font-family:'Montserrat',sans-serif;font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;color:var(--terra);margin:34px 0 0}
+.assina::before{content:"";display:inline-block;width:34px;height:1px;background:var(--terra);vertical-align:middle;margin-right:14px}
+.hero-foto{position:relative;overflow:hidden;clip-path:url(#curva);-webkit-clip-path:url(#curva);min-height:420px}
+.hero-foto picture,.hero-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero-foto img{animation:zoomlento 30s ease-out both}
+.hero-foto::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,35,28,.35),rgba(20,35,28,0) 40%,rgba(20,35,28,.45))}
+.hero-frase,.hero-lista{position:absolute;z-index:1;color:#f5f0e8;font-family:'Montserrat',sans-serif;text-transform:uppercase;letter-spacing:.3em;font-size:.72rem;line-height:2.1;margin:0}
+.hero-frase{top:44px;right:40px;text-align:right}
+.hero-lista{bottom:40px;right:40px;text-align:right}
+.hero-frase::after,.hero-lista::after{content:"";display:block;width:34px;height:1px;background:#f5f0e8;margin:12px 0 0 auto}
+.hero-vertical{position:absolute;left:calc(50% - 1.05rem);top:50%;transform:translate(-50%,-50%) rotate(-90deg);display:none}
+.hero-desce{display:none}
+
+/* Olá, somos a Origem */
+.sobre-origem{background:#fff9f0;border-top:1px solid var(--linha);border-bottom:1px solid var(--linha)}
+.origem-in{display:grid;grid-template-columns:260px 1fr;gap:56px;align-items:center}
+.origem-marca{width:220px;height:220px;justify-self:center}
+.ola{font-family:'Montserrat',sans-serif;font-weight:400;font-size:clamp(2rem,4vw,3rem);color:var(--salvia);line-height:1.05;margin-bottom:22px}
+.ola strong{font-weight:600;color:var(--verde)}
+.valores{list-style:none;padding:0;margin:30px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.valores li{text-align:center;font-family:'Montserrat',sans-serif;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--grafite);line-height:1.6}
+.circ{display:grid;place-items:center;width:72px;height:72px;margin:0 auto 12px;border:1.2px solid var(--terra);border-radius:50%;color:var(--verde);transition:background .3s,color .3s,transform .3s}
+.circ svg{width:30px;height:30px}
+.valores li:hover .circ{background:var(--verde);color:var(--creme);transform:translateY(-4px)}
+
+/* cards e ícones no estilo da marca: traço fino em círculo terra */
+.card{background:#fffaf2;border-color:var(--linha);border-radius:16px;box-shadow:none}
+.card h3{color:var(--verde)}
+.ico{width:56px;height:56px;padding:13px;border-radius:50%;background:transparent;border:1.2px solid var(--terra);color:var(--verde)}
+.card-caminho:hover .ico,.card-serv:hover .ico{background:var(--verde);color:var(--creme);border-color:var(--verde)}
+.card-caminho:hover,.card-serv:hover{border-color:var(--areia);box-shadow:0 20px 44px rgba(31,59,46,.10)}
+.seta{color:var(--terra);font-family:'Montserrat',sans-serif;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase}
+.sec-alt{background:var(--creme-2)}
+.passos li{background:#fffaf2;border-color:var(--linha);border-radius:16px}
+.passos span{background:transparent;border:1.2px solid var(--terra);color:var(--verde);font-family:'Montserrat',sans-serif;font-weight:500}
+.faixa-foto{background:var(--verde)}
+.faixa-foto>picture img{opacity:.9}
+.faixa-caixa{background:rgba(245,240,232,.96);border-radius:24px}
+.lista-ok li::before{content:"";width:12px;height:1px;background:var(--terra);top:.8em}
+.mosaico{background:var(--creme);gap:8px;padding:0 8px}
+.mosaico figure{border-radius:14px}
+.painel{background:#fffaf2;border-radius:20px}
+.kpis div{background:var(--creme)}
+.kpi{font-weight:500;color:var(--verde)}
+.barra-t i{background:var(--salvia)}
+.tabela thead th{background:var(--verde);font-family:'Montserrat',sans-serif;font-weight:500;letter-spacing:.04em}
+.tabela{background:#fffaf2}
+.form{background:#fffaf2;border-color:var(--linha);border-radius:20px}
+.campo input,.campo select,.campo textarea{border-color:#d4c8b6;background:#fff}
+details{background:#fffaf2;border-color:var(--linha);border-radius:14px}
+summary{color:var(--verde);font-family:'Montserrat',sans-serif;font-weight:500}
+.aviso{background:#f6ecdc;border-color:var(--areia)}
+.rodape{background:var(--verde);color:#cfd6cc}
+.rodape a{color:var(--areia)}
+.rodape .marca-nome{color:var(--creme)}.rodape .marca-sub{color:var(--areia)}
+.rodape .marca-img{filter:brightness(1.6) saturate(.6)}
+.wa-flutua{background:var(--verde);border:2px solid var(--terra)}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(155,123,90,.5),0 8px 24px rgba(0,0,0,.2)}70%{box-shadow:0 0 0 16px rgba(155,123,90,0),0 8px 24px rgba(0,0,0,.2)}100%{box-shadow:0 0 0 0 rgba(155,123,90,0),0 8px 24px rgba(0,0,0,.2)}}
+
+@media (max-width:960px){
+  .hero-in{grid-template-columns:1fr;min-height:auto}
+  .hero-txt{padding:44px 20px 36px;order:2}
+  .hero-foto{order:1;height:46vh;min-height:300px;clip-path:url(#curva-m);-webkit-clip-path:url(#curva-m)}
+  .origem-in{grid-template-columns:1fr;gap:24px;text-align:left}
+  .origem-marca{width:140px;height:140px;justify-self:start}
+  .valores{grid-template-columns:1fr 1fr;gap:22px}
+}
+@media (max-width:620px){
+  .pilares{font-size:.62rem;letter-spacing:.16em}
+  .hero-frase{top:26px;right:22px;font-size:.62rem}
+  .hero-lista{display:none}
+  .marca-nome{font-size:1rem}
+}
+.hero-in{align-items:stretch;gap:0}
+.hero h1{font-size:clamp(2.1rem,3.8vw,3.1rem)}
+.hero-cta{gap:12px 14px}

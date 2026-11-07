@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Origem Consultoria Ambiental">
+  <defs><linearGradient id="bz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8956a"/><stop offset="1" stop-color="#8a6a48"/></linearGradient></defs>
+  <path d="M48 12 A38 38 0 0 0 48 88 Z" fill="#1F3B2E"/>
+  <path d="M48 22 C30 32 25 60 48 80 Z" fill="#6B7F62" stroke="#F5F0E8" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M47 76 C40 62 38 44 44 30 M42 58 L35 52 M43 47 L37 42 M41 67 L35 63" fill="none" stroke="#F5F0E8" stroke-width=".9" stroke-linecap="round"/>
+  <path d="M53 14 A36 36 0 0 1 53 86" fill="none" stroke="url(#bz)" stroke-width="2.4" stroke-linecap="round"/>
+  <rect x="48.4" y="3" width="3.2" height="94" rx="1" fill="#1F3B2E"/>
+</svg>

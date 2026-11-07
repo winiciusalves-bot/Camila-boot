@@ -5,6 +5,8 @@
   var ST = { novo: 'Novo', contatado: 'Contatado', respondeu: 'Respondeu', reuniao: 'Reunião marcada', cliente: 'Cliente', sem_interesse: 'Sem interesse', nao_contatar: 'Não contatar' };
   var sb = null, modo = null, usuario = '';
   var D = { empresas: [], autos: [], contatos: [], embargos: [], ocorrencias: [] }, porCnpj = {}, aba = 'fila';
+  var TRI = {}, triOk = true, desfazer = [], DIAS_REPROVADO = 45, confAtual = null, forcar = null, ocupado = false;
+  var ABAS = ['conferencia', 'aprovados', 'reprovados', 'empresas', 'registro', 'fila'], grupo = 'acontatar', VOLTAS = [7, 14];   // sem resposta: volta em 7 dias, depois em 14; sem resposta de novo, vai para o lixo
 
   var TIPO_CURTO = { 'AUTO DE INFRACAO': 'auto de infração', 'TERMO DE EMBARGO': 'termo de embargo', 'NOTIFICACAO': 'notificação', 'TERMO DE SUSPENSAO': 'termo de suspensão',
     'TERMO DE DEMOLICAO': 'termo de demolição', 'TERMO DE APREENSAO': 'termo de apreensão', 'ACIDENTE AMBIENTAL (SIEMA)': 'registro de acidente ambiental', 'PENALIDADE INEA': 'penalidade do INEA', 'MENCAO NO DOU': 'menção no Diário Oficial' };
@@ -32,6 +34,7 @@
     $('faixa-previa').hidden = false;
     D.empresas = DADOS_LOCAIS.empresas; D.autos = DADOS_LOCAIS.autos; D.embargos = DADOS_LOCAIS.embargos || []; D.ocorrencias = DADOS_LOCAIS.ocorrencias || [];
     try { D.contatos = JSON.parse(localStorage.getItem('ac_contatos') || '[]'); } catch (e) { D.contatos = []; }
+    try { TRI = JSON.parse(localStorage.getItem('ac_triagem') || '{}'); } catch (e) { TRI = {}; }
     usuario = 'prévia local'; montar();
   } else {
     mostrar('tela-sem-config');
@@ -70,8 +73,11 @@
       todos('autos', 'data_auto'),
       todos('contatos', 'criado_em', true),
       todos('embargos'),
-      todos('ocorrencias', 'data_documento')
+      todos('ocorrencias', 'data_documento'),
+      todos('triagem')
     ]).then(function (r) {
+      if (r[5].error) { triOk = false; r[5] = { data: [] }; }
+      TRI = {}; r[5].data.forEach(function (t) { TRI[t.cnpj] = t; });
       if (r[3].error) r[3] = { data: [] };   // tabelas opcionais
       if (r[4].error) r[4] = { data: [] };
       var err = r.find(function (x) { return x.error; });
@@ -97,8 +103,20 @@
       x.doc = x.validos[0] || x.occ[0] || null;
       x.ultimo = x.doc ? x.doc.data_documento : (x.autos[0] ? x.autos[0].data_auto : '');
       x.pri = (x.e.prioridade || '').charAt(0);
+      x.contatos.sort(function (a, b) { return String(a.criado_em) < String(b.criado_em) ? -1 : 1; });
       x.status = x.contatos.length ? x.contatos[x.contatos.length - 1].status : 'novo';
+      x.ultContato = x.contatos.length ? x.contatos[x.contatos.length - 1].criado_em : '';
+      // tentativas sem resposta desde o último recomeço (status Novo)
+      x.tentativas = 0;
+      for (var i = x.contatos.length - 1; i >= 0 && x.contatos[i].status !== 'novo'; i--) if (x.contatos[i].status === 'contatado') x.tentativas++;
+      x.lixoEm = null;
+      if (x.status === 'contatado' && x.tentativas > VOLTAS.length) x.lixoEm = new Date(new Date(x.ultContato).getTime() + VOLTAS[VOLTAS.length - 1] * 864e5);
+      if (x.lixoEm && x.lixoEm > Date.now()) x.lixoEm = null;
       var lim = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+      var t = TRI[x.e.cnpj];
+      x.tri = t ? t.decisao : '';
+      // auto novo depois da reprovação devolve a empresa à conferência
+      if (t && t.decisao === 'reprovado' && x.autos.some(function (a) { return a.primeira_coleta && a.primeira_coleta > String(t.decidido_em).slice(0, 10); })) x.tri = '';
       x.novo = x.autos.some(function (a) { return a.primeira_coleta && a.primeira_coleta >= lim; });
       x.muns = Array.from(new Set(x.autos.map(function (a) { return a.municipio; }).concat(x.occ.map(function (o) { return o.municipio; })).filter(Boolean)));
       x.tels = telefones(x.e.telefone);
@@ -123,10 +141,10 @@
   function fonteCurta(o) { return o.orgao === 'INEA' ? 'do INEA' : /DOU|DOM/.test(String(o.chave || '').split('|')[0]) ? 'do Diário Oficial' : 'do IBAMA'; }
 
   function trocarAba(n) {
-    if (['fila', 'empresas', 'registro'].indexOf(n) < 0) n = 'fila';
-    aba = n;
+    if (ABAS.indexOf(n) < 0 || n === 'fila') n = 'conferencia';
+    aba = n; document.body.setAttribute('data-aba', n);
     document.querySelectorAll('.aba').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-aba') === n ? 'true' : 'false'); });
-    ['fila', 'empresas', 'registro'].forEach(function (k) { $('aba-' + k).hidden = k !== n; });
+    ABAS.forEach(function (k) { $('aba-' + k).hidden = k !== n; });
     try { localStorage.setItem('ac_aba', n); } catch (e) {}
   }
 
@@ -143,8 +161,16 @@
     $('r-org').innerHTML = opts(Array.from(new Set(D.ocorrencias.map(function (o) { return o.orgao; }))).sort());
     $('p-fonte').innerHTML = 'Fontes: <a href="https://dadosabertos.ibama.gov.br/" target="_blank" rel="noopener">IBAMA Dados Abertos</a>' + (D.ocorrencias.some(function (o) { return o.orgao !== 'IBAMA'; }) ? ', INEA e diários oficiais (base do Radar-Ambiental)' : '') + ' e base pública do CNPJ. Última coleta: ' + esc(br(coleta)) + '. Só pessoas jurídicas; CPF sempre mascarado.';
     document.querySelectorAll('.aba').forEach(function (b) { b.addEventListener('click', function () { trocarAba(b.getAttribute('data-aba')); }); });
-    var salva = 'fila'; try { salva = localStorage.getItem('ac_aba') || 'fila'; } catch (e) {}
+    var salva = 'conferencia'; try { salva = localStorage.getItem('ac_aba') || 'conferencia'; } catch (e) {}
     trocarAba(salva);
+    $('c-pri').addEventListener('input', function () { renderConf(); });
+    $('a-per').addEventListener('input', renderAprovados);
+    $('c-nao').addEventListener('click', function () { decidir('reprovado'); });
+    $('c-sim').addEventListener('click', function () { decidir('aprovado'); });
+    $('c-volta').addEventListener('click', voltar);
+    $('a-xls').addEventListener('click', baixarPlanilha);
+    try { grupo = localStorage.getItem('ac_grupo') || grupo; } catch (e) {}
+    document.querySelectorAll('.sub-aba').forEach(function (b) { b.addEventListener('click', function () { grupo = b.getAttribute('data-g'); try { localStorage.setItem('ac_grupo', grupo); } catch (e) {} renderAprovados(); }); });
     ['f-pri', 'f-mun', 'f-novos', 'f-tel', 'r-q', 'r-tipo', 'r-org', 'r-niv', 'r-val'].forEach(function (id) { $(id).addEventListener('input', render); });
     $('p-st').innerHTML = '<option value="">Todos</option>' + Object.keys(ST).map(function (k) { return '<option value="' + k + '">' + ST[k] + '</option>'; }).join('');
     $('p-ord').value = D.empresas.some(function (e) { return e.pontos != null; }) ? 'pontos' : 'recente';
@@ -154,7 +180,9 @@
   }
 
   function selos(e) {
-    var s = '';
+    var s = '', t = TRI[e.cnpj];
+    if (t && t.decisao === 'aprovado') s += '<span class="selo selo-apr">✓ Aprovado na conferência</span>';
+    if (t && t.decisao === 'reprovado') s += '<span class="selo selo-verm">✕ Reprovado na conferência</span>';
     if (e.prioridade) s += '<span class="selo pri pri-' + esc(e.prioridade.charAt(0)) + '" title="' + esc(e.motivos || '') + '">Prioridade ' + esc(e.prioridade) + (e.pontos != null ? ' · ' + e.pontos + ' pts' : '') + '</span>';
     if (e.embargos_vigentes) s += '<span class="selo selo-verm">' + e.embargos_vigentes + ' embargo(s) vigente(s)</span>';
     if (e.situacao_receita && e.situacao_receita !== 'ATIVA') s += '<span class="selo selo-verm">' + esc(e.situacao_receita) + ' na Receita</span>';
@@ -197,7 +225,7 @@
         '<td data-l="Status"><span class="st st-' + x.status + '">' + ST[x.status] + '</span></td>' +
         '<td class="td-acao"><button class="btn btn-linha btn-sm" data-abrir="' + esc(x.e.cnpj) + '" type="button">Abrir</button></td></tr>';
     }).join('') || '<tr><td colspan="6">Nenhuma empresa com esses filtros.</td></tr>';
-    renderFila(todos); renderRegistro();
+    renderFila(todos); renderRegistro(); renderConf(); renderAprovados(); renderReprovados();
   }
 
   // ---------- Aba Fila de prospecção ----------
@@ -206,6 +234,7 @@
     var lista = todos.filter(function (x) {
       if (x.pri === 'X' || (!x.pri && x.e.situacao_receita !== 'ATIVA')) return false;
       if (x.status === 'nao_contatar' || x.status === 'cliente' || x.status === 'sem_interesse') return false;
+      if (x.tri === 'reprovado') return false;
       if (pf === 'AB' ? !(x.pri === 'A' || x.pri === 'B') : (pf && x.pri !== pf)) return false;
       if (mun && x.muns.indexOf(mun) < 0) return false;
       if ($('f-novos').checked && x.status !== 'novo') return false;
@@ -226,6 +255,253 @@
         '<div class="cf-acoes">' + (cel ? '<a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="https://wa.me/55' + cel + '?text=' + encodeURIComponent(mensagemPadrao(x)) + '">WhatsApp</a>' : '') +
         '<button class="btn btn-linha btn-sm" data-abrir="' + esc(e.cnpj) + '" type="button">Abrir e registrar</button></div></article>';
     }).join('') || '<p>Ninguém na fila com esses filtros.</p>';
+  }
+
+
+  // ---------- Conferência diária (✕ / ✓) ----------
+  function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function diaLocal(t) { var d = new Date(t); return isNaN(d) ? '' : d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function lista() { return Object.keys(porCnpj).map(function (k) { return porCnpj[k]; }); }
+  function filaConf() {
+    var pf = $('c-pri').value;
+    var l = lista().filter(function (x) {
+      if (x.tri) return false;
+      if (pf === 'X') return x.pri === 'X';
+      if (x.pri === 'X') return false;
+      return pf === 'AB' ? (x.pri === 'A' || x.pri === 'B') : (!pf || x.pri === pf);
+    }).sort(function (a, b) { return (b.e.pontos || 0) - (a.e.pontos || 0) || (a.ultimo < b.ultimo ? 1 : -1); });
+    if (forcar && porCnpj[forcar] && !porCnpj[forcar].tri) { l = l.filter(function (x) { return x.e.cnpj !== forcar; }); l.unshift(porCnpj[forcar]); }
+    return l;
+  }
+
+  function renderConf() {
+    var f = filaConf(), feitasHoje = Object.keys(TRI).filter(function (k) { return diaLocal(TRI[k].decidido_em) === hojeISO() && porCnpj[k]; }).length;
+    $('n-conf').textContent = f.length ? f.length : '';
+    $('c-aviso').hidden = triOk;
+    $('c-aviso').textContent = 'A tabela da conferência ainda não existe no banco. As decisões não serão salvas até ela ser criada.';
+    $('c-volta').disabled = !desfazer.length;
+    if (!f.length) {
+      confAtual = null; $('c-barra').hidden = true;
+      $('c-info').textContent = feitasHoje ? 'Conferência em dia: ' + feitasHoje + ' decisão(ões) hoje.' : '';
+      $('c-pilha').innerHTML = '<div class="conf-vazia"><strong>Nada para conferir com esse filtro.</strong><br>' + (feitasHoje ? 'Os aprovados de hoje estão na aba Aprovados, com a planilha.' : 'Quando a coleta trouxer empresas novas, elas aparecem aqui.') + '</div>';
+      return;
+    }
+    var x = f[0];
+    $('c-info').innerHTML = '<strong>' + (feitasHoje + 1) + ' de ' + (feitasHoje + f.length) + '</strong> hoje · faltam ' + f.length;
+    if (confAtual === x.e.cnpj && $('c-pilha').querySelector('.conf-card')) return;
+    confAtual = x.e.cnpj;
+    $('c-pilha').innerHTML = (f[1] ? '<div class="conf-atras" aria-hidden="true"></div>' : '') + '<article class="conf-card" id="c-card"><div class="conf-carimbo conf-c-nao">REPROVAR</div><div class="conf-carimbo conf-c-sim">APROVAR</div><div class="conf-ficha" id="c-ficha"></div></article>';
+    abrir(x.e.cnpj, $('c-ficha'));
+    $('c-barra').hidden = false;
+    arrastar($('c-card'));
+  }
+  function arrastar(card) {
+    var x0 = null, y0 = 0, dx = 0, horiz = null;
+    card.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; horiz = null; card.style.transition = 'none'; }, { passive: true });
+    card.addEventListener('touchmove', function (e) {
+      if (x0 === null) return;
+      var mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+      if (horiz === null && (Math.abs(mx) > 12 || Math.abs(my) > 12)) horiz = Math.abs(mx) > Math.abs(my) * 1.3;
+      if (!horiz) return;
+      dx = mx; card.style.transform = 'translateX(' + dx + 'px) rotate(' + dx / 30 + 'deg)';
+      card.classList.toggle('pende-nao', dx < -60); card.classList.toggle('pende-sim', dx > 60);
+    }, { passive: true });
+    card.addEventListener('touchend', function () {
+      card.style.transition = '';
+      if (horiz && Math.abs(dx) > 110) decidir(dx > 0 ? 'aprovado' : 'reprovado');
+      else { card.style.transform = ''; card.classList.remove('pende-nao', 'pende-sim'); }
+      x0 = null;
+    });
+  }
+  function gravarTri(cnpj, novo) {
+    if (modo === 'local' || !triOk) {
+      if (novo) TRI[cnpj] = novo; else delete TRI[cnpj];
+      if (modo === 'local') try { localStorage.setItem('ac_triagem', JSON.stringify(TRI)); } catch (e) {}
+      return Promise.resolve(true);
+    }
+    var q = novo ? sb.from('triagem').upsert({ cnpj: cnpj, decisao: novo.decisao, decidido_em: novo.decidido_em, autor_email: usuario }).select()
+      : sb.from('triagem').delete().eq('cnpj', cnpj);
+    return q.then(function (r) {
+      if (r.error) { alert('Não foi possível salvar a decisão: ' + r.error.message); return false; }
+      if (novo) TRI[cnpj] = (r.data && r.data[0]) || novo; else delete TRI[cnpj];
+      return true;
+    });
+  }
+
+  function decidir(decisao) {
+    if (!confAtual || ocupado) return;
+    var cnpj = confAtual, card = $('c-card'); ocupado = true;
+    var ant = TRI[cnpj] || null;
+    if (card) { card.style.transform = 'translateX(' + (decisao === 'aprovado' ? 130 : -130) + '%) rotate(' + (decisao === 'aprovado' ? 12 : -12) + 'deg)'; card.style.opacity = '0'; }
+    forcar = null;
+    gravarTri(cnpj, { cnpj: cnpj, decisao: decisao, decidido_em: new Date().toISOString(), autor_email: usuario }).then(function (ok) {
+      setTimeout(function () {
+        ocupado = false;
+        if (ok) { desfazer.push({ cnpj: cnpj, ant: ant }); if (desfazer.length > 30) desfazer.shift(); }
+        indexar(); confAtual = null; render(); window.scrollTo({ top: $('aba-conferencia').offsetTop - 10 });
+      }, 220);
+    });
+  }
+  function voltar() {
+    var u = desfazer.pop(); if (!u) return;
+    gravarTri(u.cnpj, u.ant).then(function () {
+      indexar(); confAtual = null;
+      forcar = u.ant ? null : u.cnpj;
+      render(); trocarAba('conferencia');
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (aba !== 'conferencia' || !$('gaveta').hidden || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); decidir('reprovado'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); decidir('aprovado'); }
+    else if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); voltar(); }
+  });
+
+  function aprovados() {
+    var per = $('a-per').value, h = hojeISO(), lim = per && per !== 'hoje' ? diaLocal(Date.now() - (+per) * 864e5) : '';
+    return lista().filter(function (x) {
+      var t = TRI[x.e.cnpj]; if (!t || t.decisao !== 'aprovado') return false;
+      var d = diaLocal(t.decidido_em);
+      return per === 'hoje' ? d === h : (!lim || d >= lim);
+    }).sort(function (a, b) { return TRI[a.e.cnpj].decidido_em < TRI[b.e.cnpj].decidido_em ? 1 : -1; });
+  }
+  function grupoDe(x) {
+    if (x.lixoEm) return 'lixo';
+    if (x.status === 'novo') return 'acontatar';
+    if (x.status === 'respondeu' || x.status === 'reuniao' || x.status === 'cliente') return 'retorno';
+    if (x.status === 'sem_interesse' || x.status === 'nao_contatar') return 'encerrados';
+    var dias = (Date.now() - new Date(x.ultContato).getTime()) / 864e5, espera = VOLTAS[Math.min(x.tentativas, VOLTAS.length) - 1] || VOLTAS[0];
+    return x.tentativas <= VOLTAS.length && dias >= espera ? 'semretorno' : 'aguardando';
+  }
+  function canaisUsados(x) {
+    return Array.from(new Set(x.contatos.map(function (c) { return c.canal; }).filter(Boolean)));
+  }
+  function renderAprovados() {
+    var apr = lista().filter(function (x) { return x.tri === 'aprovado'; }), g = {};
+    ['acontatar', 'aguardando', 'semretorno', 'retorno', 'encerrados', 'lixo'].forEach(function (k) { g[k] = []; });
+    apr.forEach(function (x) { g[grupoDe(x)].push(x); });
+    Object.keys(g).forEach(function (k) { if ($('g-n-' + k)) $('g-n-' + k).textContent = g[k].length || ''; });
+    document.querySelectorAll('.sub-aba').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-g') === grupo ? 'true' : 'false'); });
+    $('n-apr').textContent = (g.acontatar.length + g.semretorno.length) || '';
+    var l = g[grupo].sort(function (a, b) {
+      if (grupo === 'acontatar') return (b.e.pontos || 0) - (a.e.pontos || 0);
+      return String(a.ultContato) < String(b.ultContato) ? (grupo === 'semretorno' ? -1 : 1) : (grupo === 'semretorno' ? 1 : -1);
+    });
+    var TXT = { acontatar: 'aprovada(s) e ainda sem nenhum contato, da maior para a menor pontuação.', aguardando: 'contatada(s), aguardando resposta. Sem resposta, voltam para nova tentativa em ' + VOLTAS[0] + ' dias e depois em ' + VOLTAS[1] + ' dias.',
+      semretorno: 'sem resposta: hora da nova tentativa, de preferência por outro canal. Se a 3ª mensagem ficar ' + VOLTAS[1] + ' dias sem resposta, a empresa vai para o lixo.', retorno: 'responderam, têm reunião marcada ou já são clientes.', encerrados: 'sem interesse ou pediram para não ser contatadas.' };
+    $('a-info').textContent = l.length + ' empresa(s) ' + TXT[grupo];
+    $('a-cards').innerHTML = l.map(function (x) {
+      var e = x.e, sc = e.site_contatos || {}, cel = x.tels.filter(celular)[0] || (sc.whatsapp || [])[0], ult = x.contatos[x.contatos.length - 1];
+      var em = e.email || (sc.emails || [])[0], bloq = x.status === 'nao_contatar', usados = canaisUsados(x);
+      var diasC = ult ? Math.floor((Date.now() - new Date(ult.criado_em).getTime()) / 864e5) : null;
+      return '<article class="card-f"><div class="selos-l">' + selos(e).replace(/<span class="selo selo-apr">[^<]*<\/span>/, '') + '</div>' +
+        '<h3>' + esc(e.razao_social) + '</h3>' +
+        '<div class="cf-meta">' + esc(e.cnpj) + ' · ' + esc(x.muns.slice(0, 2).join(', ')) + ' · ' + x.autos.length + ' auto(s), último ' + esc(br(x.ultimo)) + '</div>' +
+        '<div class="cf-meta">' + [x.tels.map(fmtTel).join(' / '), em].filter(Boolean).map(esc).join(' · ') + (e.site ? ' · <a href="' + esc(e.site) + '" target="_blank" rel="noopener">site</a>' : '') + (!x.tels.length && !em ? 'Sem telefone nem e-mail' : '') + '</div>' +
+        (ult ? '<div class="cf-mot"><span class="st st-' + esc(x.status) + '">' + esc(ST[x.status]) + '</span> ' + esc(ult.canal || '') + ' em ' + esc(brDH(ult.criado_em)) + (diasC != null ? ' (há ' + diasC + ' dia' + (diasC === 1 ? '' : 's') + ')' : '') + (x.status === 'contatado' ? ' · ' + x.tentativas + 'ª tentativa' : '') + (usados.length ? ' · canais já usados: ' + esc(usados.join(', ')) : '') + (ult.nota ? '<br>' + esc(ult.nota) : '') + '</div>' : '') +
+        (bloq ? '' : '<div class="cf-acoes">' +
+          (cel ? '<a class="btn btn-wa btn-sm" data-wa="' + esc(e.cnpj) + '" target="_blank" rel="noopener" href="https://wa.me/55' + cel + '?text=' + encodeURIComponent(mensagemPadrao(x)) + '">WhatsApp</a>' : '') +
+          (em ? '<a class="btn btn-linha btn-sm" data-mail="' + esc(e.cnpj) + '" href="mailto:' + esc(em) + '?subject=' + encodeURIComponent('Auto de infração ambiental: apoio técnico') + '&body=' + encodeURIComponent(mensagemPadrao(x)) + '">E-mail</a>' : '') +
+          (grupo === 'aguardando' || grupo === 'semretorno' ? '<button class="btn btn-linha btn-sm" data-rapido="' + esc(e.cnpj) + '|respondeu" type="button">Respondeu</button><button class="btn btn-linha btn-sm" data-rapido="' + esc(e.cnpj) + '|sem_interesse" type="button">Sem interesse</button>' : '') +
+          '<button class="btn btn-linha btn-sm" data-abrir="' + esc(e.cnpj) + '" type="button">Abrir ficha</button></div>') + '</article>';
+    }).join('') || '<p class="conf-vazia">Ninguém neste grupo.</p>';
+    var pl = aprovados();
+    $('a-xls').disabled = !pl.length;
+    $('a-xls-info').textContent = pl.length ? pl.length + ' empresa(s), todos os dados e a fonte de cada um.' : 'Nenhuma aprovada nesse período.';
+  }
+  // Ao clicar em WhatsApp ou E-mail, pergunta se a mensagem foi enviada e registra o contato.
+  var pendente = null;
+  document.addEventListener('click', function (ev) {
+    var w = ev.target.closest('[data-wa],[data-mail]');
+    if (w) { pendente = { cnpj: w.getAttribute('data-wa') || w.getAttribute('data-mail'), canal: w.hasAttribute('data-wa') ? 'WhatsApp' : 'E-mail' }; return; }
+    var r = ev.target.closest('[data-rapido]'); if (!r) return;
+    var p = r.getAttribute('data-rapido').split('|'), x = porCnpj[p[0]];
+    salvar({ cnpj: p[0], status: p[1], canal: (x.contatos[x.contatos.length - 1] || {}).canal || 'Outro', nota: '' }).then(function (ok) { if (ok) { indexar(); render(); } });
+  });
+  window.addEventListener('focus', function () {
+    if (!pendente) return;
+    var p = pendente; pendente = null;
+    setTimeout(function () {
+      if (!confirm('Você enviou a mensagem por ' + p.canal + ' para ' + porCnpj[p.cnpj].e.razao_social + '? OK registra o contato de hoje.')) return;
+      salvar({ cnpj: p.cnpj, status: 'contatado', canal: p.canal, nota: 'Mensagem enviada pelo painel' }).then(function (ok) { if (ok) { indexar(); render(); } });
+    }, 300);
+  });
+  function renderReprovados() {
+    var l = lista().filter(function (x) { return x.tri === 'reprovado' || (x.tri === 'aprovado' && x.lixoEm); }).map(function (x) {
+      var lixo = x.tri !== 'reprovado', de = lixo ? x.lixoEm : new Date(TRI[x.e.cnpj].decidido_em);
+      return { x: x, lixo: lixo, de: de, sai: new Date(de.getTime() + DIAS_REPROVADO * 864e5) };
+    }).sort(function (a, b) { return b.de - a.de; });
+    $('n-rep').textContent = l.length || '';
+    $('x-info').textContent = l.length + ' empresa(s): reprovadas na conferência ou sem resposta depois de 3 tentativas. Ficam ' + DIAS_REPROVADO + ' dias aqui antes de sair do banco.';
+    $('x-linhas').innerHTML = l.map(function (r) {
+      var x = r.x, t = TRI[x.e.cnpj], falta = Math.max(0, Math.ceil((r.sai - Date.now()) / 864e5));
+      return '<tr><td><strong>' + esc(x.e.razao_social) + '</strong><br><small>' + esc(x.e.cnpj) + (x.pri ? ' · prioridade ' + esc(x.pri) : '') + '</small><div class="selos-l"><span class="selo' + (r.lixo ? ' selo-amar' : ' selo-verm') + '">' + (r.lixo ? 'Sem resposta em ' + x.tentativas + ' tentativas' : '✕ Reprovada na conferência') + '</span></div></td>' +
+        '<td data-l="Desde"><small>' + esc(r.de.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })) + (r.lixo ? '' : '<br>' + esc(t.autor_email || '')) + '</small></td>' +
+        '<td data-l="Sai do banco em"><small>' + esc(r.sai.toLocaleDateString('pt-BR')) + '</small><br><span class="selo' + (falta <= 7 ? ' selo-verm' : '') + '">faltam ' + falta + ' dia(s)</span></td>' +
+        '<td class="td-acao"><button class="btn btn-linha btn-sm" data-abrir="' + esc(x.e.cnpj) + '" type="button">Abrir</button> <button class="btn btn-wa btn-sm" ' + (r.lixo ? 'data-recomecar' : 'data-restaurar') + '="' + esc(x.e.cnpj) + '" type="button">Restaurar</button></td></tr>';
+    }).join('') || '<tr><td colspan="4">Nenhuma empresa aqui.</td></tr>';
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-recomecar]'); if (!b) return;
+    salvar({ cnpj: b.getAttribute('data-recomecar'), status: 'novo', canal: 'Outro', nota: 'Restaurada do lixo: contatos recomeçam do zero' }).then(function (ok) { if (ok) { indexar(); render(); } });
+  });
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-restaurar]'); if (!b) return;
+    var c = b.getAttribute('data-restaurar'), ant = TRI[c];
+    gravarTri(c, null).then(function (ok) { if (ok) { desfazer.push({ cnpj: c, ant: ant }); indexar(); confAtual = null; render(); } });
+  });
+
+  // Planilha dos aprovados (SheetJS, carregado só quando pedir)
+  function carregarXlsx() {
+    if (window.XLSX) return Promise.resolve();
+    return new Promise(function (ok, erro) {
+      var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = ok; s.onerror = function () { erro(new Error('não carregou a biblioteca da planilha')); }; document.head.appendChild(s);
+    });
+  }
+  function baixarPlanilha() {
+    var l = aprovados(); if (!l.length) return;
+    var bt = $('a-xls'); bt.disabled = true; bt.textContent = 'Gerando…';
+    carregarXlsx().then(function () {
+      var IB = 'https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao', RF = 'Cadastro do CNPJ (Receita Federal, via base pública)';
+      var emp = l.map(function (x) {
+        var e = x.e, t = TRI[e.cnpj], sc = e.site_contatos || {}, j = function (a) { return (a || []).join(' / '); };
+        return {
+          'CNPJ': e.cnpj, 'Razão social': e.razao_social, 'Nome fantasia': e.nome_fantasia || '', 'Situação na Receita': e.situacao_receita || '', 'Porte': e.porte || '',
+          'MEI / empresário individual': e.individual ? 'Sim' : 'Não', 'Atividade': e.atividade || '', 'Município sede': e.municipio_sede || '',
+          'Sócios (QSA, CPF mascarado)': masc(e.socios || ''), 'Fonte do cadastro': RF + (e.data_coleta ? ', coletado em ' + br(e.data_coleta) : ''),
+          'Telefones (Receita)': x.tels.map(fmtTel).join(' / '), 'E-mail': e.email || '', 'Fonte do e-mail': e.email_fonte || (e.email ? RF : ''),
+          'Site': e.site || '', 'Como o site foi confirmado': e.site_confirmacao || '', 'E-mails no site': j(sc.emails), 'Telefones no site': j((sc.telefones || []).map(fmtTel)),
+          'WhatsApp no site': j((sc.whatsapp || []).map(fmtTel)), 'Redes sociais no site': j(sc.redes), 'Páginas do site lidas': j(sc.paginas), 'Site conferido em': e.site_busca_em ? br(e.site_busca_em) : '',
+          'Prioridade': e.prioridade || '', 'Pontos': e.pontos == null ? '' : e.pontos, 'Motivos da prioridade': e.motivos || '',
+          'Nº de autos': x.autos.length, 'Último documento': x.ultimo ? br(x.ultimo) : '', 'Municípios dos autos': x.muns.join(', '),
+          'Embargos vigentes': e.embargos_vigentes || 0, 'Prazo de defesa estimado até': e.prazo_defesa_ate ? br(e.prazo_defesa_ate) + ' (estimativa: ciência + 20 dias; confirmar na notificação)' : '',
+          'Status do contato': ST[x.status] || x.status, 'Aprovado em': brDH(t.decidido_em), 'Aprovado por': t.autor_email || '', 'Fonte dos autos': IB
+        };
+      });
+      var autos = [];
+      l.forEach(function (x) {
+        x.autos.forEach(function (a) { autos.push({ 'CNPJ': x.e.cnpj, 'Razão social': x.e.razao_social, 'Documento': 'Auto de infração', 'Número': a.n_auto, 'Data': br(a.data_auto), 'Município': a.municipio || '', 'Tipo de infração': a.tipo_infracao || '', 'Gravidade': a.gravidade || '', 'Valor indicado no auto (não é dano)': a.valor_auto == null ? '' : Number(a.valor_auto), 'Situação': a.cancelado ? 'CANCELADO' : '', 'Processo': a.processo || '', 'Descrição': masc(a.descricao || ''), 'Nível': 'FATO', 'Fonte': IB }); });
+        x.occ.filter(function (o) { return !/^IBAMA-AUTO\|/.test(o.chave || ''); }).forEach(function (o) { autos.push({ 'CNPJ': x.e.cnpj, 'Razão social': x.e.razao_social, 'Documento': tipoCurto(o.tipo_documento), 'Número': o.numero || '', 'Data': br(o.data_documento), 'Município': o.municipio || '', 'Tipo de infração': o.assunto || '', 'Gravidade': '', 'Valor indicado no auto (não é dano)': o.valor_indicado_rs_nao_e_dano == null ? '' : Number(o.valor_indicado_rs_nao_e_dano), 'Situação': o.situacao || '', 'Processo': o.processo || '', 'Descrição': masc(o.descricao || ''), 'Nível': o.nivel || 'FATO', 'Fonte': /^https:\/\//.test(o.link_fonte || '') ? o.link_fonte : (o.orgao || '') }); });
+      });
+      var notas = [
+        { 'Item': 'Gerado em', 'Texto': new Date().toLocaleString('pt-BR') + ' por ' + usuario },
+        { 'Item': 'Seleção', 'Texto': $('a-per').options[$('a-per').selectedIndex].text + ' na conferência (' + l.length + ' empresa(s))' },
+        { 'Item': 'Autos', 'Texto': 'IBAMA Dados Abertos: ' + IB + '. Auto de infração não é condenação. Valor indicado não é dano.' },
+        { 'Item': 'Cadastro e e-mail', 'Texto': 'Base pública do CNPJ (Receita Federal) consultada por CNPJ.ws/ReceitaWS; a coluna "Fonte do e-mail" diz qual e quando.' },
+        { 'Item': 'Site', 'Texto': 'Só é aceito se o Registro.br mostrar o próprio CNPJ como titular ou se o site mostrar o CNPJ. Contatos lidos das páginas públicas do site.' },
+        { 'Item': 'Níveis', 'Texto': 'FATO = documento oficial. INDÍCIO = menção em diário oficial: ler o ato antes de concluir.' },
+        { 'Item': 'Privacidade', 'Texto': 'CPF sempre mascarado. Contato de MEI é da própria pessoa: usar só para tratar do auto e atender pedido de não contato (LGPD).' }
+      ];
+      var wb = XLSX.utils.book_new();
+      [['Empresas', emp], ['Documentos', autos], ['Fontes e notas', notas]].forEach(function (p) {
+        var ws = XLSX.utils.json_to_sheet(p[1]);
+        var cols = Object.keys(p[1][0] || {}); ws['!cols'] = cols.map(function (c) { return { wch: Math.min(60, Math.max(c.length, 12)) }; });
+        XLSX.utils.book_append_sheet(wb, ws, p[0]);
+      });
+      var per = $('a-per').value;
+      XLSX.writeFile(wb, 'aprovados-' + (per === 'hoje' ? hojeISO() : per ? 'ultimos-' + per + '-dias-' + hojeISO() : 'todos-' + hojeISO()) + '.xlsx');
+    }).catch(function (e) { alert('Não foi possível gerar a planilha: ' + e.message); }).then(function () { bt.disabled = false; bt.textContent = 'Baixar planilha (Excel)'; });
   }
 
   // ---------- Aba Registro de documentos ----------
@@ -261,13 +537,13 @@
 
   function mensagemPadrao(x) {
     var d = x.validos[0], mes = d ? String(d.data_documento || '').slice(0, 7).split('-').reverse().join('/') : '';
-    return 'Olá! Aqui é da ' + (C.nomeEmpresa || 'Ambiental Costa') + ', empresa de engenharia e consultoria ambiental registrada no CREA-RJ. ' +
+    return 'Olá! Aqui é da ' + (C.nomeEmpresa || 'Origem Consultoria Ambiental') + ', empresa de engenharia e consultoria ambiental registrada no CREA-RJ. ' +
       (d ? 'Vi nos dados públicos ' + fonteCurta(d) + ' um(a) ' + tipoCurto(d.tipo_documento) + (d.numero ? ' nº ' + d.numero : '') + ' em nome da ' + x.e.razao_social + (d.municipio ? ', em ' + d.municipio : '') + ' (' + mes + '). ' : '') +
       'Ajudamos empresas nessa situação com a parte técnica: análise do caso e dos prazos, laudos, PRAD e licenciamento. ' +
       'Se preferir não receber mensagens, é só responder SAIR que não voltaremos a escrever.';
   }
 
-  function abrir(cnpj) {
+  function abrir(cnpj, alvo) {
     var x = porCnpj[cnpj], e = x.e, bloq = x.status === 'nao_contatar';
     var avisos = '';
     if (e.situacao_receita !== 'ATIVA') avisos += '<p class="aviso-l verm">Empresa ' + esc(e.situacao_receita) + ' na Receita. Não prospectar sem conferir quem responde hoje pela atividade.</p>';
@@ -306,17 +582,19 @@
       return '<li><span class="st st-' + esc(c.status) + '">' + esc(ST[c.status] || c.status) + '</span> <small>' + esc(brDH(c.criado_em)) + ' · ' + esc(c.autor_email || '') + (c.canal ? ' · ' + esc(c.canal) : '') + '</small>' + (c.nota ? '<p>' + esc(c.nota) + '</p>' : '') + '</li>';
     }).join('') || '<li><small>Nenhum contato registrado.</small></li>';
 
-    $('gaveta-corpo').innerHTML =
-      '<h2 id="g-tit">' + esc(e.razao_social) + '</h2>' +
-      '<p class="g-sub">' + esc(e.cnpj) + (e.nome_fantasia ? ' · ' + esc(e.nome_fantasia) : '') + '<br>' + esc(e.atividade || '') + '<br>Sede: ' + esc(e.municipio_sede || '') + ' · ' + esc(e.situacao_receita || '') + '</p>' +
-      (e.socios ? '<p class="g-sub"><strong>Sócios (QSA):</strong> ' + esc(masc(e.socios)) + '</p>' : '') +
-      avisos + contato +
-      '<h3>Registrar contato</h3><form class="g-form" id="g-form"><div class="duas">' +
+    var formHtml = alvo ? '' : '<h3>Registrar contato</h3><form class="g-form" id="g-form"><div class="duas">' +
       '<label class="campo"><span>Status</span><select id="g-st">' + Object.keys(ST).map(function (k) { return '<option value="' + k + '"' + (k === x.status ? ' selected' : '') + '>' + ST[k] + '</option>'; }).join('') + '</select></label>' +
       '<label class="campo"><span>Canal</span><select id="g-canal"><option>WhatsApp</option><option>Telefone</option><option>E-mail</option><option>Presencial</option><option>Outro</option></select></label></div>' +
       '<label class="campo"><span>Anotação</span><textarea id="g-nota" rows="2" placeholder="Ex.: falei com o setor ambiental, pediram proposta"></textarea></label>' +
       '<button class="btn btn-wa btn-sm" type="submit">Salvar registro</button> <small class="erro" id="g-erro" hidden></small></form>' +
-      '<h3>Histórico</h3><ul class="hist">' + hist + '</ul>' +
+      '<h3>Histórico</h3><ul class="hist">' + hist + '</ul>';
+    var corpo = alvo || $('gaveta-corpo');
+    corpo.innerHTML = (alvo ? '<div class="selos-l">' + selos(e) + '</div>' : '') +
+      '<h2 id="g-tit">' + esc(e.razao_social) + '</h2>' +
+      '<p class="g-sub">' + esc(e.cnpj) + (e.nome_fantasia ? ' · ' + esc(e.nome_fantasia) : '') + '<br>' + esc(e.atividade || '') + '<br>Sede: ' + esc(e.municipio_sede || '') + ' · ' + esc(e.situacao_receita || '') + '</p>' +
+      (e.socios ? '<p class="g-sub"><strong>Sócios (QSA):</strong> ' + esc(masc(e.socios)) + '</p>' : '') +
+      avisos + contato +
+      formHtml +
       (x.embargos.length ? '<h3>Termos de embargo (' + x.embargos.length + ')</h3><ul class="autos">' + x.embargos.map(function (b) {
         return '<li class="auto' + (b.status === 'CANCELADO' ? ' auto-canc' : '') + '"><div class="auto-cab"><strong>TAD ' + esc(b.num_tad) + '</strong><span>' + esc(br(b.data_embargo)) + ' · ' + esc(b.municipio) + '</span></div><div class="auto-meta">' + esc(b.status) + (b.data_desembargo ? ' em ' + esc(br(b.data_desembargo)) : '') + (b.tipo_area ? ' · ' + esc(b.tipo_area) : '') + '</div></li>';
       }).join('') + '</ul>' : '') +
@@ -331,14 +609,16 @@
       '<h3>Autos (' + x.autos.length + ')</h3><p class="nota">Auto de infração não é condenação. Valor indicado não é dano.</p><ul class="autos">' + autos + '</ul>' +
       '<p class="nota">Fonte: <a href="https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao" target="_blank" rel="noopener">IBAMA Dados Abertos</a>. Confira o auto na <a href="https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php" target="_blank" rel="noopener">consulta pública do IBAMA</a>.</p>';
 
-    $('gaveta').hidden = false; $('gaveta-fundo').hidden = false; $('gaveta').scrollTop = 0;
+    if (!alvo) { $('gaveta').hidden = false; $('gaveta-fundo').hidden = false; $('gaveta').scrollTop = 0; }
 
-    $('gaveta-corpo').querySelectorAll('.js-wa-g').forEach(function (a) {
+    corpo.querySelectorAll('.js-wa-g').forEach(function (a) {
       a.addEventListener('click', function (ev) {
         ev.preventDefault();
-        window.open('https://wa.me/' + a.getAttribute('data-tel') + '?text=' + encodeURIComponent($('g-msg').value), '_blank', 'noopener');
+        var m = corpo.querySelector('#g-msg');
+        window.open('https://wa.me/' + a.getAttribute('data-tel') + '?text=' + encodeURIComponent(m ? m.value : mensagemPadrao(x)), '_blank', 'noopener');
       });
     });
+    if (alvo) return;
     $('g-form').addEventListener('submit', function (ev) {
       ev.preventDefault();
       var reg = { cnpj: cnpj, status: $('g-st').value, canal: $('g-canal').value, nota: $('g-nota').value.trim() };
@@ -357,6 +637,7 @@
       return Promise.resolve(true);
     }
     return sb.from('contatos').insert(reg).select().then(function (r) {
+      if (r.error && !$('g-erro')) { alert('Não foi possível salvar: ' + r.error.message); return false; }
       if (r.error) { $('g-erro').textContent = 'Não foi possível salvar: ' + r.error.message; $('g-erro').hidden = false; return false; }
       D.contatos.push(r.data[0]); return true;
     });

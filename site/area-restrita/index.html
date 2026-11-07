@@ -2,12 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Área restrita | Ambiental Costa</title>
+<title>Área restrita | Origem Consultoria Ambiental</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
 <link rel="stylesheet" href="painel.css">
 </head>
@@ -15,7 +16,7 @@
 
 <header class="topo">
   <div class="wrap topo-in">
-    <a class="marca" href="../"><span class="marca-sinal" aria-hidden="true"></span><span>Ambiental <strong>Costa</strong></span></a>
+    <a class="marca" href="../"><img class="marca-img" src="../assets/origem-marca.svg" alt="" width="40" height="40"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span></a>
     <span class="tag-restrito">Área restrita</span>
     <div class="usuario" id="usuario" hidden><span id="usuario-email"></span><button class="btn btn-linha btn-sm" id="sair" type="button">Sair</button></div>
   </div>
@@ -56,12 +57,52 @@
     <div class="p-kpis" id="p-kpis"></div>
 
     <nav class="abas" role="tablist">
-      <button type="button" role="tab" class="aba" data-aba="fila" aria-selected="true">Fila de prospecção</button>
-      <button type="button" role="tab" class="aba" data-aba="empresas" aria-selected="false">Empresas</button>
-      <button type="button" role="tab" class="aba" data-aba="registro" aria-selected="false">Registro de documentos</button>
+      <button type="button" role="tab" class="aba aba-pri" data-aba="conferencia" aria-selected="true"><span aria-hidden="true">⇆</span> Conferência <span class="aba-n" id="n-conf"></span></button>
+      <button type="button" role="tab" class="aba aba-pri" data-aba="aprovados" aria-selected="false"><span aria-hidden="true">✓</span> Aprovados <span class="aba-n" id="n-apr"></span></button>
+      <button type="button" role="tab" class="aba aba-pri" data-aba="reprovados" aria-selected="false"><span aria-hidden="true">✕</span> Reprovados <span class="aba-n" id="n-rep"></span></button>
+      <span class="aba-sep" aria-hidden="true"></span>
+      <button type="button" role="tab" class="aba aba-sec" data-aba="empresas" aria-selected="false">Base completa</button>
+      <button type="button" role="tab" class="aba aba-sec" data-aba="registro" aria-selected="false">Documentos</button>
     </nav>
 
-    <section id="aba-fila" class="painel-aba">
+    <section id="aba-conferencia" class="painel-aba" hidden>
+      <div class="busca busca-conf">
+        <label class="campo"><span>Conferir</span><select id="c-pri"><option value="AB">Prioridade A e B</option><option value="A">Só A</option><option value="">Todas (sem X)</option><option value="X">Só X (descartadas)</option></select></label>
+      </div>
+      <p class="aviso-l" id="c-aviso" hidden></p>
+      <p class="res-info" id="c-info" aria-live="polite"></p>
+      <div class="conf-pilha" id="c-pilha"></div>
+      <div class="conf-barra" id="c-barra" hidden>
+        <button type="button" class="conf-bt conf-nao" id="c-nao" title="Reprovar (seta para a esquerda)"><span aria-hidden="true">✕</span> Reprovar</button>
+        <button type="button" class="conf-bt conf-volta" id="c-volta" title="Desfazer a última (tecla Z)" disabled><span aria-hidden="true">↶</span> Desfazer</button>
+        <button type="button" class="conf-bt conf-sim" id="c-sim" title="Aprovar (seta para a direita)"><span aria-hidden="true">✓</span> Aprovar</button>
+      </div>
+      <p class="nota conf-dica">No computador: seta ← reprova, seta → aprova, Z desfaz. No celular: arraste o cartão para os lados ou use os botões. Reprovado fica 45 dias em Reprovados (dá para restaurar) e depois sai do banco.</p>
+    </section>
+
+    <section id="aba-aprovados" class="painel-aba" hidden>
+      <div class="sub-abas" role="tablist" id="a-grupos">
+        <button type="button" class="sub-aba" data-g="acontatar" aria-selected="true">A contatar <span class="aba-n" id="g-n-acontatar"></span></button>
+        <button type="button" class="sub-aba" data-g="aguardando" aria-selected="false">Contatados, aguardando <span class="aba-n" id="g-n-aguardando"></span></button>
+        <button type="button" class="sub-aba sub-alerta" data-g="semretorno" aria-selected="false">Sem retorno há 7 dias <span class="aba-n" id="g-n-semretorno"></span></button>
+        <button type="button" class="sub-aba" data-g="retorno" aria-selected="false">Com retorno <span class="aba-n" id="g-n-retorno"></span></button>
+        <button type="button" class="sub-aba" data-g="encerrados" aria-selected="false">Encerrados <span class="aba-n" id="g-n-encerrados"></span></button>
+      </div>
+      <p class="res-info" id="a-info" aria-live="polite"></p>
+      <div class="fila" id="a-cards"></div>
+      <div class="conf-baixar a-planilha">
+        <label class="campo"><span>Planilha dos aprovados</span><select id="a-per"><option value="hoje">Aprovados hoje</option><option value="7">Últimos 7 dias</option><option value="">Todos</option></select></label>
+        <button type="button" class="btn btn-wa btn-sm" id="a-xls">Baixar planilha (Excel)</button> <small id="a-xls-info"></small>
+      </div>
+    </section>
+
+    <section id="aba-reprovados" class="painel-aba" hidden>
+      <p class="res-info" id="x-info" aria-live="polite"></p>
+      <div class="tabela-wrap"><table class="tabela p-tabela"><thead><tr><th>Empresa</th><th>Desde</th><th>Sai do banco em</th><th></th></tr></thead><tbody id="x-linhas"></tbody></table></div>
+      <p class="nota">Aqui ficam as reprovadas na conferência e as que não responderam depois de 3 tentativas (volta em 7 dias, depois em 14). Depois de 45 dias o coletor apaga autos, embargos e cadastro dessa empresa e guarda só o CNPJ marcado, para ela não voltar. Se sair auto novo depois da reprovação, ela volta para a Conferência.</p>
+    </section>
+
+    <section id="aba-fila" class="painel-aba" hidden data-antiga="substituida por Aprovados > A contatar">
       <form class="busca busca-fila" onsubmit="return false">
         <label class="campo"><span>Prioridade</span><select id="f-pri"><option value="AB">A e B</option><option value="A">Só A</option><option value="B">Só B</option><option value="C">C</option><option value="">Todas (sem X)</option></select></label>
         <label class="campo"><span>Município</span><select id="f-mun"><option value="">Todos</option></select></label>

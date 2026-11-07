@@ -2,12 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ambiental Costa | Defesa em autos de infração ambiental</title>
-<meta name="description" content="Defesa administrativa em autos de infração ambiental, recursos, conversão de multas e regularização no Rio de Janeiro. Consulta a autos públicos do IBAMA com fonte e data.">
+<title>Origem Consultoria Ambiental | Licenciamento, regularização e defesa ambiental no RJ</title>
+<meta name="description" content="Engenharia e consultoria ambiental no Rio de Janeiro: licenciamento no INEA e nas prefeituras, renovação de licenças, regularização, laudos, defesa técnica e recursos em autos de infração.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -15,21 +16,17 @@
 
 <header class="topo">
   <div class="wrap topo-in">
-    <a class="marca" href="#inicio" aria-label="Ambiental Costa, início">
-      <span class="marca-sinal" aria-hidden="true"></span>
-      <span>Ambiental <strong>Costa</strong></span>
+    <a class="marca" href="#inicio" aria-label="Origem Consultoria Ambiental, início">
+      <img class="marca-img" src="assets/origem-marca.svg" alt="" width="40" height="40"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span>
     </a>
     <nav class="menu" aria-label="Principal">
+      <a href="#licenciamento">Licenciamento</a>
       <a href="#servicos">Serviços</a>
-      <a href="#prazos">Prazos</a>
-      <a href="#consulta">Consultar auto</a>
+      <a href="#autos">Autos e recursos</a>
       <a href="#contato">Contato</a>
     </nav>
     <a class="btn btn-linha btn-sm btn-restrito js-login" href="area-restrita/" aria-haspopup="dialog" aria-label="Área restrita" title="Área restrita">
       <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg><span class="txt-restrito">Área restrita</span>
-    </a>
-    <a class="btn btn-wa btn-sm js-wa" data-msg="Olá! Vim pelo site e quero falar sobre um auto de infração ambiental." href="#contato">
-      <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> WhatsApp
     </a>
   </div>
 </header>
@@ -37,25 +34,124 @@
 <main id="conteudo">
 
 <section class="hero" id="inicio">
-  <div class="wrap hero-in">
-    <div class="hero-txt">
-      <p class="sobre">Engenharia e consultoria ambiental · Rio de Janeiro</p>
-      <h1>Recebeu um auto de infração ambiental? O prazo de defesa já está correndo.</h1>
-      <p class="lead">Analisamos o auto, organizamos a defesa e conduzimos o processo no IBAMA, no INEA e nos municípios: impugnação, recurso, conversão de multa e regularização da atividade.</p>
+  <div class="hero-in">
+    <div class="hero-txt revela">
+      <p class="pilares">Meio ambiente <i>|</i> Engenharia <i>|</i> Estratégia</p>
+      <h1>Sua empresa crescendo <em>em dia</em> com o meio ambiente.</h1>
+      <p class="lead">Licenciamento, renovação de licenças, regularização e, quando preciso, defesa técnica em autos de infração. Cuidamos da parte técnica junto ao INEA, às prefeituras e ao IBAMA para você focar no seu negócio.</p>
       <div class="hero-cta">
-        <a class="btn btn-wa js-wa" data-msg="Olá! Recebi um auto de infração ambiental e quero uma análise." href="#contato">
-          <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> Falar com um especialista
+        <a class="btn btn-wa js-wa" data-msg="Olá! Vim pelo site e quero falar sobre licenciamento ambiental." href="#contato">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> Falar com uma especialista
         </a>
-        <a class="btn btn-linha" href="#consulta">Onde consultar seu auto</a>
+        <a class="btn btn-linha" href="#autos">Recebi um auto de infração</a>
       </div>
-      <ul class="selos">
-        <li>Defesa federal (IBAMA/ICMBio)</li>
-        <li>Defesa estadual (INEA)</li>
-        <li>Fiscalizações municipais</li>
-        <li>Empresa registrada no CREA-RJ</li>
+      <p class="assina">Soluções para um amanhã mais sólido</p>
+    </div>
+    <div class="hero-foto revela">
+      <picture><source media="(max-width:700px)" srcset="assets/fotos/serra-dos-orgaos-p.webp"><img src="assets/fotos/serra-dos-orgaos.webp" alt="Serra dos Órgãos, Rio de Janeiro" fetchpriority="high"></picture>
+      <p class="hero-frase">Do presente<br>ao futuro,<br>com propósito.</p>
+      <p class="hero-lista">Natureza<br>Conhecimento<br>Estratégia<br>Resultados</p>
+    </div>
+    <p class="hero-vertical" aria-hidden="true">Territórios mais equilibrados · Pessoas mais seguras · Negócios mais duradouros</p>
+  </div>
+</section>
+
+<section class="sec sobre-origem" id="origem">
+  <div class="wrap origem-in">
+    <img class="origem-marca revela" src="assets/origem-marca.svg" alt="" width="180" height="180">
+    <div class="revela">
+      <h2 class="ola">Olá,<br><strong>somos a Origem.</strong></h2>
+      <p class="intro">Nascemos com o propósito de conectar desenvolvimento e meio ambiente, transformando desafios em soluções sustentáveis.</p>
+      <p class="intro">Atuamos com consultoria ambiental, licenciamento, regularização e gestão, sempre com olhar técnico, estratégico e comprometido com um futuro mais equilibrado.</p>
+      <ul class="valores">
+        <li><span class="circ"><svg viewBox="0 0 24 24"><use href="#i-folha"/></svg></span>Planejamento estratégico</li>
+        <li><span class="circ"><svg viewBox="0 0 24 24"><use href="#i-engrenagem"/></svg></span>Soluções técnicas</li>
+        <li><span class="circ"><svg viewBox="0 0 24 24"><use href="#i-barras"/></svg></span>Resultados concretos</li>
+        <li><span class="circ"><svg viewBox="0 0 24 24"><use href="#i-pessoas"/></svg></span>Parcerias de longo prazo</li>
       </ul>
     </div>
-    <aside class="painel" aria-label="Dados públicos do IBAMA no RJ">
+  </div>
+</section>
+
+<section class="sec" id="caminhos">
+  <div class="wrap">
+    <p class="sobre revela">Como podemos ajudar</p>
+    <h2 class="revela">Em que momento sua empresa está?</h2>
+    <div class="grade3 caminhos">
+      <a class="card card-caminho revela" href="#licenciamento"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-broto"/></svg><h3>Vou abrir, ampliar ou mudar a atividade</h3><p>Licenciamento antes de começar: enquadramento da atividade, estudos e pedido de licença no órgão certo.</p><span class="seta">Licenciamento →</span></a>
+      <a class="card card-caminho revela" href="#servicos"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-lista"/></svg><h3>Quero saber se estou em dia</h3><p>Diagnóstico de conformidade: licenças, condicionantes, cadastros obrigatórios e prazos de renovação.</p><span class="seta">Diagnóstico →</span></a>
+      <a class="card card-caminho revela" href="#autos"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-escudo"/></svg><h3>Recebi um auto ou notificação</h3><p>Análise do auto, defesa técnica, recurso e conversão de multa, sempre dentro do prazo.</p><span class="seta">Autos e recursos →</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="faixa-foto" id="licenciamento">
+  <picture aria-hidden="true"><source media="(max-width:700px)" srcset="assets/fotos/dedo-de-deus-neblina-p.webp"><img src="assets/fotos/dedo-de-deus-neblina.webp" alt="" loading="lazy"></picture>
+  <div class="wrap faixa-in">
+    <div class="faixa-caixa revela">
+      <p class="sobre">Novidade no RJ</p>
+      <h2>Novas regras de licenciamento ambiental no estado</h2>
+      <p>O Decreto estadual 50.473/2026, publicado em 16/09/2026, adaptou o licenciamento do Rio de Janeiro à Lei Geral do Licenciamento Ambiental (Lei federal 15.190/2025). Entre as mudanças:</p>
+      <ul class="lista-ok">
+        <li><strong>Licença de Operação Corretiva (LOC):</strong> caminho para regularizar, por pedido espontâneo, empreendimentos que já operavam sem licença em 08/12/2025.</li>
+        <li><strong>Licença de Instalação e de Operação (LIO):</strong> instalação e operação numa licença só.</li>
+        <li><strong>Licença por Adesão e Compromisso (LAC):</strong> implantada aos poucos, por tipo de atividade, conforme normas do INEA.</li>
+        <li><strong>Prazos de validade novos</strong> para as licenças e renovação automática para atividades de baixo e médio impacto, nas hipóteses que o INEA definir.</li>
+      </ul>
+      <p class="nota">Fonte: texto do Decreto estadual 50.473/2026 e análises publicadas em setembro de 2026 (links em <a href="#fontes">Fontes</a>). Cada caso depende da atividade e do porte: fazemos o enquadramento.</p>
+      <a class="btn btn-wa js-wa" data-msg="Olá! Quero saber como as novas regras de licenciamento do RJ se aplicam à minha empresa." href="#contato"><svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> Ver o caso da minha empresa</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="servicos">
+  <div class="wrap">
+    <p class="sobre revela">O que fazemos</p>
+    <h2 class="revela">Do pedido de licença ao encerramento do processo</h2>
+    <div class="grade4">
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-broto"/></svg><h3>Licenciamento ambiental</h3><p>Licenças prévia, de instalação e de operação, licenças simplificadas e por adesão, no INEA e nas prefeituras.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-relogio"/></svg><h3>Renovação e condicionantes</h3><p>Controle dos prazos de validade e do cumprimento das condicionantes, para a licença não vencer sem aviso.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-chave"/></svg><h3>Regularização</h3><p>Atividade funcionando sem licença ou com licença vencida: caminho de regularização, incluindo a nova licença corretiva.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-lista"/></svg><h3>Cadastros e relatórios</h3><p>Cadastro Técnico Federal do IBAMA e relatório anual de atividades (RAPP), entre outras obrigações periódicas.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-gota"/></svg><h3>Água e efluentes</h3><p>Pedidos de outorga de uso da água junto ao INEA e acompanhamento do controle de efluentes.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-reciclo"/></svg><h3>Resíduos sólidos</h3><p>Plano de Gerenciamento de Resíduos Sólidos (PGRS) e controle do manifesto de transporte de resíduos (MTR).</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-folha"/></svg><h3>Laudos e recuperação</h3><p>Laudos técnicos, Projeto de Recuperação de Área Degradada (PRAD) e acompanhamento da recuperação.</p></article>
+      <article class="card card-serv revela"><svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><use href="#i-escudo"/></svg><h3>Defesa, recursos e multas</h3><p>Defesa técnica do auto, recurso, conversão de multa em serviços ambientais e pedido de desembargo.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec sec-alt" id="metodo">
+  <div class="wrap">
+    <p class="sobre revela">Como trabalhamos</p>
+    <h2 class="revela">Quatro etapas, com prazo controlado</h2>
+    <ol class="passos">
+      <li class="revela"><span>1</span><h3>Conversa inicial</h3><p>Você conta a situação pelo WhatsApp: atividade, endereço e documentos que já tem.</p></li>
+      <li class="revela"><span>2</span><h3>Diagnóstico</h3><p>Conferimos o enquadramento, o órgão competente, as licenças e os prazos que estão correndo.</p></li>
+      <li class="revela"><span>3</span><h3>Execução</h3><p>Estudos, pedidos, defesas e recursos preparados e protocolados no sistema do órgão, com comprovante.</p></li>
+      <li class="revela"><span>4</span><h3>Acompanhamento</h3><p>Acompanhamos o processo e os prazos de validade e avisamos cada movimentação.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="mosaico" aria-label="Paisagens do Rio de Janeiro">
+  <figure class="revela"><img src="assets/fotos/mata-atlantica-itatiaia-p.webp" alt="Mata Atlântica no Parque Nacional do Itatiaia" loading="lazy"></figure>
+  <figure class="revela"><img src="assets/fotos/cascata-tijuca-p.webp" alt="Cascata no Parque Nacional da Tijuca" loading="lazy"></figure>
+  <figure class="revela"><img src="assets/fotos/manguezal-guapimirim-p.webp" alt="Manguezal na APA de Guapimirim" loading="lazy"></figure>
+  <figure class="revela"><img src="assets/fotos/floresta-tijuca-aerea-p.webp" alt="Floresta da Tijuca vista do alto" loading="lazy"></figure>
+</section>
+
+<section class="sec" id="autos">
+  <div class="wrap">
+    <p class="sobre revela">Autos de infração e recursos</p>
+    <h2 class="revela">Recebeu um auto? O prazo de defesa já está correndo.</h2>
+    <div class="autos-in">
+      <div class="revela">
+        <p class="intro">Analisamos o auto, organizamos a defesa e conduzimos o processo no IBAMA, no INEA e nos municípios: impugnação, recurso, conversão de multa e regularização da atividade, para resolver a causa e evitar reincidência.</p>
+        <p class="intro"><strong>Auto de infração não é condenação.</strong> Cabe defesa e recurso, e o valor indicado no auto não é dano nem valor pago.</p>
+        <a class="btn btn-wa js-wa" data-msg="Olá! Recebi um auto de infração ambiental e quero uma análise." href="#contato"><svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> Enviar meu auto para análise</a>
+      </div>
+      <aside class="painel revela" aria-label="Dados públicos do IBAMA no RJ">
       <p class="painel-tit">Autos do IBAMA contra empresas no RJ</p>
       <p class="painel-per" id="painel-periodo">Últimos 12 meses</p>
       <div class="kpis">
@@ -66,59 +162,8 @@
       <div class="barras" id="barras-tipo" aria-label="Autos por tipo de infração"></div>
       <p class="painel-fonte">Fonte: <a href="https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao" target="_blank" rel="noopener">IBAMA Dados Abertos</a>, coletado em <span class="js-coleta">—</span>. Auto de infração não é condenação.</p>
     </aside>
-  </div>
-</section>
-
-<section class="sec" id="servicos">
-  <div class="wrap">
-    <p class="sobre">O que fazemos</p>
-    <h2>Atuação completa, do auto ao encerramento do processo</h2>
-    <div class="grade3">
-      <article class="card">
-        <h3>Defesa e impugnação</h3>
-        <p>Análise técnica do auto: fatos, enquadramento, medições, laudos, dosimetria da multa e provas. Defesa administrativa protocolada dentro do prazo.</p>
-      </article>
-      <article class="card">
-        <h3>Recursos</h3>
-        <p>Recurso contra a decisão de primeira instância, alegações finais e acompanhamento do julgamento até a decisão definitiva.</p>
-      </article>
-      <article class="card">
-        <h3>Conversão de multa</h3>
-        <p>Pedido de conversão da multa em serviços de preservação, melhoria e recuperação ambiental, quando cabível, com os descontos previstos na norma.</p>
-      </article>
-      <article class="card">
-        <h3>Embargos e interdições</h3>
-        <p>Pedido de desembargo, comprovação de regularização e negociação de cronograma com o órgão ambiental.</p>
-      </article>
-      <article class="card">
-        <h3>Licenciamento e regularização</h3>
-        <p>Licenças, renovações, condicionantes e cadastros (como o Cadastro Técnico Federal), para resolver a causa do auto e evitar reincidência.</p>
-      </article>
-      <article class="card">
-        <h3>Monitoramento preventivo</h3>
-        <p>Acompanhamento de publicações e bases públicas de fiscalização para a sua empresa saber de uma autuação o quanto antes.</p>
-      </article>
     </div>
-  </div>
-</section>
-
-<section class="sec sec-alt" id="metodo">
-  <div class="wrap">
-    <p class="sobre">Como trabalhamos</p>
-    <h2>Quatro etapas, com prazo controlado</h2>
-    <ol class="passos">
-      <li><span>1</span><h3>Diagnóstico</h3><p>Você envia o auto pelo WhatsApp. Conferimos órgão, data da ciência, enquadramento e prazo.</p></li>
-      <li><span>2</span><h3>Estratégia</h3><p>Indicamos o caminho: defesa, conversão, regularização ou a combinação delas, com custos claros.</p></li>
-      <li><span>3</span><h3>Protocolo</h3><p>Defesa ou recurso fundamentado, protocolado no sistema do órgão, com comprovante.</p></li>
-      <li><span>4</span><h3>Acompanhamento</h3><p>Monitoramos o processo até a decisão final e avisamos cada movimentação.</p></li>
-    </ol>
-  </div>
-</section>
-
-<section class="sec" id="prazos">
-  <div class="wrap">
-    <p class="sobre">Prazos e regras</p>
-    <h2>Quanto tempo você tem para se defender</h2>
+    <h3 class="sub-tit" id="prazos">Quanto tempo você tem para se defender</h3>
     <p class="intro">Os prazos dependem do órgão que lavrou o auto e contam a partir da ciência da autuação. Confira sempre o prazo indicado na própria notificação.</p>
     <div class="tabela-wrap">
       <table class="tabela">
@@ -165,25 +210,28 @@
   <div class="wrap contato-in">
     <div>
       <p class="sobre">Contato</p>
-      <h2>Envie seu auto e receba uma primeira análise</h2>
+      <h2>Conte o que sua empresa precisa</h2>
       <p class="intro">Preencha os campos e o WhatsApp abre com a mensagem pronta. Nada é gravado neste site: o envio só acontece quando você aperta enviar no seu WhatsApp.</p>
       <ul class="lista-ok">
-        <li>Tenha em mãos o número do auto e a data em que recebeu a notificação.</li>
-        <li>Se puder, envie fotos ou o PDF do auto e do termo de embargo, se houver.</li>
+        <li>Para licenciamento: atividade, endereço e, se houver, a licença atual.</li>
+        <li>Para auto de infração: o número do auto e a data em que recebeu a notificação.</li>
         <li>Atendimento para empresas e produtores em todo o estado do Rio de Janeiro.</li>
       </ul>
     </div>
     <form class="form" id="form-wa" novalidate>
+      <label class="campo"><span>Assunto</span>
+        <select id="c-assunto"><option>Licenciamento ambiental</option><option>Renovação de licença</option><option>Regularização da atividade</option><option>Auto de infração ou multa</option><option>Outro</option></select>
+      </label>
       <label class="campo"><span>Nome *</span><input id="c-nome" required autocomplete="name"></label>
       <label class="campo"><span>Empresa</span><input id="c-emp" autocomplete="organization"></label>
       <label class="campo"><span>CNPJ</span><input id="c-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00"><small class="erro" id="e-cnpj" hidden>CNPJ inválido: confira os dígitos.</small></label>
-      <div class="duas">
+      <div class="duas so-auto" hidden>
         <label class="campo"><span>Órgão autuante</span>
           <select id="c-org"><option>IBAMA</option><option>INEA</option><option>ICMBio</option><option>Prefeitura</option><option>Outro / não sei</option></select>
         </label>
         <label class="campo"><span>Nº do auto</span><input id="c-auto"></label>
       </div>
-      <label class="campo"><span>Data em que recebeu o auto</span><input id="c-data" type="date"></label>
+      <label class="campo so-auto" hidden><span>Data em que recebeu o auto</span><input id="c-data" type="date"></label>
       <label class="campo"><span>Conte em poucas linhas</span><textarea id="c-msg" rows="3"></textarea></label>
       <label class="check"><input type="checkbox" id="c-lgpd" required> Autorizo o uso destes dados só para responder ao meu contato (LGPD).</label>
       <small class="erro" id="e-form" hidden></small>
@@ -195,7 +243,11 @@
 <section class="sec sec-alt" id="faq">
   <div class="wrap estreito">
     <p class="sobre">Dúvidas frequentes</p>
-    <h2>Perguntas comuns sobre autos ambientais</h2>
+    <h2>Perguntas comuns</h2>
+    <details><summary>Toda atividade precisa de licença ambiental?</summary><p>Não. Depende do tipo de atividade, do porte e do potencial poluidor. No RJ, o enquadramento segue as regras estaduais (Decreto estadual 50.473/2026 e normas do INEA) e, quando o impacto é local, a licença pode ser da prefeitura (Lei Complementar 140/2011, art. 9º, XIV). Fazemos esse enquadramento.</p></details>
+    <details><summary>A licença é do INEA ou da prefeitura?</summary><p>Depende do impacto da atividade. Atividades de impacto local são licenciadas pelo município, se ele estiver habilitado; as demais, em regra, pelo INEA. Algumas são federais (IBAMA).</p></details>
+    <details><summary>Funcionar sem licença dá multa?</summary><p>Sim. Instalar ou operar atividade potencialmente poluidora sem licença é infração administrativa (Decreto 6.514/2008, art. 66) e também crime (Lei 9.605/1998, art. 60). Regularizar antes da fiscalização é o caminho mais seguro.</p></details>
+    <details><summary>Com quanto tempo de antecedência devo pedir a renovação?</summary><p>Confira o prazo escrito na sua licença. As novas regras estaduais preveem renovação automática para algumas atividades de baixo e médio impacto, nas hipóteses que o INEA definir. Fazemos o controle desses prazos.</p></details>
     <details><summary>Auto de infração quer dizer que fui condenado?</summary><p>Não. O auto inicia o processo administrativo. Você tem direito a defesa e a recurso, e a multa só se torna definitiva depois do julgamento.</p></details>
     <details><summary>Perdi o prazo de defesa. Ainda dá para fazer algo?</summary><p>Depende da fase do processo. Ainda pode haver alegações finais, recurso, pedido de conversão, parcelamento ou questões como a prescrição (Lei 9.873/1999). Vale uma análise rápida do processo.</p></details>
     <details><summary>Posso transformar a multa em serviço ambiental?</summary><p>Na esfera federal, a conversão da multa em serviços de preservação, melhoria e recuperação ambiental está prevista no Decreto 6.514/2008, com descontos maiores quando o pedido é feito junto com a defesa.</p></details>
@@ -211,6 +263,8 @@
     <ul class="fontes">
       <li><strong>Números do painel:</strong> <a href="https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao" target="_blank" rel="noopener">IBAMA, Dados Abertos, Fiscalização: Auto de Infração</a>. Filtro UF = RJ, só pessoas jurídicas com CNPJ de dígito verificador válido, autos de <span class="js-periodo">—</span>. Coletado em <span class="js-coleta">—</span>. O site público mostra apenas totais, sem nomes nem CNPJs.</li>
       <li><strong>Legislação:</strong> <a href="https://www2.camara.leg.br/legin/fed/decret/2023/decreto-11373-1-janeiro-2023-793607-publicacaooriginal-166723-pe.html" target="_blank" rel="noopener">Decreto 11.373/2023</a> (altera o Decreto 6.514/2008); Lei 9.605/1998; Lei 9.873/1999; <a href="https://www.inea.rj.gov.br/wp-content/uploads/2025/04/SEI_75485419_Parecer_125.pdf" target="_blank" rel="noopener">Parecer INEA 125</a> (cita Lei estadual 3.467/2000, Decretos 46.619/2019 e 48.690/2023); Lei 10.650/2003 (acesso a informações ambientais).</li>
+      <li><strong>Licenciamento no RJ:</strong> <a href="https://www.mattosfilho.com.br/wp-content/uploads/2026/09/decreto-estadual-no-50473-2026.pdf" target="_blank" rel="noopener">texto do Decreto estadual 50.473/2026</a> (cópia publicada por Mattos Filho) e análise de <a href="https://www.mayerbrown.com/pt/insights/publications/2026/09/rio-de-janeiro-decree-amends-environmental-licensing-to-incorporate-lgla-rules" target="_blank" rel="noopener">Mayer Brown, 24/09/2026</a>; Lei federal 15.190/2025; Lei Complementar 140/2011. Conferidos em 07/11/2026.</li>
+      <li><strong>Fotos:</strong> Wikimedia Commons, licenças Creative Commons. Serra dos Órgãos por Shooterb9 (CC BY-SA 3.0); Dedo de Deus por Halley Pacheco de Oliveira (CC BY-SA 3.0); Mata Atlântica no Itatiaia por Gabriel Marcusso (CC BY-SA 4.0); Cascata na Tijuca por PauloRicFerr (CC BY-SA 4.0); Manguezal em Guapimirim por Sarah Fricks (CC BY-SA 4.0); Floresta da Tijuca por Robson Coelho (CC BY-SA 4.0).</li>
       <li><strong>Limites:</strong> os dados abertos do IBAMA podem levar alguns dias para refletir autos recentes. Autos do INEA e dos municípios ainda não estão na base.</li>
     </ul>
   </div>
@@ -221,8 +275,8 @@
 <footer class="rodape">
   <div class="wrap rodape-in">
     <div>
-      <p class="marca marca-rod"><span class="marca-sinal" aria-hidden="true"></span><span>Ambiental <strong>Costa</strong></span></p>
-      <p>Engenharia e consultoria ambiental: defesa administrativa em autos de infração, recursos e regularização no Rio de Janeiro.</p>
+      <p class="marca marca-rod"><img class="marca-img" src="assets/origem-marca.svg" alt="" width="40" height="40"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span></p>
+      <p>Engenharia e consultoria ambiental no Rio de Janeiro: licenciamento, renovação de licenças, regularização, laudos, defesa técnica e recursos.</p>
       <p class="pequeno" id="crea-rodape"></p>
     </div>
     <div>
@@ -232,11 +286,26 @@
   </div>
 </footer>
 
-<a class="wa-flutua js-wa" data-msg="Olá! Vim pelo site da Ambiental Costa e quero atendimento." href="#contato" aria-label="Falar no WhatsApp">
+<a class="wa-flutua js-wa" data-msg="Olá! Vim pelo site da Origem Consultoria Ambiental e quero atendimento." href="#contato" aria-label="Falar no WhatsApp">
   <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#ic-wa"/></svg>
 </a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="curva" clipPathUnits="objectBoundingBox"><path d="M.16 0 H1 V1 H.10 C.02 .86 .12 .70 .06 .55 C0 .40 .10 .22 .04 .10 C.03 .06 .08 .02 .16 0 Z"/></clipPath>
+    <clipPath id="curva-m" clipPathUnits="objectBoundingBox"><path d="M0 0 H1 V.90 C.80 .99 .62 .90 .45 .95 C.28 1 .14 .93 0 .97 Z"/></clipPath>
+  </defs>
+  <symbol id="i-broto" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 21v-9m0 0C12 7 8 4 3 4c0 5 3.5 8 9 8Zm0 0c0-4 3-7 8-7 0 4.5-3 7-8 7Z"/></symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="i-escudo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="m11 12 8-8m-3 3 2 2m-4 0 1.5 1.5"/></symbol>
+  <symbol id="i-gota" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></symbol>
+  <symbol id="i-reciclo" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 19H4.5a1.5 1.5 0 0 1-1.3-2.2L5 13.5m14 5.5h-6m0 0 2-2m-2 2 2 2M9.5 5.2l1.2-2a1.5 1.5 0 0 1 2.6 0L16 8m0 0-2.8.4M16 8l.8-2.7M5 13.5 3 12.6m2 .9.6 2.7"/></symbol>
+  <symbol id="i-folha" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15m0-1 7-7"/></symbol>
+  <symbol id="i-engrenagem" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M10.3 3h3.4l.5 2.4 1.7.9 2.2-1.1 2.4 2.4-1.1 2.2.7 1.7 2.4.5v3.4l-2.4.5-.7 1.7 1.1 2.2-2.4 2.4-2.2-1.1-1.7.7-.5 2.4h-3.4l-.5-2.4-1.7-.7-2.2 1.1-2.4-2.4 1.1-2.2-.7-1.7L2.6 13.7v-3.4l2.4-.5.7-1.7-1.1-2.2 2.4-2.4 2.2 1.1 1.7-.9z"/></symbol>
+  <symbol id="i-barras" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4 20h16M7 17v-4M11 17V9M15 17v-6M19 17V5"/></symbol>
+  <symbol id="i-pessoas" viewBox="0 0 24 24"><circle cx="12" cy="7" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="5.5" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18.5" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M7.5 18c.5-3 2.3-4.6 4.5-4.6s4 1.6 4.5 4.6M2 17c.3-2 1.6-3.2 3.5-3.2M22 17c-.3-2-1.6-3.2-3.5-3.2"/></symbol>
   <symbol id="ic-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12.04 2a9.9 9.9 0 0 0-8.5 15l-1.4 5 5.1-1.3A9.9 9.9 0 1 0 12.04 2Zm0 18.1a8.2 8.2 0 0 1-4.2-1.15l-.3-.18-3 .8.8-2.95-.2-.3a8.2 8.2 0 1 1 6.9 3.78Zm4.5-6.1c-.25-.12-1.46-.72-1.69-.8-.23-.09-.39-.13-.56.12-.16.25-.64.8-.78.97-.15.16-.29.18-.54.06a6.7 6.7 0 0 1-3.34-2.92c-.25-.43.25-.4.72-1.34.08-.16.04-.3-.02-.43l-.75-1.82c-.2-.48-.4-.41-.56-.42h-.48a.92.92 0 0 0-.66.31 2.8 2.8 0 0 0-.87 2.07 4.86 4.86 0 0 0 1.02 2.58 11.1 11.1 0 0 0 4.25 3.76c1.58.68 2.2.74 2.99.62.48-.07 1.46-.6 1.67-1.18.2-.58.2-1.07.15-1.18-.06-.1-.22-.17-.47-.29Z"/></symbol>
 </svg>
 

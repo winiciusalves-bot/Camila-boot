@@ -107,3 +107,66 @@
   .fila{grid-template-columns:1fr}
   .card-f .cf-acoes .btn{flex:1;justify-content:center}
 }
+
+/* ===== Conferência diária (✕ / ✓) ===== */
+.aba-n{display:inline-block;min-width:1.4em;font-size:.72rem;background:var(--verde-claro);color:var(--verde);border-radius:999px;padding:1px 6px;margin-left:4px}
+.aba-n:empty{display:none}
+.busca-conf{grid-template-columns:1fr 2fr;align-items:end}
+.conf-baixar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.conf-baixar small{color:var(--cinza)}
+.conf-pilha{position:relative;max-width:760px;margin:0 auto}
+.conf-atras{position:absolute;inset:10px 14px -8px;background:#fff;border:1px solid var(--linha);border-radius:16px;transform:rotate(-1.2deg);z-index:0}
+.conf-card{position:relative;z-index:1;background:#fff;border:1px solid var(--linha);border-radius:16px;padding:22px 24px 26px;box-shadow:0 10px 30px rgba(15,40,25,.10);transition:transform .22s ease,opacity .22s ease;touch-action:pan-y}
+.conf-card h2{font-size:1.4rem;margin:10px 0 4px}
+.conf-card h3{margin-top:22px;color:var(--verde)}
+.conf-carimbo{position:absolute;top:18px;font-weight:800;letter-spacing:.08em;font-size:1rem;padding:6px 12px;border:3px solid;border-radius:8px;opacity:0;transition:opacity .12s;pointer-events:none}
+.conf-c-nao{right:18px;color:#b42318;transform:rotate(8deg)}
+.conf-c-sim{left:18px;color:#166534;transform:rotate(-8deg)}
+.conf-card.pende-nao .conf-c-nao,.conf-card.pende-sim .conf-c-sim{opacity:1}
+.conf-card.pende-nao{border-color:#f3b3ac}.conf-card.pende-sim{border-color:#9fd8b0}
+.conf-barra{position:sticky;bottom:12px;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;max-width:760px;margin:16px auto 0;background:rgba(255,255,255,.96);border:1px solid var(--linha);border-radius:999px;padding:8px;box-shadow:0 8px 24px rgba(15,40,25,.14);backdrop-filter:blur(6px)}
+.conf-bt{border:2px solid;border-radius:999px;font:inherit;font-weight:700;font-size:1rem;padding:12px 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff}
+.conf-bt span{font-size:1.25rem;line-height:1}
+.conf-nao{color:#b42318;border-color:#f3b3ac}.conf-nao:hover{background:#fdf0ee}
+.conf-sim{color:#fff;background:var(--verde);border-color:var(--verde)}.conf-sim:hover{filter:brightness(1.08)}
+.conf-volta{color:var(--cinza);border-color:var(--linha);font-size:.9rem;padding:10px 14px}
+.conf-volta:disabled{opacity:.45;cursor:default}
+.conf-vazia{background:#fff;border:1px dashed var(--linha);border-radius:16px;padding:40px 20px;text-align:center;color:var(--cinza)}
+.conf-dica{text-align:center;max-width:760px;margin:12px auto 0}
+.selo-apr{background:#dcfce7;color:#166534}
+@media (max-width:720px){
+  .busca-conf{grid-template-columns:1fr}
+  .conf-card{padding:18px 16px 22px;border-radius:14px}
+  .conf-card h2{font-size:1.2rem;padding-right:0}
+  .conf-barra{bottom:8px;border-radius:18px;gap:6px;padding:6px}
+  .conf-bt{padding:12px 10px;font-size:.95rem}
+  .conf-volta{padding:10px 8px;font-size:.82rem}
+  .conf-carimbo{top:12px;font-size:.85rem}
+}
+.aba-sep{flex:1}
+.aba-pri{font-size:1rem}
+.aba-sec{font-size:.86rem;font-weight:500}
+.sub-abas{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 6px}
+.sub-aba{border:1px solid var(--linha);background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:.88rem;font-weight:600;color:var(--cinza);cursor:pointer}
+.sub-aba[aria-selected="true"]{background:var(--verde);border-color:var(--verde);color:#fff}
+.sub-aba[aria-selected="true"] .aba-n{background:rgba(255,255,255,.25);color:#fff}
+.sub-alerta .aba-n{background:#fde8e6;color:#9f1c12}
+.a-planilha{margin-top:22px;background:#fff;border:1px solid var(--linha);border-radius:var(--raio);padding:14px 16px;align-items:end}
+@media (max-width:720px){ .sub-abas{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px} .sub-aba{white-space:nowrap} .aba-sep{display:none} }
+@media (max-width:720px){
+  .abas{flex-wrap:wrap;overflow:visible;gap:0}
+  .aba-pri{flex:1 1 33%;font-size:.9rem;padding:10px 4px;text-align:center}
+  .aba-sec{font-size:.8rem;padding:6px 10px}
+}
+@media (max-width:720px){
+  body:not([data-aba="empresas"]) .p-kpis{display:none}
+  body[data-aba="conferencia"] .aviso-topo{display:none}
+}
+@media (max-width:720px){
+  .aba-pri{flex:1 1 0;min-width:0;font-size:.86rem;padding:10px 2px}
+  .aba-pri>span[aria-hidden]{display:none}
+  .aba-pri .aba-n{margin-left:2px}
+  .aba-sep{display:block;flex-basis:100%;height:0}
+  .busca-conf{padding:10px 12px}
+  .busca-conf .campo span{display:none}
+}
