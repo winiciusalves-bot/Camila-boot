@@ -8,7 +8,7 @@ on:
         description: 'Quantos dias para trás'
         default: '7'
   schedule:
-    - cron: '0 11 * * 1-5'  # 1ª rotina do dia útil: 08:00 (Brasília). Segunda olha 3 dias para pegar edição extra do fim de semana
+    - cron: '0 11 * * 1-5'  # 1ª rotina do dia útil: 08:00 (Brasília). sempre olha 5 dias para trás
 permissions:
   contents: read
 jobs:
@@ -31,7 +31,7 @@ jobs:
       - name: Baixar diários (33 municípios do RJ + AEMERJ)
         working-directory: qd/querido_diario_raspadores
         env:
-          DIAS: ${{ github.event.inputs.dias || '3' }}   # rotina diária: 3 dias (cobre fim de semana e edição extra)
+          DIAS: ${{ github.event.inputs.dias || '5' }}   # rotina: 5 dias para trás (cobre fim de semana, feriado e ponto facultativo, inclusive carnaval); repetição não duplica
         run: |
           INICIO=$(date -d "-${DIAS} days" +%F)
           mkdir -p "$GITHUB_WORKSPACE/out" "$GITHUB_WORKSPACE/logs" "$GITHUB_WORKSPACE/db"
