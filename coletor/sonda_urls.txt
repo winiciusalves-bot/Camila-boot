@@ -1,14 +1,11 @@
-# 2ª sonda (07/11): caminhos novos achados na 1ª
-https://www.diariomunicipal.com.br/aemerj/
-https://www.marica.rj.gov.br/wp-json/wp/v2/jom?per_page=3
-https://www.marica.rj.gov.br/diario-oficial-de-marica/
-https://portal.cabofrio.rj.gov.br/diariooficial.php
-https://transparencia.buzios.rj.gov.br/publicacoes.php?grupo=&cat=29&Comp=&Exer=&dtini=&dtfim=&Num=&ta=3&Descr=
-https://portal.iguaba.rj.gov.br/publicacoes.php
-https://plenussistemas.dioenet.com.br/diario/publicacoes/31881
-https://portal.duquedecaxias.rj.gov.br/busca?q=boletim+oficial
-https://portal.duquedecaxias.rj.gov.br/boletim-oficial
-https://portal.arraial.rj.gov.br/
-https://www.sjb.rj.gov.br/diario-oficial
-https://varresai.rj.gov.br/diario-oficial
-https://www.ioerj.com.br/portal/modules/conteudoonline/
+# 3ª sonda (07/11): conteúdo bruto
+https://www.marica.rj.gov.br/wp-json/wp/v2/jom?per_page=2#bruto
+https://portal.cabofrio.rj.gov.br/diariooficial.php?id=2053#bruto
+https://portal.cabofrio.rj.gov.br/diariooficial.php#bruto
+https://portal.iguaba.rj.gov.br/publicacoes.php#bruto
+https://plenussistemas.dioenet.com.br/list/nova-friburgo#bruto
+https://portal.arraial.rj.gov.br/diariooficial#bruto
+https://www.sjb.rj.gov.br/diario-oficial#bruto
+https://varresai.rj.gov.br/#bruto
+https://portal.duquedecaxias.rj.gov.br/boletim-oficial#bruto
+https://transparencia.buzios.rj.gov.br/publicacoes.php?grupo=&cat=29&Comp=&Exer=&dtini=&dtfim=&Num=&ta=3&Descr=#bruto

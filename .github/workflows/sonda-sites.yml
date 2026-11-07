@@ -21,10 +21,19 @@ jobs:
           [ -z "$URLS" ] && URLS=$(grep -v '^#' coletor/sonda_urls.txt | tr '\n' ' ')
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36'
           for u in $URLS; do
+            bruto=0; case "$u" in *'#bruto') bruto=1; u="${u%#bruto}";; esac
             echo "=================== $u"
             curl -sS -L -m 40 -A "$UA" -o /tmp/p -w 'HTTP %{http_code} · final %{url_effective} · %{size_download} bytes · %{time_total}s\n' "$u" 2>&1 | tail -2
             [ -s /tmp/p ] || continue
             file -b /tmp/p | cut -c1-80
+            if [ $bruto = 1 ]; then echo "-- conteúdo (sem tags, 3500 caracteres em torno de pdf/edição/data):"; python3 -c "
+          import re,sys; t=open('/tmp/p',encoding='utf-8',errors='ignore').read()
+          links=sorted(set(re.findall(r'(?:href|src|data-[a-z-]+)=[\"\']([^\"\']*(?:pdf|arquivo|download|uploads|edicao|diario|api)[^\"\']*)',t,re.I)))[:30]
+          print('LINKS:',*links,sep='\n  ')
+          print('API:',*sorted(set(re.findall(r'[\"\'](/?[a-z0-9_./-]*(?:api|json|ajax|listar|busca|consulta)[a-z0-9_./?=&-]*)[\"\']',t,re.I)))[:30],sep='\n  ')
+          x=re.sub(r'<script.*?</script>|<style.*?</style>','',t,flags=re.S); x=re.sub(r'<[^>]+>',' ',x); x=re.sub(r'\s+',' ',x)
+          i=max(0,min([m.start() for m in re.finditer(r'(?i)edi[cç][aã]o|\d{2}/\d{2}/20\d\d|\.pdf',x)] or [0])-200); print('TEXTO:',x[i:i+3500])
+          "; continue; fi
             grep -oiE '<title[^>]*>[^<]{0,150}' /tmp/p | head -1
             echo "-- links com diário/boletim/pdf/edição:"
             grep -oiE '(href|src|action)="[^"]{0,220}"' /tmp/p | grep -iE 'diario|boletim|\.pdf|edic|jom|download|publicac|ver20|wp-json|api' | sort -u | head -25
