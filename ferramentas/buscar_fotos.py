@@ -17,7 +17,7 @@ for linha in BUSCAS:
     fonte, q = linha.split('|', 1)
     try:
         if fonte == 'commons':
-            u = 'https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode(dict(action='query', format='json', generator='search', gsrsearch='filetype:bitmap ' + q, gsrnamespace=6, gsrlimit=8, prop='imageinfo', iiprop='url|extmetadata|size', iiurlwidth=1600))
+            u = 'https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode(dict(action='query', format='json', generator='search', gsrsearch='filetype:bitmap ' + q, gsrnamespace=6, gsrlimit=10, prop='imageinfo', iiprop='url|extmetadata|size', iiurlwidth=1600))
             for p in (get(u).get('query', {}).get('pages', {}) or {}).values():
                 ii = p['imageinfo'][0]; md = ii.get('extmetadata', {})
                 lic = md.get('LicenseShortName', {}).get('value', '')
