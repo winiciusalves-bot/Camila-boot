@@ -432,7 +432,19 @@ def main():
     ap.add_argument('--embargos', help='CSV local de termos de embargo (teste)')
     a = ap.parse_args()
     hoje = dt.date.today()
-    sb = None if a.sem_supabase else Supabase(os.environ['SUPABASE_URL'], os.environ['SUPABASE_SERVICE_KEY'])
+    if not a.sem_supabase:
+        chave = os.environ.get('SUPABASE_SERVICE_KEY', '').strip()
+        tipo = 'vazia' if not chave else 'publishable' if chave.startswith('sb_publishable_') else 'secret' if chave.startswith('sb_secret_') else ''
+        if chave.startswith('eyJ'):
+            try:
+                import base64
+                carga = chave.split('.')[1]; carga += '=' * (-len(carga) % 4)
+                tipo = json.loads(base64.urlsafe_b64decode(carga)).get('role', '?')   # só o papel; a chave nunca é exibida
+            except Exception: tipo = 'jwt ilegível'
+        log(f'tipo da chave em SUPABASE_SERVICE_KEY: {tipo} (precisa ser secret ou service_role)')
+        if tipo not in ('secret', 'service_role'):
+            sys.exit('ERRO: SUPABASE_SERVICE_KEY não é a chave secret/service_role. No Supabase: Project Settings > API Keys > Secret keys.')
+    sb = None if a.sem_supabase else Supabase(os.environ['SUPABASE_URL'].strip(), os.environ['SUPABASE_SERVICE_KEY'].strip())
     reg = dict(fonte=FONTE_NOME + ' ' + FONTE_URL,
                metodo='UF=RJ; últimos 365 dias; só CNPJ com DV válido; CPF mascarado em todo texto; cadastro: BrasilAPI > minhareceita > cnpj.ws')
     id_coleta = None
