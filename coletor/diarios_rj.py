@@ -46,7 +46,7 @@ def trecho(txt, i, n=300):
 
 
 def municipio_de(arq):
-    n = os.path.basename(arq).replace('.jsonl', '').replace('rj_', '')
+    n = os.path.basename(arq).replace('.jsonl', '').replace('rj_', '').replace('_v2', '')
     if n == 'aemerj': return 'AEMERJ (vários municípios)'
     return n.replace('_', ' ').title().replace(' De ', ' de ').replace(' Do ', ' do ').replace(' Da ', ' da ').replace(' Dos ', ' dos ')
 
