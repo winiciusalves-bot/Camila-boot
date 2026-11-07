@@ -25,6 +25,9 @@
       <a href="#consulta">Consultar auto</a>
       <a href="#contato">Contato</a>
     </nav>
+    <a class="btn btn-linha btn-sm btn-restrito js-login" href="area-restrita/" aria-haspopup="dialog" aria-label="Área restrita" title="Área restrita">
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg><span class="txt-restrito">Área restrita</span>
+    </a>
     <a class="btn btn-wa btn-sm js-wa" data-msg="Olá! Vim pelo site e quero falar sobre um auto de infração ambiental." href="#contato">
       <svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><use href="#ic-wa"/></svg> WhatsApp
     </a>
@@ -240,5 +243,17 @@
 <script src="assets/config.js"></script>
 <script src="assets/publico.js"></script>
 <script src="assets/app.js"></script>
+<dialog class="dlg-login" id="dlg-login" aria-labelledby="dlg-tit">
+  <form class="form login-form" id="dlg-form" method="dialog">
+    <button class="dlg-x" type="button" id="dlg-x" aria-label="Fechar">×</button>
+    <h2 class="dlg-tit" id="dlg-tit">Área restrita</h2>
+    <p class="nota">Acesso só para usuários autorizados.</p>
+    <label class="campo"><span>Usuário</span><input id="dlg-user" type="text" autocomplete="username" autocapitalize="none" required></label>
+    <label class="campo"><span>Senha</span><input id="dlg-senha" type="password" autocomplete="current-password" required></label>
+    <small class="erro" id="dlg-erro" hidden></small>
+    <button class="btn btn-wa" id="dlg-ok" type="submit" style="justify-content:center">Entrar</button>
+  </form>
+</dialog>
+<script src="assets/login.js"></script>
 </body>
 </html>

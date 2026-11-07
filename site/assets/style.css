@@ -128,3 +128,14 @@ details p{margin:10px 0 0;color:var(--cinza)}
   .kpi{font-size:1.5rem}
   .barra{grid-template-columns:110px 1fr 32px}
 }
+
+/* ===== Botão "Área restrita" no topo + janela de login ===== */
+.topo .btn-restrito{margin-left:12px;color:var(--verde)}
+.topo .btn-restrito .ic{width:16px;height:16px}
+.dlg-login{border:0;border-radius:16px;padding:0;width:min(400px,calc(100% - 32px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg-login::backdrop{background:rgba(10,20,15,.55)}
+.dlg-login .login-form{position:relative;display:grid;gap:12px;padding:28px 24px 24px;margin:0;max-width:none;box-shadow:none}
+.dlg-tit{font-family:var(--serif);font-size:1.5rem;margin:0}
+.dlg-x{position:absolute;top:8px;right:12px;border:0;background:none;font-size:1.8rem;line-height:1;cursor:pointer;color:var(--cinza)}
+@media (max-width:960px){.topo .btn-restrito{margin-left:auto}.topo .btn-restrito + .btn-sm{margin-left:8px}}
+@media (max-width:620px){.topo .txt-restrito{display:none}.topo .btn-restrito{padding:8px 11px}}
