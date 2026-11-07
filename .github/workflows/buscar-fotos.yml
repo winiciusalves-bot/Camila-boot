@@ -1,0 +1,22 @@
+name: buscar-fotos
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  fotos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pillow
+      - run: python ferramentas/buscar_fotos.py /tmp/fotos-candidatas
+      - name: Grava no ramo "fotos" (fora do main, não publica o site)
+        run: |
+          git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan fotos
+          git rm -rf --cached . >/dev/null
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          mv /tmp/fotos-candidatas .
+          git add fotos-candidatas
+          git commit -m "Fotos candidatas para o site (licença livre)"
+          git push -f origin fotos
