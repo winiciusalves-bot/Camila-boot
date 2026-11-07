@@ -13,5 +13,5 @@ window.SITE_CONFIG = {
   // A chave "anon" é pública por natureza; a proteção vem das regras RLS do banco.
   // NUNCA coloque aqui a chave "service_role".
   supabaseUrl: 'https://mxfgezgmyowqjmaibdkl.supabase.co',
-  supabaseAnonKey: ''
+  supabaseAnonKey: 'sb_publishable_yhfI7P_ta7mEb21czhdhRA_Fd1zuJNC'
 };
