@@ -321,3 +321,32 @@ summary{color:var(--verde);font-family:'Montserrat',sans-serif;font-weight:500}
 .hero-in{align-items:stretch;gap:0}
 .hero h1{font-size:clamp(2.1rem,3.8vw,3.1rem)}
 .hero-cta{gap:12px 14px}
+.origem-logo{width:300px;height:300px;border-radius:50%;justify-self:center;box-shadow:0 24px 60px rgba(16,38,28,.28)}
+.origem-in{grid-template-columns:320px 1fr}
+.rodape-logo{width:140px;height:140px;border-radius:50%;display:block;margin-bottom:14px}
+@media (max-width:960px){.origem-logo{width:200px;height:200px;justify-self:start}}
+.rodape{background:#012315}
+/* ===== Elementos do manual da marca ===== */
+.marca-img{width:44px;height:44px;border-radius:50%}
+.hero-vertical{display:block;position:absolute;right:14px;top:50%;left:auto;transform:translateY(-50%);writing-mode:vertical-rl;font-family:'Montserrat',sans-serif;font-size:.6rem;letter-spacing:.32em;text-transform:uppercase;color:rgba(245,240,232,.85);margin:0;z-index:2;border-left:1px solid rgba(245,240,232,.6);padding-left:10px}
+.impacto{display:grid;grid-template-columns:1.4fr 1fr;background:#012315;color:var(--creme);min-height:460px}
+.impacto-foto{overflow:hidden}.impacto-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.impacto-txt{padding:64px 56px;display:flex;flex-direction:column;justify-content:center;font-family:'Montserrat',sans-serif;text-transform:uppercase}
+.impacto-tit{font-size:1.25rem;letter-spacing:.32em;line-height:1.9;margin:0;font-weight:300}
+.traco{display:block;width:40px;height:1px;background:var(--terra);margin:22px 0}
+.impacto ul{list-style:none;padding:0;margin:0;font-size:.74rem;letter-spacing:.24em;line-height:2.3;color:var(--areia)}
+.impacto-pe{font-size:.62rem;letter-spacing:.24em;margin:26px 0 0;color:#a9b3a6}
+.figura-txt{background:#012315;color:var(--creme);display:flex;flex-direction:column;justify-content:center;padding:26px 30px;font-family:'Montserrat',sans-serif;text-transform:uppercase}
+.figura-txt p{margin:0;font-size:.78rem;letter-spacing:.24em;line-height:1.9}
+.figura-txt .mini{font-size:.62rem;color:var(--areia)}
+.proposito{position:relative;overflow:hidden;background:var(--verde);color:var(--creme);padding:90px 0}
+.proposito-marca{position:absolute;right:-60px;top:50%;width:440px;height:440px;transform:translateY(-50%);opacity:.12;filter:brightness(2.2) saturate(.3)}
+.proposito-in{position:relative;display:flex;align-items:center;justify-content:space-between;gap:40px;flex-wrap:wrap}
+.manuscrito{font-family:'Allura',cursive;font-size:clamp(2.6rem,6vw,4.4rem);line-height:1.1;margin:0;color:var(--areia)}
+.proposito-lado{font-family:'Montserrat',sans-serif;text-transform:uppercase;letter-spacing:.26em;font-size:.76rem;line-height:2.1;margin:0;border-left:1px solid var(--terra);padding-left:22px}
+@media (max-width:960px){
+  .hero-vertical{display:none}
+  .impacto{grid-template-columns:1fr}.impacto-foto{height:260px}.impacto-txt{padding:40px 22px}
+  .proposito{padding:60px 0}.proposito-marca{width:280px;height:280px;right:-80px}
+}
+.hero-vertical{display:none!important}

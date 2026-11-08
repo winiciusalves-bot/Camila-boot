@@ -3,12 +3,18 @@
 <head>
 <meta charset="utf-8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/origem-selo.webp" type="image/webp" sizes="96x96">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="Origem Consultoria Ambiental">
+<meta property="og:description" content="Licenciamento, regularização e defesa ambiental no Rio de Janeiro.">
+<meta property="og:image" content="https://ambientalcosta.netlify.app/assets/origem-logo-og.jpg">
+<meta name="theme-color" content="#1F3B2E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Origem Consultoria Ambiental | Licenciamento, regularização e defesa ambiental no RJ</title>
 <meta name="description" content="Engenharia e consultoria ambiental no Rio de Janeiro: licenciamento no INEA e nas prefeituras, renovação de licenças, regularização, laudos, defesa técnica e recursos em autos de infração.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -17,7 +23,7 @@
 <header class="topo">
   <div class="wrap topo-in">
     <a class="marca" href="#inicio" aria-label="Origem Consultoria Ambiental, início">
-      <img class="marca-img" src="assets/origem-marca.svg" alt="" width="40" height="40"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span>
+      <img class="marca-img" src="assets/origem-selo.webp" srcset="assets/origem-selo@2x.webp 2x" alt="" width="44" height="44"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span>
     </a>
     <nav class="menu" aria-label="Principal">
       <a href="#licenciamento">Licenciamento</a>
@@ -58,7 +64,7 @@
 
 <section class="sec sobre-origem" id="origem">
   <div class="wrap origem-in">
-    <img class="origem-marca revela" src="assets/origem-marca.svg" alt="" width="180" height="180">
+    <img class="origem-logo revela" src="assets/origem-logo.webp" srcset="assets/origem-logo-p.webp 320w, assets/origem-logo.webp 640w" sizes="(max-width:960px) 200px, 300px" alt="Logo da Origem Consultoria Ambiental" width="300" height="300" loading="lazy">
     <div class="revela">
       <h2 class="ola">Olá,<br><strong>somos a Origem.</strong></h2>
       <p class="intro">A Origem Consultoria Ambiental foi constituída com o propósito de conciliar desenvolvimento econômico e proteção ambiental, convertendo exigências legais em soluções técnicas viáveis para as empresas.</p>
@@ -134,11 +140,25 @@
   </div>
 </section>
 
+<section class="impacto" aria-label="Da origem ao impacto positivo">
+  <div class="impacto-foto revela"><img src="assets/fotos/floresta-tijuca-aerea.webp" alt="Floresta da Tijuca vista do alto" loading="lazy"></div>
+  <div class="impacto-txt revela">
+    <p class="impacto-tit">Da origem<br>ao impacto<br>positivo.</p>
+    <span class="traco"></span>
+    <ul>
+      <li>Territórios mais equilibrados</li>
+      <li>Pessoas mais seguras</li>
+      <li>Negócios mais duradouros</li>
+    </ul>
+    <p class="impacto-pe">Meio ambiente é o nosso ponto de partida.</p>
+  </div>
+</section>
+
 <section class="mosaico" aria-label="Paisagens do Rio de Janeiro">
   <figure class="revela"><img src="assets/fotos/mata-atlantica-itatiaia-p.webp" alt="Mata Atlântica no Parque Nacional do Itatiaia" loading="lazy"></figure>
   <figure class="revela"><img src="assets/fotos/cascata-tijuca-p.webp" alt="Cascata no Parque Nacional da Tijuca" loading="lazy"></figure>
   <figure class="revela"><img src="assets/fotos/manguezal-guapimirim-p.webp" alt="Manguezal na APA de Guapimirim" loading="lazy"></figure>
-  <figure class="revela"><img src="assets/fotos/floresta-tijuca-aerea-p.webp" alt="Floresta da Tijuca vista do alto" loading="lazy"></figure>
+  <figure class="revela figura-txt"><p>Conhecimento<br>que transforma<br>realidades.</p><span class="traco"></span><p class="mini">Planejamento<br>Regularização<br>Resultados</p></figure>
 </section>
 
 <section class="sec" id="autos">
@@ -206,6 +226,14 @@
   </div>
 </section>
 
+<section class="proposito" aria-label="Mais que projetos, propósitos">
+  <img class="proposito-marca" src="assets/origem-marca.svg" alt="" aria-hidden="true">
+  <div class="wrap proposito-in revela">
+    <p class="manuscrito">Mais que projetos,<br>propósitos.</p>
+    <p class="proposito-lado">Soluções que conectam<br>territórios, pessoas<br>e oportunidades.</p>
+  </div>
+</section>
+
 <section class="sec" id="contato">
   <div class="wrap contato-in">
     <div>
@@ -216,6 +244,7 @@
         <li>Licenciamento: informe a atividade, o endereço e, se houver, a licença vigente.</li>
         <li>Auto de infração: informe o número do auto e a data de recebimento da notificação.</li>
         <li>Atendimento a empresas e produtores rurais em todo o Estado do Rio de Janeiro.</li>
+        <li>Prefere e-mail? Escreva para <a href="mailto:origemconsultoriaambiental@gmail.com">origemconsultoriaambiental@gmail.com</a>.</li>
       </ul>
     </div>
     <form class="form" id="form-wa" novalidate>
@@ -275,13 +304,14 @@
 <footer class="rodape">
   <div class="wrap rodape-in">
     <div>
-      <p class="marca marca-rod"><img class="marca-img" src="assets/origem-marca.svg" alt="" width="40" height="40"><span class="marca-txt"><span class="marca-nome">ORIGEM</span><span class="marca-sub">Consultoria Ambiental</span></span></p>
+      <img class="rodape-logo" src="assets/origem-logo-p.webp" alt="Origem Consultoria Ambiental" width="140" height="140" loading="lazy">
       <p>Engenharia e consultoria ambiental no Estado do Rio de Janeiro: licenciamento, renovação de licenças, regularização, laudos, defesa técnica e recursos administrativos.</p>
       <p class="pequeno" id="crea-rodape"></p>
     </div>
     <div>
       <p><strong>WhatsApp:</strong> <span id="tel-rodape">—</span></p>
-      <p class="pequeno"><a href="area-restrita/">Área restrita</a> · As informações deste site são gerais e não substituem a análise do caso concreto. Dados públicos com fonte e data indicadas. Tratamento de dados conforme a LGPD (Lei 13.709/2018).</p>
+      <p><strong>E-mail:</strong> <a id="email-rodape" href="mailto:origemconsultoriaambiental@gmail.com">origemconsultoriaambiental@gmail.com</a></p>
+      <p class="pequeno"><a href="marca.html">Identidade visual</a> · <a href="area-restrita/">Área restrita</a> · As informações deste site são gerais e não substituem a análise do caso concreto. Dados públicos com fonte e data indicadas. Tratamento de dados conforme a LGPD (Lei 13.709/2018).</p>
     </div>
   </div>
 </footer>

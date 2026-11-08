@@ -17,7 +17,7 @@
   }
 
   var cr = document.getElementById('crea-rodape');
-  if (cr) cr.textContent = 'CREA-RJ nº ' + (C.creaRegistro || '(a informar)') + ' · Responsável técnico: ' + (C.responsavelTecnico || '(a informar)');
+  if (cr) cr.textContent = 'CREA-RJ nº ' + (C.creaRegistro || '(a informar)') + ' · Responsável técnica: ' + (C.responsavelTecnico || '(a informar)');
 
   // Painel agregado: ao vivo do banco (só totais, função resumo_publico) ou, sem banco, do arquivo publico.js
   function painel(P) {

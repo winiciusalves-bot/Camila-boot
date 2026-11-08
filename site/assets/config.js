@@ -1,9 +1,10 @@
 // ===== CONFIGURAÇÃO DO SITE (edite só este arquivo) =====
 window.SITE_CONFIG = {
   // WhatsApp com DDI 55 + DDD + número, só dígitos. PROVISÓRIO: troque pelo número real.
-  whatsapp: '5521900000000',
-  whatsappProvisorio: true,      // mude para false quando colocar o número real
+  whatsapp: '5521999972926',
+  whatsappProvisorio: false,
   nomeEmpresa: 'Origem Consultoria Ambiental',
+  email: 'origemconsultoriaambiental@gmail.com',
   // Registro no CREA-RJ e responsável técnico (aparecem no rodapé). PREENCHER.
   creaRegistro: '',
   responsavelTecnico: 'Camila Costa da Silva, Engenheira Ambiental e Sanitarista',
