@@ -552,7 +552,7 @@
     var m = dadosMensagem(x), d = m.d, p = [];
     p.push('A ' + m.empresa + ' é uma empresa de engenharia e consultoria ambiental registrada no CREA-RJ, com atuação em todo o Estado do Rio de Janeiro.');
     if (d) p.push('Em consulta a dados públicos ' + fonteCurta(d) + ', identificamos ' + (/^(notificação|penalidade|menção|licença|comunicação)/.test(tipoCurto(d.tipo_documento)) ? 'uma ' : 'um ') + tipoCurto(d.tipo_documento) + (d.numero ? ' nº ' + d.numero : '') + (m.mes ? ', de ' + m.mes : '') + ', em nome de sua empresa' + (m.mun ? ', no município de ' + m.mun : '') + '.');
-    p.push(d ? 'Prestamos assessoria técnica a empresas nessa situação, que compreende: análise técnica do caso e dos prazos administrativos; elaboração de laudos e pareceres técnicos; Plano de Recuperação de Área Degradada (PRAD); e regularização e licenciamento ambiental.'
+    p.push(d ? 'Prestamos assessoria técnica a empresas nessa situação, que compreende: análise técnica do caso e dos prazos administrativos; elaboração de laudos e pareceres técnicos; Projeto de Recuperação de Área Degradada (PRAD); e regularização e licenciamento ambiental.'
       : 'Prestamos assessoria técnica ambiental a empresas, que compreende: diagnóstico da situação ambiental; regularização e licenciamento ambiental; elaboração de laudos e pareceres técnicos; e acompanhamento de exigências dos órgãos ambientais.');
     p.push('Caso seja de interesse, teremos satisfação em agendar uma breve reunião de apresentação, sem compromisso, para avaliar a situação e indicar os caminhos técnicos possíveis.');
     return p;
