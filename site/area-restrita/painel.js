@@ -401,7 +401,7 @@
         (ult ? '<div class="cf-mot"><span class="st st-' + esc(x.status) + '">' + esc(ST[x.status]) + '</span> ' + esc(ult.canal || '') + ' em ' + esc(brDH(ult.criado_em)) + (diasC != null ? ' (há ' + diasC + ' dia' + (diasC === 1 ? '' : 's') + ')' : '') + (x.status === 'contatado' ? ' · ' + x.tentativas + 'ª tentativa' : '') + (usados.length ? ' · canais já usados: ' + esc(usados.join(', ')) : '') + (ult.nota ? '<br>' + esc(ult.nota) : '') + '</div>' : '') +
         (bloq ? '' : '<div class="cf-acoes">' +
           (cel ? '<a class="btn btn-wa btn-sm" data-wa="' + esc(e.cnpj) + '" target="_blank" rel="noopener" href="https://wa.me/55' + cel + '?text=' + encodeURIComponent(mensagemPadrao(x)) + '">WhatsApp</a>' : '') +
-          (em ? '<a class="btn btn-linha btn-sm" data-mail="' + esc(e.cnpj) + '" href="mailto:' + esc(em) + '?subject=' + encodeURIComponent('Auto de infração ambiental: apoio técnico') + '&body=' + encodeURIComponent(mensagemPadrao(x)) + '">E-mail</a>' : '') +
+          (em ? '<a class="btn btn-linha btn-sm" data-mail="' + esc(e.cnpj) + '" href="mailto:' + esc(em) + '?subject=' + encodeURIComponent(assuntoEmail(x)) + '&body=' + encodeURIComponent(mensagemEmail(x)) + '">E-mail</a>' : '') +
           (grupo === 'aguardando' || grupo === 'semretorno' ? '<button class="btn btn-linha btn-sm" data-rapido="' + esc(e.cnpj) + '|respondeu" type="button">Respondeu</button><button class="btn btn-linha btn-sm" data-rapido="' + esc(e.cnpj) + '|sem_interesse" type="button">Sem interesse</button>' : '') +
           '<button class="btn btn-linha btn-sm" data-abrir="' + esc(e.cnpj) + '" type="button">Abrir ficha</button></div>') + '</article>';
     }).join('') || '<p class="conf-vazia">Ninguém neste grupo.</p>';
@@ -535,12 +535,44 @@
   $('gaveta-x').addEventListener('click', fechar); $('gaveta-fundo').addEventListener('click', fechar);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
 
-  function mensagemPadrao(x) {
-    var d = x.validos[0], mes = d ? String(d.data_documento || '').slice(0, 7).split('-').reverse().join('/') : '';
-    return 'Olá! Aqui é da ' + (C.nomeEmpresa || 'Origem Consultoria Ambiental') + ', empresa de engenharia e consultoria ambiental registrada no CREA-RJ. ' +
-      (d ? 'Vi nos dados públicos ' + fonteCurta(d) + ' um(a) ' + tipoCurto(d.tipo_documento) + (d.numero ? ' nº ' + d.numero : '') + ' em nome da ' + x.e.razao_social + (d.municipio ? ', em ' + d.municipio : '') + ' (' + mes + '). ' : '') +
-      'Ajudamos empresas nessa situação com a parte técnica: análise do caso e dos prazos, laudos, PRAD e licenciamento. ' +
-      'Se preferir não receber mensagens, é só responder SAIR que não voltaremos a escrever.';
+  // Mensagens de prospecção: tom institucional e comercial (a empresa falando com a empresa).
+  // Sem promessa de resultado e sem linguagem jurídica (consultoria registrada no CREA, não advocacia).
+  function dadosMensagem(x) {
+    var d = x.validos[0];
+    var nome = String(x.e.razao_social || '').replace(/\s*\[CPF omitido\]/g, '').replace(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g, '').replace(/\s{2,}/g, ' ').trim();
+    var mun = d && d.municipio ? String(d.municipio).toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); }).replace(/ (De|Da|Do|Dos|Das|E) /g, function (m) { return m.toLowerCase(); }) : '';
+    return {
+      d: d, nome: nome, mun: mun,
+      mes: d && /^\d{4}-\d{2}/.test(d.data_documento || '') ? ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'][+d.data_documento.slice(5, 7) - 1] + ' de ' + d.data_documento.slice(0, 4) : '',
+      empresa: C.nomeEmpresa || 'Origem Consultoria Ambiental',
+      site: C.site || (location.hostname ? location.origin : 'https://ambientalcosta.netlify.app')
+    };
+  }
+  function corpoMensagem(x) {
+    var m = dadosMensagem(x), d = m.d, p = [];
+    p.push('A ' + m.empresa + ' é uma empresa de engenharia e consultoria ambiental registrada no CREA-RJ, com atuação em todo o Estado do Rio de Janeiro.');
+    if (d) p.push('Em consulta a dados públicos ' + fonteCurta(d) + ', identificamos ' + (/^(notificação|penalidade|menção|licença|comunicação)/.test(tipoCurto(d.tipo_documento)) ? 'uma ' : 'um ') + tipoCurto(d.tipo_documento) + (d.numero ? ' nº ' + d.numero : '') + (m.mes ? ', de ' + m.mes : '') + ', em nome de sua empresa' + (m.mun ? ', no município de ' + m.mun : '') + '.');
+    p.push(d ? 'Prestamos assessoria técnica a empresas nessa situação, que compreende: análise técnica do caso e dos prazos administrativos; elaboração de laudos e pareceres técnicos; Plano de Recuperação de Área Degradada (PRAD); e regularização e licenciamento ambiental.'
+      : 'Prestamos assessoria técnica ambiental a empresas, que compreende: diagnóstico da situação ambiental; regularização e licenciamento ambiental; elaboração de laudos e pareceres técnicos; e acompanhamento de exigências dos órgãos ambientais.');
+    p.push('Caso seja de interesse, teremos satisfação em agendar uma breve reunião de apresentação, sem compromisso, para avaliar a situação e indicar os caminhos técnicos possíveis.');
+    return p;
+  }
+  function mensagemPadrao(x) {   // WhatsApp
+    var m = dadosMensagem(x);
+    return masc((m.nome ? ['À ' + m.nome, ''] : []).concat('Prezados(as) Senhores(as),', '', corpoMensagem(x).join('\n\n'), '',
+      'Atenciosamente,', m.empresa, m.site, '',
+      'Caso não deseje receber novos contatos, basta responder SAIR.').join('\n'));
+  }
+  function assuntoEmail(x) {
+    var d = x.validos[0];
+    return (C.nomeEmpresa || 'Origem Consultoria Ambiental') + ' | Assessoria técnica ambiental' + (d ? ' – ' + tipoCurto(d.tipo_documento).replace(/^./, function (c) { return c.toUpperCase(); }) + (d.numero ? ' nº ' + d.numero : '') : '');
+  }
+  function mensagemEmail(x) {
+    var m = dadosMensagem(x);
+    return masc((m.nome ? ['À ' + m.nome, ''] : []).concat('Prezados(as) Senhores(as),', '', corpoMensagem(x).join('\n\n'), '',
+      'Permanecemos à disposição para quaisquer esclarecimentos.', '',
+      'Atenciosamente,', '', m.empresa, 'Engenharia e Consultoria Ambiental | CREA-RJ', m.site + (C.email ? ' | ' + C.email : ''), '',
+      'Os dados mencionados acima são públicos e foram obtidos ' + (m.d ? 'nas bases abertas ' + fonteCurta(m.d) : 'em bases abertas oficiais') + ' e no cadastro do CNPJ. Caso não deseje receber novos contatos, basta responder a este e-mail com a palavra SAIR.').join('\n'));
   }
 
   function abrir(cnpj, alvo) {
@@ -568,7 +600,7 @@
         return '<li><span>' + esc(fmtTel(t)) + '</span> <a class="btn btn-linha btn-sm" href="tel:+55' + t + '">Ligar</a>' +
           (celular(t) ? ' <a class="btn btn-wa btn-sm js-wa-g" data-tel="55' + t + '" href="#">WhatsApp</a>' : ' <small>fixo, sem WhatsApp</small>') + '</li>';
       }).join('') + '</ul>' + (e.email ? '<p><a href="mailto:' + esc(e.email) + '">' + esc(e.email) + '</a></p>' : '') +
-        siteHtml + '<label class="campo"><span>Mensagem sugerida (edite antes de enviar)</span><textarea id="g-msg" rows="5">' + esc(mensagemPadrao(x)) + '</textarea></label>';
+        siteHtml + '<label class="campo"><span>Mensagem sugerida (edite antes de enviar)</span><textarea id="g-msg" rows="12">' + esc(mensagemPadrao(x)) + '</textarea></label>';
     }
 
     var autos = x.autos.map(function (a) {

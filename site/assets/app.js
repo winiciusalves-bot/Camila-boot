@@ -92,14 +92,14 @@
     if (!document.getElementById('c-lgpd').checked) msgs.push('Marque a autorização de uso dos dados.');
     err.hidden = !msgs.length; err.textContent = msgs.join(' ');
     if (msgs.length) return;
-    var linhas = ['Olá! Vim pelo site da ' + C.nomeEmpresa + '.', 'Assunto: ' + g('c-assunto'), 'Nome: ' + g('c-nome')];
+    var linhas = ['Olá, ' + C.nomeEmpresa + '. Entro em contato pelo site e gostaria de solicitar atendimento.', '', 'Assunto: ' + g('c-assunto'), 'Nome: ' + g('c-nome')];
     var ehAuto = /auto/i.test(g('c-assunto'));
     if (g('c-emp')) linhas.push('Empresa: ' + g('c-emp'));
     if (g('c-cnpj')) linhas.push('CNPJ: ' + g('c-cnpj'));
     if (ehAuto) linhas.push('Órgão: ' + g('c-org'));
     if (ehAuto && g('c-auto')) linhas.push('Nº do auto: ' + g('c-auto'));
     if (ehAuto && g('c-data')) linhas.push('Recebi o auto em: ' + br(g('c-data')));
-    if (g('c-msg')) linhas.push('', g('c-msg'));
+    if (g('c-msg')) linhas.push('', 'Mensagem: ' + g('c-msg'));
     window.open(waLink(linhas.join('\n')), '_blank', 'noopener');
   });
 })();
