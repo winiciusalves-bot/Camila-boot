@@ -78,7 +78,7 @@ def montar(fonte, manifesto, citados, pessoal):
             ed = por_link.get(link) or {}
             cnpj = re.sub(r'\D', '', l.get('cnpj') or '')
             if cnpj and not dv_ok(cnpj): continue
-            trecho = sem_cpf(l.get('trecho') or '')[:1500]
+            trecho = sem_cpf(l.get('trecho') or '')[:500]   # plano grátis de 500 MB: o texto completo fica no link
             t_orig = (l.get('tipo') or '').upper()
             a = dict(fonte=fonte, ente=l.get('ente') or ed.get('ente') or '', data=iso(l.get('data')) or ed.get('data'),
                      edicao=ed.get('edicao', ''), parte=ed.get('parte', 'unica'), orgao=l.get('orgao'), tipo=tipo,
