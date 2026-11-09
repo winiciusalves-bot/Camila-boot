@@ -239,7 +239,10 @@ def main():
             if c not in cad and consultas < CAD_MAX:
                 consultas += 1; cad[c] = cadastro(c); time.sleep(1)
             r = cad.get(c)
-            if r and str(r.get('cod_nat') or '').startswith('1'):    # natureza jurídica 1xxx = administração pública (fundo, prefeitura...)
+            nat = re.sub(r'\D', '', str((r or {}).get('cod_nat') or ''))
+            # natureza 1xxx = administração pública (fundo, prefeitura...); 2011 = empresa pública (ex.: Imprensa da Cidade,
+            # cujo CNPJ sai no rodapé do D.O. Rio; falso positivo em 09/11). Sociedade de economia mista (2038) continua.
+            if r and (nat.startswith('1') or nat == '2011'):
                 publicos += 1; continue
             nome = mascara(r['razao_social']) if r else ''
             trechos = ' […] '.join(dict.fromkeys(g['trechos']))[:1500]
