@@ -1,0 +1,34 @@
+name: INEA (Dados Abertos RJ) -> Supabase
+# Penalidades aplicadas e ações de fiscalização do INEA (planilhas do Portal de Dados Abertos do RJ, sem login).
+# A fonte é atualizada a cada semestre; conferir uma vez por semana basta. A coleta diária do IBAMA, que roda
+# depois, transforma em empresa da base quem tem penalidade do INEA em 12 meses (cadastro na Receita e pontuação).
+on:
+  workflow_dispatch:
+    inputs:
+      gravar:
+        description: 'Gravar no Supabase? (nao = só mostra no log o que acharia)'
+        default: 'nao'
+  schedule:
+    - cron: '30 10 * * 1'   # segunda-feira, 07:30 (Brasília), antes dos diários e da coleta diária
+permissions:
+  contents: read
+concurrency:
+  group: supabase-escrita
+  cancel-in-progress: false
+jobs:
+  inea:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -q openpyxl
+      - name: Baixar planilhas do INEA e gravar no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GRAVAR: ${{ github.event.inputs.gravar || 'sim' }}
+        run: |
+          if [ "$GRAVAR" = "sim" ]; then python -I coletor/inea.py; else python -I coletor/inea.py --sem-supabase --amostra; fi
