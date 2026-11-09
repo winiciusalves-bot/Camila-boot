@@ -692,7 +692,7 @@ def main():
     if sb and os.environ.get('GITHUB_EVENT_NAME') == 'schedule':
         # horário de reserva: só roda se a coleta não rodou hoje depois dos diários
         inicio = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=8)).strftime('%Y-%m-%dT%H:%M:%S')
-        if sb.req('GET', f'/coletas?select=id&status=eq.ok&iniciada_em=gte.{inicio}&limit=1'):
+        if sb.req('GET', f'/coletas?select=id&status=eq.ok&fonte=like.IBAMA*&iniciada_em=gte.{inicio}&limit=1'):
             log('coleta de hoje já rodou depois dos diários; reserva não precisa rodar'); return
         log('reserva: a coleta não rodou depois dos diários hoje; rodando agora')
     reg = dict(fonte=FONTE_NOME + ' ' + FONTE_URL,
@@ -735,19 +735,28 @@ def main():
         contatos = sb.todos('contatos', 'cnpj,status,criado_em') if sb else []
         excluidas = {x['cnpj_raiz'] for x in sb.todos('exclusoes', 'cnpj_raiz')} if sb else {'33000167'}
         novos = [x for x in autos if x['n_auto'] not in existentes_autos]
+        # outras fontes oficiais gravadas por coletores próprios (coletor/inea.py: INEA; coletor/dou.py: editais do DOU)
+        # também viram empresa da base quando o documento é FATO, válido e dos últimos 12 meses
+        corte_out = (hoje - dt.timedelta(days=365)).isoformat()
+        occ_inea = [o for o in (sb.todos('ocorrencias', 'chave,cnpj,nome,data_documento,nivel,situacao') if sb else [])
+                    if o['chave'].startswith(('INEA-', 'DOU3|')) and (o.get('nivel') or 'FATO') == 'FATO' and o.get('situacao') == 'VALIDO'
+                    and str(o.get('data_documento') or '')[:10] >= corte_out and dv_cnpj(o.get('cnpj'))]
 
         # 3) cadastro: empresas novas ou com cadastro de mais de 30 dias
         corte12 = (hoje - dt.timedelta(days=365)).isoformat()
         cnpjs = sorted({x['cnpj'] for x in autos} | {x['cnpj'] for x in embargos
                         if x['status'] == 'VIGENTE' and x['data_embargo'] and x['data_embargo'] >= corte12}
                        | {o['cnpj'] for o in occ if o['tipo_documento'] not in ('AUTO DE INFRACAO', 'TERMO DE EMBARGO')
-                          and o['situacao'] == 'VALIDO'})
+                          and o['situacao'] == 'VALIDO'}
+                       | {o['cnpj'] for o in occ_inea})
         precisa = [c for c in cnpjs if c not in empresas_bd or not empresas_bd[c].get('cadastro_atualizado_em')
                    or dt.date.fromisoformat(empresas_bd[c]['cadastro_atualizado_em']) < hoje - dt.timedelta(days=30)]
         nome_auto = {}
         for x in sorted(autos, key=lambda x: x['data_auto']): nome_auto[x['cnpj']] = x['nome_no_auto']
         for o in occ:
             if o['nome']: nome_auto.setdefault(o['cnpj'], o['nome'])
+        for o in occ_inea:
+            if o.get('nome'): nome_auto.setdefault(o['cnpj'], o['nome'])
         for c in cnpjs: nome_auto.setdefault(c, '')
         empresas, sem_cad = [], 0
         for i, c in enumerate(precisa):
