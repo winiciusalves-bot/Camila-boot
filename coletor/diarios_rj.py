@@ -234,6 +234,13 @@ def main():
     with open(os.path.join(saida, 'manifesto.csv'), 'w', newline='', encoding='utf-8-sig') as f:
         w = csv.DictWriter(f, fieldnames=['data', 'fonte', 'ente', 'edicao', 'link', 'sha256', 'bytes', 'texto'], delimiter=';')
         w.writeheader(); w.writerows(manifesto)
+    # base comum (plano único 09/11): edições, CNPJs citados e atos de pessoal no schema comum do Supabase
+    if sb:
+        try:
+            from comum_diarios import enviar
+            enviar(sb, 'QUERIDO_DIARIO', 'diarios_rj.py', '2026-11-09', 'github-actions', manifesto, citados, pessoal, log=log)
+        except Exception as e:
+            log(f'base comum: não gravei ({e}); os CSVs da rodada continuam no artefato')
     if aemerj: log('AEMERJ, entes que publicam: ' + ' · '.join(f'{k} ({v})' for k, v in sorted(aemerj.items(), key=lambda x: -x[1])[:60]))
     log(f"manifesto.csv: {len(manifesto)} edição(ões) com SHA-256; altos cargos: {sum(1 for a in pessoal if a['tipo'].startswith('ALTO'))}")
 
