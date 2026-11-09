@@ -29,14 +29,15 @@ jobs:
           # Aqui eles acessam o site direto; se o site recusar, a falha fica registrada (sem contornar).
           sed -i 's/zyte_smartproxy_enabled = True/zyte_smartproxy_enabled = False/' qd/querido_diario_raspadores/gazette/spiders/rj/*.py
           cd qd/querido_diario_raspadores && uv sync -q
-      - name: Baixar diários (33 municípios do RJ + AEMERJ)
+      - name: Baixar diários (32 municípios do RJ + AEMERJ; Rio fica com o notebook)
         working-directory: qd/querido_diario_raspadores
         env:
           DIAS: ${{ github.event.inputs.dias || '5' }}   # rotina: 5 dias para trás (cobre fim de semana, feriado e ponto facultativo, inclusive carnaval); repetição não duplica
         run: |
           INICIO=$(date -d "-${DIAS} days" +%F)
           mkdir -p "$GITHUB_WORKSPACE/out" "$GITHUB_WORKSPACE/logs" "$GITHUB_WORKSPACE/db"
-          uv run scrapy list | grep '^rj_' > rj.txt
+          # Rio (DOWeb) sai daqui: o notebook baixa o DO Rio de IP do Brasil (plano único 09/11); o GitHub é recusado
+          uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' > rj.txt
           echo "$(wc -l < rj.txt) raspadores do RJ, desde $INICIO"
           # 6 por vez; cada um tem até 20 min. Bloqueio/captcha = falha registrada, nunca contornada.
           cat rj.txt | xargs -P 6 -I{} sh -c 'QUERIDODIARIO_DATABASE_URL=sqlite:///$GITHUB_WORKSPACE/db/{}.db timeout 1200 uv run scrapy crawl {} -a start='"$INICIO"' -s SPIDERMON_ENABLED=False -s LOG_LEVEL=INFO -s LOG_FILE=$GITHUB_WORKSPACE/logs/{}.log -s FILES_STORE=$GITHUB_WORKSPACE/pdf -O $GITHUB_WORKSPACE/out/{}.jsonl; echo "{}: fim (código $?)"' || true
@@ -56,7 +57,6 @@ jobs:
           echo "===== ERROS ====="; cat relatorio/erros_por_raspador.txt
           echo "===== DIAGNÓSTICO POR RASPADOR (respostas HTTP, itens, motivo do fim) ====="
           for f in logs/*.log; do echo "--- $(basename $f .log)"; grep -oE "'(downloader/response_status_count/[0-9]+|item_scraped_count|finish_reason|downloader/request_count)': [^,}]+" $f | tr '\n' ' '; echo; done
-          echo "===== TRACEBACK DO RIO ====="; grep -A12 'Spider error processing' logs/rj_rio_de_janeiro.log | head -30 || true
           echo "===== PRIMEIROS ERROS ====="; grep -h -m2 ' ERROR: ' logs/*.log | cut -c1-300 | head -40 || true
       - uses: actions/upload-artifact@v4
         if: always()
