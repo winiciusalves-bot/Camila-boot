@@ -3,6 +3,7 @@
 -- depende de senha. Esta função fica no public (que a API já expõe), só o service_role pode
 -- chamar, e grava em comum.coleta, comum.diario_edicao e comum.diario_ato.
 -- Usada pelo coletor dos municípios (coletor/comum_diarios.py) e pela Vigia/alerta do gabinete.
+-- Requer a chave única de comum.diario_edicao em (fonte, ente, data, edicao, parte) (troca feita pela conversa Unificar).
 -- Regras do banco continuam valendo: CNPJ com DV, CPF aberto recusado. Linha recusada não derruba
 -- o lote; volta na lista "rejeitados" com o motivo.
 --
@@ -46,7 +47,7 @@ begin
       values (e->>'fonte', e->>'ente', (e->>'data')::date, coalesce(e->>'edicao',''), coalesce(nullif(e->>'parte',''),'unica'),
               e->>'link', nullif(lower(e->>'sha256'),''), nullif(e->>'paginas','')::int, v_coleta,
               e->>'id_fonte', e->>'arquivo', nullif(e->>'bytes','')::bigint)
-      on conflict (fonte, data, edicao, parte) do update
+      on conflict (fonte, ente, data, edicao, parte) do update
         set sha256 = coalesce(excluded.sha256, diario_edicao.sha256),
             paginas = coalesce(excluded.paginas, diario_edicao.paginas),
             bytes = coalesce(excluded.bytes, diario_edicao.bytes),
@@ -61,7 +62,7 @@ begin
   for a in select * from jsonb_array_elements(coalesce(p->'atos','[]'::jsonb)) loop
     begin
       select id into v_ed from comum.diario_edicao
-       where fonte = a->>'fonte' and data = (a->>'data')::date and edicao = coalesce(a->>'edicao','')
+       where fonte = a->>'fonte' and ente = a->>'ente' and data = (a->>'data')::date and edicao = coalesce(a->>'edicao','')
          and parte = coalesce(nullif(a->>'parte',''),'unica');
       insert into comum.diario_ato(edicao_id, data, fonte, ente, orgao, tipo, cnpj, razao_receita, pessoa_nome, cargo, valor,
                                    processo, classe, link, pagina, trecho, hash_ato, coleta_id, acao, papel, nivel, matricula,

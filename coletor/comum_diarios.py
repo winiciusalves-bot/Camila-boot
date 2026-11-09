@@ -63,14 +63,13 @@ def montar(fonte, manifesto, citados, pessoal):
     edicoes, por_link = [], {}
     for m in manifesto:
         ed = dict(fonte=fonte, ente=m.get('ente') or '', data=iso(m.get('data')), edicao=str(m.get('edicao') or ''),
-                  # a chave única (fonte, data, edicao, parte) não tem o ente: o ente vai na parte
-                  parte=m.get('parte') or slug(m.get('ente')) or 'unica', link=m.get('link') or '', sha256=(m.get('sha256') or '').lower() or None,
+                  parte=m.get('parte') or 'unica', link=m.get('link') or '', sha256=(m.get('sha256') or '').lower() or None,
                   bytes=m.get('bytes') or None, id_fonte=m.get('id_fonte'), arquivo=m.get('arquivo'))
         if not ed['data'] or not ed['link']: continue
         # duas partes do mesmo dia sem número de edição: o link separa
         ch = (ed['data'], ed['edicao'], ed['parte'], ed['ente'])
         if any((e['data'], e['edicao'], e['parte'], e['ente']) == ch and e['link'] != ed['link'] for e in edicoes):
-            ed['parte'] = ed['parte'] + '-' + hashlib.sha1(ed['link'].encode()).hexdigest()[:8]
+            ed['parte'] = 'p' + hashlib.sha1(ed['link'].encode()).hexdigest()[:8]
         edicoes.append(ed); por_link[ed['link']] = ed
     atos = []
     for tipo, linhas in (('cnpj_citado', citados), ('pessoal', pessoal)):
