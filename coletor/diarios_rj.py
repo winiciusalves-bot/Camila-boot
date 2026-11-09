@@ -91,7 +91,7 @@ def ocr(pdf):
             try: return subprocess.run(['tesseract', img, '-', '-l', 'por', '--psm', '3'], capture_output=True, timeout=300).stdout.decode('utf-8', 'ignore')
             except Exception: return ''
         with ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
-            return '\n'.join(ex.map(um, imgs)), len(imgs), tot
+            return '\f'.join(ex.map(um, imgs)), len(imgs), tot   # \f separa páginas, como no pdftotext
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -117,6 +117,55 @@ def seguir_link(pdf):
         return True
     except Exception as e:
         log(f'   link do portal falhou ({e})'); return False
+
+
+RX_NOME_ATO = re.compile(r"^\s*[,:]?\s*(?:a pedido,?\s*)?(?:(?:o|a) (?:servidor|servidora|senhor|senhora|sr\.?|sra\.?)\s+)?([A-ZÀ-Ú][A-ZÀ-Ú'´`\. ]{4,90}?)(?=\s*(?:,|\(|\bpara\b|\bdo cargo\b|\bda fun|\bdo emprego\b|\bocupante\b|\bmatr|\bCPF\b|\bRG\b| - |$))")
+RX_CARGO_ATO = re.compile(r'(?:cargo|fun[cç][aã]o|emprego)(?:\s+(?:em comiss[aã]o|comissionad[oa]|de confian[cç]a|efetivo|gratificad[oa]))?(?:\s+(?:de|do|da))?\s+([^,;.\n]{3,120})', re.I)
+
+
+def nome_ato(t, verbo):
+    """Nome logo depois do verbo (em maiúsculas, como os diários publicam). Vazio se não der para ler com segurança."""
+    m = RX_NOME_ATO.match(t[len(verbo):])
+    return m.group(1).strip(' .') if m and len(m.group(1).split()) >= 2 else ''
+
+
+def cargo_ato(t):
+    m = RX_CARGO_ATO.search(t)
+    return m.group(1).strip() if m else ''
+
+
+def gravar_comum(manifesto, citados, pessoal, base):
+    """Formato comum do gabinete (schema comum, combinado em 09/11/2026). Sem DATABASE_URL só avisa; nunca derruba a rodada."""
+    from comum import Comum, hash_ato
+    cm = Comum('diarios_rj.py', os.environ.get('GITHUB_SHA', 'local')[:12], 'GitHub Actions' if os.environ.get('GITHUB_ACTIONS') else 'local')
+    if not cm.ok:
+        log(f'formato comum: não gravado ({cm.motivo})'); return
+    ed_id, n_atos, erro = {}, 0, ''
+    try:
+        for m in manifesto:
+            ed_id[m['_k']] = cm.edicao(ente=m['ente'], data=m['data'],
+                                       edicao=f"{m['ente']} nº {m['edicao'] or 's/n'}" + (' extra' if m['_extra'] else ''),
+                                       parte=m['sha256'][:12], link=m['link'], sha256=m['sha256'], paginas=m['_paginas'],
+                                       id_fonte=m['link'], arquivo=m['_arquivo'], nbytes=m['bytes'])
+        sha = {m['_k']: m['sha256'] for m in manifesto}
+        atos = []
+        for a in citados:
+            if a['_k'] not in ed_id: continue
+            atos.append(dict(edicao_id=ed_id[a['_k']], data=a['data'], ente=a['ente'], orgao=f"PREFEITURA {a['ente'].upper()}",
+                             tipo='cnpj_citado', cnpj=a['_cnpj'], razao_receita=base.get(a['_cnpj']) or None, classe='INDICIO',
+                             link=a['link'], pagina=a['_pag'], trecho=a['trecho'], papel=(f"perto de termo ambiental: {a['_papel']}" if a['_papel'] else None),
+                             hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'cnpj', a['_cnpj'], a['_pos'])))
+        for a in pessoal:
+            if a['_k'] not in ed_id: continue
+            atos.append(dict(edicao_id=ed_id[a['_k']], data=a['data'], ente=a['ente'], orgao=f"PREFEITURA {a['ente'].upper()}",
+                             tipo='pessoal', pessoa_nome=a['_nome'] or None, cargo=a['_cargo'] or None, acao=a['_acao'],
+                             nivel='alto escalão' if a['_alto'] else None, classe='INDICIO', link=a['link'], pagina=a['_pag'],
+                             trecho=a['trecho'], hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'pessoal', a['_pos'])))
+        n_atos = cm.atos(atos)
+        log(f'formato comum: {len(ed_id)} edição(ões) e {n_atos} ato(s) novo(s) gravados (de {len(atos)} lidos)')
+    except Exception as e:
+        erro = f'{type(e).__name__}: {e}'; log(f'formato comum: ERRO ao gravar ({erro[:300]})')
+    cm.fim('falhou' if erro else 'ok', n_atos, erro)
 
 
 def municipio_de(arq):
@@ -179,12 +228,16 @@ def main():
             try:
                 b = open(pdf, 'rb').read()
                 manifesto.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], edicao=ed['edicao'], link=ed['url'],
-                                      sha256=hashlib.sha256(b).hexdigest(), bytes=len(b), texto='sim' if txt.strip() else 'não'))
+                                      sha256=hashlib.sha256(b).hexdigest(), bytes=len(b), texto='sim' if txt.strip() else 'não',
+                                      _k=k, _paginas=(paginas(pdf) or (txt.count('\f') + 1 if txt.strip() else None)),
+                                      _extra=bool(ed.get('extra')), _arquivo=ed['caminho']))
             except Exception: pass
         for c in dict.fromkeys(c for c, _ in cn):
             i = next(i for cc, i in cn if cc == c)
             citados.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], cnpj=fmt(c), razao_receita=base.get(c, ''),
-                                tipo='CNPJ citado', valor='', classe='INDÍCIO', link=ed['url'], trecho=mascara(trecho(txt, i))))
+                                tipo='CNPJ citado', valor='', classe='INDÍCIO', link=ed['url'], trecho=mascara(trecho(txt, i)),
+                                _k=k, _pag=txt.count('\f', 0, i) + 1, _cnpj=c, _pos=i,
+                                _papel='; '.join(sorted({mm.group(0).lower() for mm in RX_TERMO.finditer(txt, max(0, i - JANELA), i + JANELA)}))))
         if ed['municipio'].startswith('AEMERJ'):   # quem publica no diário da AEMERJ (plano único: tirar da lista "sem robô")
             for m in re.finditer(r'(?:PREFEITURA|C[AÂ]MARA) MUNICIPAL DE ([A-ZÀ-Ú][A-ZÀ-Ú\- ]{2,40}?)(?=\s*(?:\n|[^A-ZÀ-Ú\- ]))', txt):
                 aemerj[m.group(1).strip().title()] = aemerj.get(m.group(1).strip().title(), 0) + 1
@@ -193,7 +246,8 @@ def main():
             t = mascara(re.sub(r'\s+', ' ', txt[m.start():fim]).strip())   # só o próprio ato (não pega o cargo do ato vizinho)
             pessoal.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], cnpj='', razao_receita='',
                                 tipo=('ALTO ESCALÃO - ' if RX_ALTO.search(t) else '') + m.group(1).upper(), valor='', classe='INDÍCIO',
-                                link=ed['url'], trecho=t))
+                                link=ed['url'], trecho=t, _k=k, _pag=txt.count('\f', 0, m.start()) + 1, _pos=m.start(),
+                                _acao=m.group(1).upper(), _nome=nome_ato(t, m.group(1)), _cargo=cargo_ato(t), _alto=bool(RX_ALTO.search(t))))
         # (a) CNPJ da nossa base citado no diário
         vistos = set()
         for c, i in cn:
@@ -222,18 +276,19 @@ def main():
         w = csv.DictWriter(f, fieldnames=campos, delimiter=';'); w.writeheader(); w.writerows(uniq)
 
     # formato comum do plano único (09/11/2026): data, fonte, ente, cnpj, razao_receita, tipo, valor, classe, link, trecho
-    comum = ['data', 'fonte', 'ente', 'cnpj', 'razao_receita', 'tipo', 'valor', 'classe', 'link', 'trecho']
+    comum_cols = ['data', 'fonte', 'ente', 'cnpj', 'razao_receita', 'tipo', 'valor', 'classe', 'link', 'trecho']
     for nome, linhas_ in (('cnpjs_citados.csv', citados), ('nomeacoes_todas.csv', pessoal)):
         vis_ = set(); dd = []
         for a in linhas_:
             ch = (a['cnpj'], a['link'], a['tipo'], a['trecho'][:120])
             if ch not in vis_: vis_.add(ch); dd.append(a)
         with open(os.path.join(saida, nome), 'w', newline='', encoding='utf-8-sig') as f:
-            w = csv.DictWriter(f, fieldnames=comum, delimiter=';'); w.writeheader(); w.writerows(dd)
+            w = csv.DictWriter(f, fieldnames=comum_cols, delimiter=';', extrasaction='ignore'); w.writeheader(); w.writerows(dd)
         log(f'{nome}: {len(dd)} linha(s)')
     with open(os.path.join(saida, 'manifesto.csv'), 'w', newline='', encoding='utf-8-sig') as f:
-        w = csv.DictWriter(f, fieldnames=['data', 'fonte', 'ente', 'edicao', 'link', 'sha256', 'bytes', 'texto'], delimiter=';')
+        w = csv.DictWriter(f, fieldnames=['data', 'fonte', 'ente', 'edicao', 'link', 'sha256', 'bytes', 'texto'], delimiter=';', extrasaction='ignore')
         w.writeheader(); w.writerows(manifesto)
+    gravar_comum(manifesto, citados, pessoal, base)
     if aemerj: log('AEMERJ, entes que publicam: ' + ' · '.join(f'{k} ({v})' for k, v in sorted(aemerj.items(), key=lambda x: -x[1])[:60]))
     log(f"manifesto.csv: {len(manifesto)} edição(ões) com SHA-256; altos cargos: {sum(1 for a in pessoal if a['tipo'].startswith('ALTO'))}")
 

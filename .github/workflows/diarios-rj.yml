@@ -48,7 +48,9 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           FILES_STORE: ${{ github.workspace }}/pdf
           DIAS: ${{ github.event.inputs.dias || '5' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}   # formato comum do gabinete (schema comum); só o dono cadastra. Sem ela, pula
         run: |
+          [ -n "$DATABASE_URL" ] && pip install -q --break-system-packages 'psycopg[binary]' || true
           python3 -I coletor/diarios_rj.py out relatorio
           for f in logs/*.log; do n=$(basename $f .log); e=$(grep -c ' ERROR: ' $f || true); echo "$n;$e erros" ; done > relatorio/erros_por_raspador.txt
           cat relatorio/resumo.md >> "$GITHUB_STEP_SUMMARY"
