@@ -92,6 +92,29 @@ def ocr(pdf):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def seguir_link(pdf):
+    """Portais 'transparencia.<municipio>.rj.gov.br' (Mesquita, Miguel Pereira, Quatis, Queimados, Meriti, S. Pedro da
+    Aldeia) devolvem um arquivo de texto com o endereço do PDF em vez do PDF (visto em 09/11/2026). Baixa esse endereço
+    e troca o arquivo. Sem login e sem contornar bloqueio: se o portal recusar, fica sem texto e vai para o log."""
+    try:
+        if os.path.getsize(pdf) > 2000: return False
+        cab = open(pdf, 'rb').read().strip()
+        if not re.match(rb'^https?://\S+$', cab): return False
+        url = cab.decode('ascii', 'ignore')
+        url = url.replace(' ', '%20')
+        import urllib.request
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (compatible; AmbientalCosta-Coletor/1.0; levantamento em dados abertos)'})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            dado = r.read()
+        if not dado.startswith(b'%PDF'):
+            log(f'   link do portal não trouxe PDF ({len(dado)} bytes, início {dado[:40]!r}): {url[:140]}'); return False
+        open(pdf, 'wb').write(dado)
+        log(f'   PDF baixado pelo link do portal ({len(dado) // 1024} KB): {url[:140]}')
+        return True
+    except Exception as e:
+        log(f'   link do portal falhou ({e})'); return False
+
+
 def municipio_de(arq):
     n = os.path.basename(arq).replace('.jsonl', '').replace('rj_', '').replace('_v2', '')
     if n == 'aemerj': return 'AEMERJ (vários municípios)'
@@ -132,6 +155,7 @@ def main():
         pdf = os.path.join(raiz_arquivos, ed['caminho'] or '')
         txt = ''
         if ed['caminho'] and os.path.exists(pdf):
+            seguir_link(pdf)
             try:
                 txt = subprocess.run(['pdftotext', '-q', pdf, '-']   # sem -layout: -layout mistura colunas vizinhas (falso positivo em 09/11)
                                  , capture_output=True, timeout=120).stdout.decode('utf-8', 'ignore')
