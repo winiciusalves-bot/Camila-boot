@@ -692,7 +692,7 @@ def main():
     if sb and os.environ.get('GITHUB_EVENT_NAME') == 'schedule':
         # horário de reserva: só roda se a coleta não rodou hoje depois dos diários
         inicio = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=8)).strftime('%Y-%m-%dT%H:%M:%S')
-        if sb.req('GET', f'/coletas?select=id&status=eq.ok&iniciada_em=gte.{inicio}&limit=1'):
+        if sb.req('GET', f'/coletas?select=id&status=eq.ok&fonte=like.IBAMA*&iniciada_em=gte.{inicio}&limit=1'):
             log('coleta de hoje já rodou depois dos diários; reserva não precisa rodar'); return
         log('reserva: a coleta não rodou depois dos diários hoje; rodando agora')
     reg = dict(fonte=FONTE_NOME + ' ' + FONTE_URL,
