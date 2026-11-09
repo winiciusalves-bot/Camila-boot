@@ -19,7 +19,9 @@ import xml.etree.ElementTree as ET
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
-from coletar import Supabase, dv_cnpj, fmt_cnpj, mascara, log, UA   # mesmas regras do coletor diário
+from coletar import Supabase, dv_cnpj, fmt_cnpj, mascara, log   # mesmas regras do coletor diário
+# identificação honesta, no mesmo formato da usada pelo Radar no PC (o portal recusa agentes sem 'Mozilla/5.0')
+UA = 'Mozilla/5.0 (compatible; AmbientalCosta-Coletor/1.0; levantamento em dados abertos)'
 
 INLABS = 'https://inlabs.in.gov.br'
 ORIGEM = {'origem': '736372697074'}            # cabeçalho dos scripts oficiais do INLABS (github.com/Imprensa-Nacional/inlabs)
