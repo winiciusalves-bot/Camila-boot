@@ -31,6 +31,9 @@ TERMOS = [
     r'notifica[cç][aã]o ambiental', r'compensa[cç][aã]o ambiental', r'\bPRAD\b', r'estudo de impacto ambiental', r'\bEIA\b',
 ]
 RX_TERMO = re.compile('|'.join(TERMOS), re.I)
+# Para gravar CNPJ como possível cliente, o termo precisa indicar ação sobre a empresa (não basta citar a secretaria ou o INEA)
+RX_LEAD = re.compile(r'auto de infra|licen[cç]a|licenciamento|embargo|multa|infra[cç][aã]o ambiental|crime ambiental|dano ambiental|supress[aã]o|'
+                     r'ajustamento de conduta|interdi[cç][aã]o|notifica[cç][aã]o|compensa[cç][aã]o|PRAD|impacto ambiental', re.I)
 RX_CNPJ = re.compile(r'(?<!\d)(\d{2})\.?(\d{3})\.?(\d{3})/?(\d{4})-?(\d{2})(?!\d)')
 JANELA = 250
 
@@ -68,7 +71,13 @@ def ocr(pdf):
     Devolve (texto, páginas lidas, total de páginas)."""
     if not shutil.which('tesseract'): return '', 0, 0
     tot = paginas(pdf); n = min(tot, OCR_MAX_PAG)
-    if not n: return '', 0, tot
+    if not n:
+        try:
+            cab = open(pdf, 'rb').read(400)
+            tipo = subprocess.run(['file', '-b', pdf], capture_output=True, timeout=30).stdout.decode()[:80].strip()
+            log(f'   arquivo não é PDF legível: {tipo} · início: {cab[:120]!r}')
+        except Exception: pass
+        return '', 0, tot
     tmp = tempfile.mkdtemp()
     try:
         subprocess.run(['pdftoppm', '-r', '200', '-gray', '-png', '-f', '1', '-l', str(n), pdf, os.path.join(tmp, 'p')],
@@ -124,7 +133,8 @@ def main():
         txt = ''
         if ed['caminho'] and os.path.exists(pdf):
             try:
-                txt = subprocess.run(['pdftotext', '-layout', '-q', pdf, '-'], capture_output=True, timeout=120).stdout.decode('utf-8', 'ignore')
+                txt = subprocess.run(['pdftotext', '-q', pdf, '-']   # sem -layout: -layout mistura colunas vizinhas (falso positivo em 09/11)
+                                 , capture_output=True, timeout=120).stdout.decode('utf-8', 'ignore')
             except Exception: txt = ''
             if not txt.strip():
                 if t_ocr / 60 < OCR_MAX_MIN:
@@ -193,17 +203,20 @@ def main():
     novos = {}
     for a in perto:
         if a['empresa']: continue                                  # já está na base: entrou em (a)
+        if not RX_LEAD.search(a['termo']): continue                # só citou secretaria/INEA: não é indício sobre a empresa
         g = novos.setdefault((a['cnpj'], a['url']), dict(a, termos=set(), trechos=[]))
         g['termos'].add(a['termo'].lower()); g['trechos'].append(a['trecho'])
     if sb and novos:
         ja = {o['chave'] for o in sb.todos('ocorrencias', 'chave') if o['chave'].startswith('DOMT|')}
-        cad, consultas, occ = {}, 0, []
+        cad, consultas, occ, publicos = {}, 0, [], 0
         for (c, url), g in novos.items():
             chave = f"DOMT|{c}|{g['data']}|{url}"
             if chave in ja: continue
             if c not in cad and consultas < CAD_MAX:
                 consultas += 1; cad[c] = cadastro(c); time.sleep(1)
             r = cad.get(c)
+            if r and str(r.get('cod_nat') or '').startswith('1'):    # natureza jurídica 1xxx = administração pública (fundo, prefeitura...)
+                publicos += 1; continue
             nome = mascara(r['razao_social']) if r else ''
             trechos = ' […] '.join(dict.fromkeys(g['trechos']))[:1500]
             # o nome da Receita precisa aparecer no trecho; se não aparece, pode ser CNPJ de outra parte citada no ato
@@ -219,7 +232,7 @@ def main():
                             nivel='INDICIO', link_fonte=url, ultima_coleta=hoje.isoformat(), origem='coletor-diarios'))
         if occ:
             sb.upsert('ocorrencias', occ, 'chave'); gravadas += len(occ)
-        log(f'{len(occ)} CNPJ(s) novo(s) perto de termo ambiental gravado(s) como INDÍCIO ({consultas} consulta(s) à Receita)')
+        log(f'{len(occ)} CNPJ(s) novo(s) perto de termo ambiental gravado(s) como INDÍCIO ({consultas} consulta(s) à Receita; {publicos} órgão(s) público(s) fora)')
 
     # registro da execução (a coleta do IBAMA só olha as linhas da fonte IBAMA)
     if sb:
