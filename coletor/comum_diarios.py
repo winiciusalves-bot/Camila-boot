@@ -75,7 +75,7 @@ def montar(fonte, manifesto, citados, pessoal):
     for tipo, linhas in (('cnpj_citado', citados), ('pessoal', pessoal)):
         for l in linhas:
             link = l.get('link') or ''
-            ed = por_link.get(link) or {}
+            ed = por_link.get(l.get('link_edicao') or link) or {}   # link_edicao: ato com link proprio dentro de uma edicao (DOU)
             cnpj = re.sub(r'\D', '', l.get('cnpj') or '')
             if cnpj and not dv_ok(cnpj): continue
             trecho = sem_cpf(l.get('trecho') or '')[:500]   # plano grátis de 500 MB: o texto completo fica no link
