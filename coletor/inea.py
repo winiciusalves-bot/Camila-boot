@@ -10,6 +10,9 @@ Mesma regra da opção [13] do Radar-Ambiental v5.1 (c11_inea_penalidades.ps1), 
   - CPF nunca entra; nomes passam pela máscara de CPF;
   - valor é o indicado na penalidade: NÃO é dano nem condenação;
   - planilha só de totais (sem CNPJ) é registrada como agregado e não vira ocorrência.
+Conferido em 09/11/2026: as duas planilhas NÃO trazem CNPJ nem nome do autuado (penalidades: auto, processo, emissão,
+tipo de multa, valor, município; ações: vistoria, processo, município). Hoje servem só para estatística. O leitor
+continua rodando toda semana para avisar (no log e na tabela coletas) se o INEA passar a publicar o CNPJ.
 
 Uso: python -I coletor/inea.py [--sem-supabase] [--xlsx arquivo.xlsx ...]
 """
@@ -65,7 +68,7 @@ def ler(binario, ident, nome, link):
         hi = next((j for j in range(min(15, len(linhas))) if sum(1 for x in linhas[j] if x not in (None, '')) >= 3), -1)
         if hi < 0: continue
         cab = [sem_acento(str(x or '')).strip() or f'COL{j + 1}' for j, x in enumerate(linhas[hi])]
-        iDoc = achar(cab, ['CNPJ', 'CPF', 'DOCUMENTO'])
+        iDoc = achar(cab, ['CNPJ', 'CPF', r'^(N |NUM |NUMERO )?DOCUMENTO$'])   # 'ORIGEM DOCUMENTO' não é CPF/CNPJ
         if iDoc < 0:   # sem coluna de documento: procura a coluna com CNPJ válido nos valores
             for j in range(len(cab)):
                 vals = [re.sub(r'\D', '', str(r[j] if j < len(r) else '') or '') for r in linhas[hi + 1:hi + 61]]
