@@ -38,7 +38,8 @@ RX_CNPJ = re.compile(r'(?<!\d)(\d{2})\.?(\d{3})\.?(\d{3})/?(\d{4})-?(\d{2})(?!\d
 JANELA = 250
 # atos de pessoal (plano único 09/11: mesmo formato da Vigia, nomeacoes_todas.csv). Secretário/subsecretário em destaque.
 RX_PESSOAL = re.compile(r'\b(NOMEAR|NOMEIA|EXONERAR|EXONERA|DESIGNAR|DESIGNA|DISPENSAR|TORNAR SEM EFEITO A NOMEA[CÇ][AÃ]O)\b', re.I)
-RX_ALTO = re.compile(r'(sub)?secret[aá]ri[oa] (municipal|adjunt|execut|de )|chefe de gabinete|procurador[ -]geral|controlador[ -]geral', re.I)
+# alto escalão só quando é o CARGO do ato ("para o cargo ... de Secretário"), não quem assina (teste 09/11: 396 de 696 era largo demais)
+RX_ALTO = re.compile(r'(cargo|fun[cç][aã]o)[^.;]{0,60}?\b((sub)?secret[aá]ri[oa]|chefe de gabinete|procurador[ -]geral|controlador[ -]geral)', re.I)
 
 
 def fmt(c): return f'{c[:2]}.{c[2:5]}.{c[5:8]}/{c[8:12]}-{c[12:]}'
