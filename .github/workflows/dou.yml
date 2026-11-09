@@ -1,0 +1,38 @@
+name: DOU Seção 3 (editais ambientais) -> Supabase
+# Editais de notificação/intimação de IBAMA, ICMBio, MMA e ANA no DOU Seção 3 que citam o RJ.
+# A) INLABS diário (precisa dos Secrets INLABS_EMAIL e INLABS_SENHA, colados pelo usuário; sem eles, pula)
+# B) base mensal dos Dados Abertos da Imprensa Nacional (sem login), mês anterior inteiro.
+on:
+  workflow_dispatch:
+    inputs:
+      dias: { description: 'Dias para trás no INLABS', default: '7' }
+      meses: { description: 'Meses anteriores da base mensal', default: '1' }
+      gravar: { description: 'Gravar no Supabase? (nao = só mostra no log)', default: 'nao' }
+  push:                     # teste automático quando o leitor muda num ramo de trabalho (não grava)
+    branches-ignore: [main]
+    paths: ['coletor/dou.py', '.github/workflows/dou.yml']
+  schedule:
+    - cron: '30 10 * * 1-5'   # dias úteis, 07:30 (Brasília), antes dos diários e da coleta diária
+permissions:
+  contents: read
+jobs:
+  dou:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ler editais e gravar no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          INLABS_EMAIL: ${{ secrets.INLABS_EMAIL }}
+          INLABS_SENHA: ${{ secrets.INLABS_SENHA }}
+          DIAS: ${{ github.event.inputs.dias || '7' }}
+          MESES: ${{ github.event.inputs.meses || '1' }}
+          GRAVAR: ${{ github.event_name == 'push' && 'nao' || github.event.inputs.gravar || 'sim' }}
+        run: |
+          if [ "$GRAVAR" = "sim" ]; then python -I coletor/dou.py --dias "$DIAS" --meses "$MESES"
+          else python -I coletor/dou.py --dias "$DIAS" --meses "$MESES" --sem-supabase --amostra; fi

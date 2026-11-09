@@ -735,11 +735,12 @@ def main():
         contatos = sb.todos('contatos', 'cnpj,status,criado_em') if sb else []
         excluidas = {x['cnpj_raiz'] for x in sb.todos('exclusoes', 'cnpj_raiz')} if sb else {'33000167'}
         novos = [x for x in autos if x['n_auto'] not in existentes_autos]
-        # empresas com penalidade do INEA em 12 meses (gravadas por coletor/inea.py) também viram empresa da base
-        corte_inea = (hoje - dt.timedelta(days=365)).isoformat()
-        occ_inea = [o for o in (sb.todos('ocorrencias', 'cnpj,nome,data_documento,orgao,nivel,situacao') if sb else [])
-                    if o.get('orgao') == 'INEA' and (o.get('nivel') or 'FATO') == 'FATO' and o.get('situacao') == 'VALIDO'
-                    and str(o.get('data_documento') or '')[:10] >= corte_inea and dv_cnpj(o.get('cnpj'))]
+        # outras fontes oficiais gravadas por coletores próprios (coletor/inea.py: INEA; coletor/dou.py: editais do DOU)
+        # também viram empresa da base quando o documento é FATO, válido e dos últimos 12 meses
+        corte_out = (hoje - dt.timedelta(days=365)).isoformat()
+        occ_inea = [o for o in (sb.todos('ocorrencias', 'chave,cnpj,nome,data_documento,nivel,situacao') if sb else [])
+                    if o['chave'].startswith(('INEA-', 'DOU3|')) and (o.get('nivel') or 'FATO') == 'FATO' and o.get('situacao') == 'VALIDO'
+                    and str(o.get('data_documento') or '')[:10] >= corte_out and dv_cnpj(o.get('cnpj'))]
 
         # 3) cadastro: empresas novas ou com cadastro de mais de 30 dias
         corte12 = (hoje - dt.timedelta(days=365)).isoformat()
