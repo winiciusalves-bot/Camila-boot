@@ -8,6 +8,9 @@ on:
       gravar:
         description: 'Gravar no Supabase? (nao = só mostra no log o que acharia)'
         default: 'nao'
+  push:                     # teste automático quando o leitor muda num ramo de trabalho (não grava)
+    branches-ignore: [main]
+    paths: ['coletor/inea.py', '.github/workflows/inea.yml']
   schedule:
     - cron: '30 10 * * 1'   # segunda-feira, 07:30 (Brasília), antes dos diários e da coleta diária
 permissions:
@@ -29,6 +32,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          GRAVAR: ${{ github.event.inputs.gravar || 'sim' }}
+          GRAVAR: ${{ github.event_name == 'push' && 'nao' || github.event.inputs.gravar || 'sim' }}
         run: |
           if [ "$GRAVAR" = "sim" ]; then python -I coletor/inea.py; else python -I coletor/inea.py --sem-supabase --amostra; fi
