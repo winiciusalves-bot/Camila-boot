@@ -135,36 +135,50 @@ def cargo_ato(t):
 
 
 def gravar_comum(manifesto, citados, pessoal, base):
-    """Formato comum do gabinete (schema comum, combinado em 09/11/2026). Sem DATABASE_URL só avisa; nunca derruba a rodada."""
+    """Base comum do gabinete pelas funções RPC (regras de 09/11/2026). Nunca derruba a rodada."""
     from comum import Comum, hash_ato
     cm = Comum('diarios_rj.py', os.environ.get('GITHUB_SHA', 'local')[:12], 'GitHub Actions' if os.environ.get('GITHUB_ACTIONS') else 'local')
     if not cm.ok:
         log(f'formato comum: não gravado ({cm.motivo})'); return
-    ed_id, n_atos, erro = {}, 0, ''
+    n_atos, erro = 0, ''
     try:
+        chave = {}   # _k -> (ente, data, edicao, parte) = identificação da edição na base comum
+        edicoes = []
         for m in manifesto:
-            ed_id[m['_k']] = cm.edicao(ente=m['ente'], data=m['data'],
-                                       edicao=f"{m['ente']} nº {m['edicao'] or 's/n'}" + (' extra' if m['_extra'] else ''),
-                                       parte=m['sha256'][:12], link=m['link'], sha256=m['sha256'], paginas=m['_paginas'],
-                                       id_fonte=m['link'], arquivo=m['_arquivo'], nbytes=m['bytes'])
+            ed = (m['edicao'] or 's/n') + (' extra' if m['_extra'] else '')
+            chave[m['_k']] = dict(ente=m['ente'], data=m['data'], edicao=ed, parte=m['sha256'][:12])
+            edicoes.append(dict(chave[m['_k']], link=m['link'], sha256=m['sha256'], paginas=m['_paginas'],
+                                id_fonte=m['link'], arquivo=m['_arquivo'], bytes=m['bytes']))
         sha = {m['_k']: m['sha256'] for m in manifesto}
+        cnpjs = sorted({a['_cnpj'] for a in citados if a['_k'] in chave})
+        receita = {}
+        if cnpjs:
+            try:
+                r = cm.cnpj_pedir(cnpjs)
+                log(f"base comum: {r.get('aceitos', 0)} CNPJ(s) pedidos ao robô da Receita"
+                    + (f"; DV inválido: {r['dv_invalido']}" if r.get('dv_invalido') else ''))
+                receita = cm.cnpj_consultar(cnpjs)
+            except Exception as e:
+                log(f'base comum: pedir/consultar CNPJ falhou ({type(e).__name__}: {str(e)[:200]})')
         atos = []
         for a in citados:
-            if a['_k'] not in ed_id: continue
-            atos.append(dict(edicao_id=ed_id[a['_k']], data=a['data'], ente=a['ente'], orgao=f"PREFEITURA {a['ente'].upper()}",
-                             tipo='cnpj_citado', cnpj=a['_cnpj'], razao_receita=base.get(a['_cnpj']) or None, classe='INDICIO',
+            if a['_k'] not in chave: continue
+            rs = (receita.get(a['_cnpj']) or {}).get('razao_social') or base.get(a['_cnpj']) or None
+            atos.append(dict(chave[a['_k']], orgao=f"PREFEITURA {a['ente'].upper()}",
+                             tipo='cnpj_citado', cnpj=a['_cnpj'], razao_receita=rs, classe='INDICIO',
                              link=a['link'], pagina=a['_pag'], trecho=a['trecho'], papel=(f"perto de termo ambiental: {a['_papel']}" if a['_papel'] else None),
                              hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'cnpj', a['_cnpj'], a['_pos'])))
         for a in pessoal:
-            if a['_k'] not in ed_id: continue
-            atos.append(dict(edicao_id=ed_id[a['_k']], data=a['data'], ente=a['ente'], orgao=f"PREFEITURA {a['ente'].upper()}",
+            if a['_k'] not in chave: continue
+            atos.append(dict(chave[a['_k']], orgao=f"PREFEITURA {a['ente'].upper()}",
                              tipo='pessoal', pessoa_nome=a['_nome'] or None, cargo=a['_cargo'] or None, acao=a['_acao'],
                              nivel='alto escalão' if a['_alto'] else None, classe='INDICIO', link=a['link'], pagina=a['_pag'],
                              trecho=a['trecho'], hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'pessoal', a['_pos'])))
-        n_atos = cm.atos(atos)
-        log(f'formato comum: {len(ed_id)} edição(ões) e {n_atos} ato(s) novo(s) gravados (de {len(atos)} lidos)')
+        n_ed, n_atos, n_rep = cm.gravar(edicoes, atos)
+        log(f'base comum: {n_ed} edição(ões), {n_atos} ato(s) novo(s), {n_rep} repetido(s), {len(cm.rejeitados)} recusado(s) pelo banco')
+        for r in cm.rejeitados[:10]: log(f'  recusado: {r}')
     except Exception as e:
-        erro = f'{type(e).__name__}: {e}'; log(f'formato comum: ERRO ao gravar ({erro[:300]})')
+        erro = f'{type(e).__name__}: {e}'; log(f'base comum: ERRO ao gravar ({erro[:300]})')
     cm.fim('falhou' if erro else 'ok', n_atos, erro)
 
 
