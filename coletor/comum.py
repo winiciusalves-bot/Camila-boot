@@ -1,17 +1,18 @@
 """
-Gravação no formato comum do gabinete (schema "comum" do Supabase mxfgezgmyowqjmaibdkl), combinado em 09/11/2026.
+Gravação na BASE COMUM do gabinete (Supabase mxfgezgmyowqjmaibdkl, schema "comum"), regras de 09/11/2026.
 
-  comum.coleta         uma linha por rodada (robo, versao, onde, status, linhas)
-  comum.diario_edicao  uma linha por arquivo de edição (único por fonte, data, edicao, parte)
-  comum.diario_ato     um ato por linha: 'cnpj_citado' ou 'pessoal' (único por hash_ato)
-
-Conexão: só pela variável DATABASE_URL (Secret do GitHub, cadastrada pelo dono). Sem ela, o coletor segue normal
-e só avisa no log. O schema comum não dá acesso à API REST, por isso a conexão é direta ao Postgres.
+O schema comum não fica exposto: tudo passa por 3 funções RPC da API REST, que só a chave service chama
+(a mesma SUPABASE_URL + SUPABASE_SERVICE_KEY que o coletor já usa nos Secrets do GitHub):
+  cnpj_pedir      põe CNPJs na fila do robô da Receita (DV conferido; inválido volta em dv_invalido)
+  cnpj_consultar  devolve razão social da Receita, situação, CNAE, município, sócios (CPF mascarado)
+  diarios_gravar  grava coleta + edições (fonte, ente, data, edicao, parte) + atos (hash_ato único);
+                  linha recusada (CPF aberto, DV errado) volta em "rejeitados" sem derrubar o lote.
 O banco recusa CPF aberto: tudo passa por mascarar_cpf() antes (formato ***.456.789-**).
 """
-import hashlib, os, re
+import hashlib, json, os, re, urllib.request
 
 FONTE = 'QUERIDO_DIARIO'
+PROJETO = 'Ambiental Costa (Camila-boot)'
 _CPF_FMT = re.compile(r'(?<![0-9])(\d{3})\.(\d{3})\.(\d{3})-(\d{2})(?![0-9])')
 _CPF_11 = re.compile(r'(?<![0-9./-])(\d{3})(\d{3})(\d{3})(\d{2})(?![0-9])')
 
@@ -27,56 +28,54 @@ def hash_ato(*partes):
 
 
 class Comum:
-    """Abre a conexão se houver DATABASE_URL. self.ok diz se dá para gravar; self.motivo diz por que não."""
+    """self.ok diz se dá para gravar; self.motivo diz por que não."""
 
     def __init__(self, robo, versao, onde):
-        self.ok, self.motivo, self.cx, self.coleta_id = False, '', None, None
-        url = os.environ.get('DATABASE_URL', '').strip()
-        if not url:
-            self.motivo = 'sem DATABASE_URL nos Secrets (o dono cadastra)'; return
-        try:
-            import psycopg
-            self.cx = psycopg.connect(url, autocommit=True, connect_timeout=30)
-            with self.cx.cursor() as c:
-                c.execute("insert into comum.coleta (fonte, robo, versao, onde, iniciou, status) "
-                          "values (%s,%s,%s,%s, now(), 'rodando') returning id", (FONTE, robo, versao, onde))
-                self.coleta_id = c.fetchone()[0]
-            self.ok = True
-        except Exception as e:
-            self.motivo = f'conexão falhou: {type(e).__name__}: {str(e)[:200]}'
+        self.url = os.environ.get('SUPABASE_URL', '').strip().rstrip('/')
+        self.key = os.environ.get('SUPABASE_SERVICE_KEY', '').strip()
+        self.robo, self.versao, self.onde = robo, versao, onde
+        self.coleta_id, self.rejeitados = None, []
+        self.ok = bool(self.url and self.key)
+        self.motivo = '' if self.ok else 'sem SUPABASE_URL/SUPABASE_SERVICE_KEY nos Secrets'
 
-    def edicao(self, ente, data, edicao, parte, link, sha256, paginas, id_fonte='', arquivo='', nbytes=None):
-        with self.cx.cursor() as c:
-            c.execute("""insert into comum.diario_edicao (fonte, ente, data, edicao, parte, link, sha256, paginas, coleta_id,
-                                                          id_fonte, arquivo, bytes)
-                         values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                         on conflict (fonte, data, edicao, parte) do update
-                           set link = excluded.link, sha256 = excluded.sha256, paginas = excluded.paginas,
-                               coleta_id = excluded.coleta_id, bytes = excluded.bytes
-                         returning id""",
-                      (FONTE, ente, data, edicao, parte, link, sha256, paginas, self.coleta_id, id_fonte, arquivo, nbytes))
-            return c.fetchone()[0]
+    def rpc(self, funcao, corpo):
+        req = urllib.request.Request(f'{self.url}/rest/v1/rpc/{funcao}', data=json.dumps(corpo, default=str).encode('utf-8'),
+                                     method='POST', headers={'apikey': self.key, 'Authorization': f'Bearer {self.key}',
+                                                             'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return json.loads(r.read().decode('utf-8') or 'null')
 
-    def atos(self, linhas):
-        """linhas: dicts com as colunas de comum.diario_ato (sem id/coleta_id). Repetido (mesmo hash_ato) é ignorado."""
-        cols = ['edicao_id', 'data', 'fonte', 'ente', 'orgao', 'tipo', 'cnpj', 'razao_receita', 'pessoa_nome', 'cargo',
-                'valor', 'processo', 'classe', 'link', 'pagina', 'trecho', 'hash_ato', 'acao', 'papel', 'nivel']
-        novos = 0
-        with self.cx.cursor() as c:
-            for a in linhas:
-                a = dict(a, fonte=FONTE)
-                for k in ('trecho', 'pessoa_nome', 'cargo', 'papel'):
-                    if a.get(k): a[k] = mascarar_cpf(a[k])[:1500 if k == 'trecho' else 300]
-                c.execute(f"insert into comum.diario_ato ({', '.join(cols)}, coleta_id) values ({', '.join(['%s'] * len(cols))}, %s) "
-                          "on conflict (hash_ato) do nothing", [a.get(k) for k in cols] + [self.coleta_id])
-                novos += c.rowcount
-        return novos
+    def cnpj_pedir(self, cnpjs):
+        return self.rpc('cnpj_pedir', {'cnpjs': sorted(set(cnpjs)), 'projeto': PROJETO}) if cnpjs else {}
+
+    def cnpj_consultar(self, cnpjs):
+        """{cnpj: registro da Receita} só dos que a base comum já tem."""
+        cnpjs = sorted(set(cnpjs)); out = {}
+        for i in range(0, len(cnpjs), 200):
+            for r in self.rpc('cnpj_consultar', {'cnpjs': cnpjs[i:i + 200]}) or []:
+                out[r['cnpj']] = r
+        return out
+
+    def gravar(self, edicoes, atos, lote=300):
+        """Edições primeiro (num lote), depois os atos em lotes. Devolve (edições, atos novos, repetidos)."""
+        coleta = {'fonte': FONTE, 'robo': self.robo, 'versao': self.versao, 'onde': self.onde}
+        for a in atos:
+            a['fonte'] = FONTE
+            for k in ('trecho', 'pessoa_nome', 'cargo', 'papel'):
+                if a.get(k): a[k] = mascarar_cpf(a[k])[:1500 if k == 'trecho' else 300]
+        for e in edicoes: e['fonte'] = FONTE
+        r = self.rpc('diarios_gravar', {'p': {'coleta': coleta, 'edicoes': edicoes, 'atos': []}})
+        self.coleta_id = r['coleta_id']; self.rejeitados += r.get('rejeitados') or []
+        n_ed, novos, rep = r.get('edicoes', 0), 0, 0
+        for i in range(0, len(atos), lote):
+            r = self.rpc('diarios_gravar', {'p': {'coleta_id': self.coleta_id, 'atos': atos[i:i + lote]}})
+            novos += r.get('atos_novos', 0); rep += r.get('atos_repetidos', 0); self.rejeitados += r.get('rejeitados') or []
+        return n_ed, novos, rep
 
     def fim(self, status, linhas, erro=''):
-        if not self.ok: return
+        if not (self.ok and self.coleta_id): return
         try:
-            with self.cx.cursor() as c:
-                c.execute("update comum.coleta set terminou = now(), status = %s, linhas = %s, erro = %s where id = %s",
-                          (status, linhas, (erro or None) and erro[:900], self.coleta_id))
-        finally:
-            self.cx.close()
+            self.rpc('diarios_gravar', {'p': {'coleta_id': self.coleta_id,
+                                              'coleta': {'status': status, 'linhas': linhas, 'erro': (erro or None) and erro[:900]}}})
+        except Exception:
+            pass
