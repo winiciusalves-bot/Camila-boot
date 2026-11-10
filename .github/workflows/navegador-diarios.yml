@@ -47,4 +47,4 @@ jobs:
           npm i --no-save playwright@1.48.2 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
           true
-          echo "===== XHR ====="; node coletor/navegador/xhr.js
+          echo "===== XHR ====="; node coletor/navegador/clique.js
