@@ -83,7 +83,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/out" "$GITHUB_WORKSPACE/logs" "$GITHUB_WORKSPACE/db"
           # Rio (DOWeb) sai daqui: o notebook baixa o DO Rio de IP do Brasil (plano único 09/11); o GitHub é recusado
-          uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' | grep -E "${SO:-.}" > rj.txt
+          uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' | grep -E "${SO:-.}" > rj.txt || true   # SO pode não casar com nenhum robô Scrapy (ex.: só Tanguá, que vem pelo navegador)
           echo "$(wc -l < rj.txt) raspadores do RJ, de $INICIO a $FIM"
           # 6 por vez; cada um tem até $LIMITE s. Bloqueio/captcha = falha registrada, nunca contornada.
           cat rj.txt | xargs -P 6 -I{} sh -c 'QUERIDODIARIO_DATABASE_URL=sqlite:///$GITHUB_WORKSPACE/db/{}.db timeout $LIMITE uv run scrapy crawl {} -a start='"$INICIO"' -a end='"$FIM"' -s SPIDERMON_ENABLED=False -s LOG_LEVEL=INFO -s LOG_FILE=$GITHUB_WORKSPACE/logs/{}.log -s FILES_STORE=$GITHUB_WORKSPACE/pdf -O $GITHUB_WORKSPACE/out/{}.jsonl; echo "{}: fim (código $?)"' || true
