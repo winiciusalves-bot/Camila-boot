@@ -8,6 +8,9 @@ on:
       dias:
         description: 'Quantos dias para trás (rodada normal)'
         default: '7'
+      so:
+        description: 'Só estes robôs (expressão regular, ex.: rj_marica_v3|rj_aperibe). Vazio = todos'
+        default: ''
       meses:
         description: 'Histórico: quantos blocos de 30 dias para trás (ex.: 12 = 1 ano). Vazio = rodada normal'
         default: ''
@@ -63,11 +66,12 @@ jobs:
         env:
           INICIO: ${{ matrix.bloco.ini }}   # rotina: 5 dias para trás (cobre fim de semana, feriado e ponto facultativo, inclusive carnaval); repetição não duplica
           FIM: ${{ matrix.bloco.fim }}
+          SO: ${{ github.event.inputs.so || '' }}
           LIMITE: ${{ github.event.inputs.meses && '2400' || '1200' }}   # segundos por raspador: 20 min na rotina, 40 min num bloco de 30 dias
         run: |
           mkdir -p "$GITHUB_WORKSPACE/out" "$GITHUB_WORKSPACE/logs" "$GITHUB_WORKSPACE/db"
           # Rio (DOWeb) sai daqui: o notebook baixa o DO Rio de IP do Brasil (plano único 09/11); o GitHub é recusado
-          uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' > rj.txt
+          uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' | grep -E "${SO:-.}" > rj.txt
           echo "$(wc -l < rj.txt) raspadores do RJ, de $INICIO a $FIM"
           # 6 por vez; cada um tem até $LIMITE s. Bloqueio/captcha = falha registrada, nunca contornada.
           cat rj.txt | xargs -P 6 -I{} sh -c 'QUERIDODIARIO_DATABASE_URL=sqlite:///$GITHUB_WORKSPACE/db/{}.db timeout $LIMITE uv run scrapy crawl {} -a start='"$INICIO"' -a end='"$FIM"' -s SPIDERMON_ENABLED=False -s LOG_LEVEL=INFO -s LOG_FILE=$GITHUB_WORKSPACE/logs/{}.log -s FILES_STORE=$GITHUB_WORKSPACE/pdf -O $GITHUB_WORKSPACE/out/{}.jsonl; echo "{}: fim (código $?)"' || true

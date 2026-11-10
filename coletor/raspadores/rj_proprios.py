@@ -160,3 +160,94 @@ class RjSeropedicaJornalSpider(BaseAdiariosV2Spider):
     allowed_domains = ['seropedica.rj.gov.br']
     BASE_URL = 'https://transparencia.seropedica.rj.gov.br'
     start_date = date(2017, 1, 1)
+
+
+from gazette.spiders.base.dioenet import BaseDioenetSpider
+
+
+class RjAperibeDioenetSpider(BaseDioenetSpider):
+    """Aperibé (não tinha robô): mesma plataforma Dioenet de Sumidouro, achada pela sondagem de 10/11/2026."""
+    name = 'rj_aperibe'
+    TERRITORY_ID = '3300159'
+    start_date = date(2021, 1, 1)
+    BASE_URL = 'https://plenussistemas.dioenet.com.br/list/aperibe'
+    power = 'executive_legislative'
+
+
+# ---- Robô genérico de "página com lista de PDFs" (sites WordPress e portais próprios) ----
+RX_DATA_NUM = re.compile(r'(\d{1,2})[/.\-_](\d{1,2})[/.\-_](\d{4})')
+RX_DATA_ISO = re.compile(r'(\d{4})[/.\-_](\d{2})[/.\-_](\d{2})')
+RX_DATA_EXT = re.compile(r'(\d{1,2})\s*(?:de\s+)?(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:de\s+)?(\d{4})', re.I)
+RX_EDICAO = re.compile(r'(?:edi[cç][aã]o|n[ºo°]|n\.)\s*[ºo°]?\s*(\d{2,6})', re.I)
+
+
+def achar_data(t):
+    t = t or ''
+    for rx, ordem in ((RX_DATA_NUM, 'dmy'), (RX_DATA_ISO, 'ymd')):
+        for m in rx.finditer(t):
+            try:
+                d, mth, y = (int(m.group(1)), int(m.group(2)), int(m.group(3))) if ordem == 'dmy' else (int(m.group(3)), int(m.group(2)), int(m.group(1)))
+                if 2000 <= y <= 2100: return date(y, mth, d)
+            except ValueError:
+                continue
+    m = RX_DATA_EXT.search(t)
+    if m:
+        try: return data_extenso(m.group(1), m.group(2).replace('ç', 'c'), m.group(3))
+        except (ValueError, TypeError): return None
+    return None
+
+
+class _ListaPdfSpider(_Base):
+    """Abre as páginas START_URLS e pega todo link de PDF que tenha data (no texto do link, no endereço ou logo ao
+    lado). Serve para os sites que publicam o diário como lista de arquivos. Só lê página pública."""
+    START_URLS = []
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        for u in self.START_URLS:
+            yield scrapy.Request(u, callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        vistos = set()
+        for a in response.css('a[href]'):
+            href = a.attrib.get('href', '')
+            if not re.search(r'\.pdf($|\?)|download|arquivo|visualizar', href, re.I):
+                continue
+            txt = ' '.join(a.css('::text').getall())
+            viz = ' '.join(a.xpath('ancestor::*[position()<=3]//text()').getall())[:400]
+            d = achar_data(txt) or achar_data(href) or achar_data(viz)
+            url = response.urljoin(href)
+            if not self.dentro(d) or url in vistos:
+                continue
+            vistos.add(url)
+            m = RX_EDICAO.search(txt) or RX_EDICAO.search(href)
+            yield Gazette(date=d, edition_number=m.group(1) if m else '', is_extra_edition=bool(re.search(r'extra|suplement', txt + href, re.I)),
+                          file_urls=[url], power='executive')
+
+
+def _lista(nome, territorio, urls):
+    return type(f'Rj{nome.title().replace("_", "")}ListaSpider', (_ListaPdfSpider,),
+                dict(name=f'rj_{nome}', TERRITORY_ID=territorio, START_URLS=urls, start_date=date(2015, 1, 1)))
+
+
+# Endereços achados pela sondagem de 10/11/2026 (página inicial da prefeitura, link "Diário Oficial").
+# Municípios que já tinham robô ganham sufixo _v3; os que não tinham, o nome simples.
+RjMaricaLista = _lista('marica_v3', '3302700', ['https://www.marica.rj.gov.br/diario-oficial-de-marica/', 'https://www.marica.rj.gov.br/jornal-oficial-marica/'])
+RjVoltaRedondaLista = _lista('volta_redonda', '3306305', ['https://www.voltaredonda.rj.gov.br/diario-oficial'])
+RjItaboraiLista = _lista('itaborai', '3301900', ['https://site.ib.itaborai.rj.gov.br/diario-oficial'])
+RjAraruamaLista = _lista('araruama', '3300209', ['https://www.araruama.rj.gov.br/publicacoes/diario-oficial'])
+RjRioDasOstrasLista = _lista('rio_das_ostras', '3304524', ['https://www.riodasostras.rj.gov.br/jornal-oficial/'])
+RjItatiaiaLista = _lista('itatiaia', '3302254', ['https://itatiaia.rj.gov.br/diariooficial-2'])
+RjItaperunaLista = _lista('itaperuna', '3302205', ['https://itaperuna.rj.gov.br/pmi/jornal-oficial-2022'])
+RjNilopolisLista = _lista('nilopolis', '3303203', ['https://nilopolis.rj.gov.br/diario-oficial-online/', 'https://nilopolis.rj.gov.br/diario-oficial-extra-online/'])
+RjParacambiLista = _lista('paracambi', '3303609', ['https://paracambi.rj.gov.br/diario-oficial-eletronico-2026/'])
+RjPatyLista = _lista('paty_do_alferes', '3303856', ['https://patydoalferes.rj.gov.br/diario-oficial/'])
+RjSaoFidelisLista = _lista('sao_fidelis', '3304805', ['https://saofidelis.rj.gov.br/diario-oficial-eletronico/', 'https://saofidelis.rj.gov.br/diariooficial'])
+RjTrajanoLista = _lista('trajano_de_moraes', '3305901', ['https://www.trajanodemoraes.rj.gov.br/diario-oficial'])
+RjNatividadeLista = _lista('natividade', '3303104', ['https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1'])
+RjRioBonitoLista = _lista('rio_bonito', '3304300', ['https://diario-oficial.riobonito.rj.gov.br/'])
+RjVarreSaiLista = _lista('varre_sai_v2', '3306156', ['https://varresai.rj.gov.br/diarios-oficiais'])
+RjBarraPiraiLista = _lista('barra_do_pirai', '3300308', ['https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico'])
+RjParaibaSulLista = _lista('paraiba_do_sul', '3303708', ['https://paraibadosul.rj.gov.br/page/3e364d6c-e018-47c3-aa46-db0c771424f6/diario-oficial'])
+RjCaxiasLista = _lista('duque_de_caxias_v2', '3301702', ['https://transparencia.duquedecaxias.rj.gov.br/diario_oficial_busca.php'])
+RjMiguelPereiraLista = _lista('miguel_pereira_v2', '3302908', ['https://transparencia.miguelpereira.rj.gov.br/?serv=113'])
