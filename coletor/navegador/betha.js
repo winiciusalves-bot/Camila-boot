@@ -18,7 +18,7 @@ const iso = s => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(s || ''); return m
     const t0 = Date.now(); const ctx = await b.newContext(); const pg = await ctx.newPage(); let cab = null;
     pg.on('request', q => { if (!cab && q.url().startsWith(API + '/busca-textual/' + p.consulta + '?')) { const h = q.headers(); cab = { authorization: h.authorization, 'app-context': h['app-context'], 'content-type': 'application/json;charset=UTF-8', accept: 'application/json' }; } });
     await pg.goto(`https://transparencia.betha.cloud/#/${p.portal}/consulta/${p.consulta}`, { timeout: 90000, waitUntil: 'load' }).catch(() => null);
-    for (let i = 0; i < 30 && !cab; i++) await pg.waitForTimeout(1000);
+    for (let i = 0; i < 60 && !cab; i++) await pg.waitForTimeout(1000);
     if (!cab) { console.log(`${p.nome}: a página não chamou a lista (nada gravado)`); await ctx.close(); continue; }
     const itens = []; let off = 0, total = 0, parar = false;
     while (!parar) {
