@@ -185,6 +185,7 @@ def gravar_comum(manifesto, citados, pessoal, base):
 def municipio_de(arq):
     n = os.path.basename(arq).replace('.jsonl', '').replace('rj_', '').replace('_v2', '').replace('_v3', '').replace('_betha', '')
     if n == 'aemerj': return 'AEMERJ (vários municípios)'
+    if n == 'tribuna_dos_municipios': return 'Tribuna dos Municípios (jornal, vários municípios)'
     return n.replace('_', ' ').title().replace(' De ', ' de ').replace(' Do ', ' do ').replace(' Da ', ' da ').replace(' Dos ', ' dos ')
 
 
@@ -252,7 +253,7 @@ def main():
                                 tipo='CNPJ citado', valor='', classe='INDÍCIO', link=ed['url'], trecho=mascara(trecho(txt, i)),
                                 _k=k, _pag=txt.count('\f', 0, i) + 1, _cnpj=c, _pos=i,
                                 _papel='; '.join(sorted({mm.group(0).lower() for mm in RX_TERMO.finditer(txt, max(0, i - JANELA), i + JANELA)}))))
-        if ed['municipio'].startswith('AEMERJ'):   # quem publica no diário da AEMERJ (plano único: tirar da lista "sem robô")
+        if ed['municipio'].startswith(('AEMERJ', 'Tribuna dos Munic')):   # quem publica no diário da AEMERJ (plano único: tirar da lista "sem robô")
             for m in re.finditer(r'(?:PREFEITURA|C[AÂ]MARA) MUNICIPAL DE ([A-ZÀ-Ú][A-ZÀ-Ú\- ]{2,40}?)(?=\s*(?:\n|[^A-ZÀ-Ú\- ]))', txt):
                 aemerj[m.group(1).strip().title()] = aemerj.get(m.group(1).strip().title(), 0) + 1
         for m in RX_PESSOAL.finditer(txt):
@@ -303,7 +304,7 @@ def main():
         w = csv.DictWriter(f, fieldnames=['data', 'fonte', 'ente', 'edicao', 'link', 'sha256', 'bytes', 'texto'], delimiter=';', extrasaction='ignore')
         w.writeheader(); w.writerows(manifesto)
     gravar_comum(manifesto, citados, pessoal, base)
-    if aemerj: log('AEMERJ, entes que publicam: ' + ' · '.join(f'{k} ({v})' for k, v in sorted(aemerj.items(), key=lambda x: -x[1])[:60]))
+    if aemerj: log('AEMERJ/Tribuna, entes que publicam: ' + ' · '.join(f'{k} ({v})' for k, v in sorted(aemerj.items(), key=lambda x: -x[1])[:60]))
     log(f"manifesto.csv: {len(manifesto)} edição(ões) com SHA-256; altos cargos: {sum(1 for a in pessoal if a['tipo'].startswith('ALTO'))}")
 
     # resumo em Markdown (vai para a página da execução no GitHub)
