@@ -257,7 +257,6 @@ RjMiguelPereiraLista = _lista('miguel_pereira_v2', '3302908', ['https://transpar
 
 # ---- Robôs a partir da 2ª sondagem com navegador (10/11/2026) ----
 import json as _json
-from datetime import timedelta as _td
 
 
 class RjRioDasOstrasApiSpider(_Base):
@@ -287,8 +286,8 @@ class RjRioDasOstrasApiSpider(_Base):
 
 
 class RjItaboraiDataSpider(_Base):
-    """Itaboraí: os PDFs ficam em do.ib.itaborai.rj.gov.br/edicoes/AAAA/AAAA-MM-DD.pdf (e ...A.pdf, ...B.pdf para
-    edições extras). O robô monta o endereço de cada dia e só guarda o que existe (HTTP 200)."""
+    """Itaboraí: os PDFs ficam em do.ib.itaborai.rj.gov.br/edicoes/AAAA/, pasta pública com a lista dos arquivos
+    (AAAA-MM-DD.pdf; AAAA-MM-DDA.pdf, ...B.pdf para edições extras). O robô lê a lista de cada ano."""
     name = 'rj_itaborai'
     TERRITORY_ID = '3301900'
     allowed_domains = ['itaborai.rj.gov.br']
@@ -296,17 +295,18 @@ class RjItaboraiDataSpider(_Base):
     custom_settings = {'ROBOTSTXT_OBEY': False}
 
     async def start(self):
-        d = self.end_date
-        while d >= self.start_date:
-            if d.weekday() < 6:
-                for suf in ('', 'A', 'B'):
-                    u = f'https://do.ib.itaborai.rj.gov.br/edicoes/{d.year}/{d.isoformat()}{suf}.pdf'
-                    yield scrapy.Request(u, method='HEAD', callback=self.achou, cb_kwargs={'d': d, 'suf': suf}, dont_filter=True)
-            d -= _td(days=1)
+        for ano in range(self.start_date.year, self.end_date.year + 1):
+            yield scrapy.Request(f'https://do.ib.itaborai.rj.gov.br/edicoes/{ano}/', callback=self.parse_pasta)
 
-    def achou(self, response, d, suf):
-        if response.status == 200:
-            yield Gazette(date=d, edition_number='', is_extra_edition=bool(suf), file_urls=[response.url], power='executive')
+    def parse_pasta(self, response):
+        for href in dict.fromkeys(response.css('a::attr(href)').getall()):
+            m = re.match(r'(?:.*/)?(\d{4})-(\d{2})-(\d{2})([A-Z]?)\.pdf$', href, re.I)
+            if not m: continue
+            try: d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError: continue
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number='', is_extra_edition=bool(m.group(4)),
+                              file_urls=[response.urljoin(href)], power='executive')
 
 
 class RjParaibaDoSulDriveSpider(_Base):
