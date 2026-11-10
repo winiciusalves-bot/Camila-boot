@@ -227,7 +227,9 @@ class _ListaPdfSpider(_Base):
 
 def _lista(nome, territorio, urls):
     return type(f'Rj{nome.title().replace("_", "")}ListaSpider', (_ListaPdfSpider,),
-                dict(name=f'rj_{nome}', TERRITORY_ID=territorio, START_URLS=urls, start_date=date(2015, 1, 1)))
+                dict(name=f'rj_{nome}', TERRITORY_ID=territorio, START_URLS=urls, start_date=date(2015, 1, 1),
+                     # a base do Querido Diário exige allowed_domains (sem isso o robô nem começa)
+                     allowed_domains=sorted({'.'.join(re.sub(r'^https?://', '', u).split('/')[0].split(':')[0].split('.')[-4:]) for u in urls})))
 
 
 # Endereços achados pela sondagem de 10/11/2026 (página inicial da prefeitura, link "Diário Oficial").
