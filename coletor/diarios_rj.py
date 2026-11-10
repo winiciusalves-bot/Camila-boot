@@ -375,7 +375,7 @@ def main():
         sem_txt = [m for m, r in resumo.items() if r['edicoes'] and not r['com_texto']]
         sb.req('POST', '/coletas', dict(
             fonte='Diários oficiais municipais do RJ (raspadores abertos do Querido Diário, sites das prefeituras)',
-            metodo=f'janela de {os.environ.get("DIAS", "?")} dia(s); pdftotext e OCR (tesseract por, até {OCR_MAX_PAG} pág./edição); CNPJ com DV válido; CPF mascarado; tudo INDÍCIO',
+            metodo=f'janela: {os.environ.get("DIAS", "?")}; pdftotext e OCR (tesseract por, até {OCR_MAX_PAG} pág./edição); CNPJ com DV válido; CPF mascarado; tudo INDÍCIO',
             status='ok', iniciada_em=dt.datetime.fromtimestamp(t0, dt.timezone.utc).isoformat(),
             terminada_em=dt.datetime.now(dt.timezone.utc).isoformat(), autos_lidos=len(edicoes), autos_novos=gravadas,
             mensagem=(f'{len(edicoes)} edições de {sum(1 for r in resumo.values() if r["edicoes"])} município(s); '
