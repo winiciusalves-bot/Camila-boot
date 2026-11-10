@@ -50,9 +50,13 @@ def desafio(html):
 
 
 def municipios():
+    """API do IBGE; se cair, a lista guardada (territories.csv do Querido Diário, códigos IBGE, RJ)."""
     st, _, txt = get('https://servicodados.ibge.gov.br/api/v1/localidades/estados/33/municipios', timeout=60)
-    if st != 200: sys.exit(f'IBGE fora: {st} {txt[:200]}')
-    return [(str(m['id']), m['nome']) for m in json.loads(txt)]
+    if st == 200:
+        return [(str(m['id']), m['nome']) for m in json.loads(txt)]
+    print(f'IBGE fora ({st} {txt[:80]}); usando coletor/municipios_rj.csv')
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'municipios_rj.csv'), encoding='utf-8') as f:
+        return [(r['id'], r['name']) for r in csv.DictReader(f) if r['id'].startswith('33') and len(r['id']) == 7]
 
 
 def pncp(dias=30):
