@@ -15,11 +15,12 @@ const iso = s => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(s || ''); return m
   fs.mkdirSync(SAIDA, { recursive: true });
   const b = await chromium.launch();
   for (const p of PORTAIS) {
-    const t0 = Date.now(); const ctx = await b.newContext(); const pg = await ctx.newPage(); let cab = null;
+    const t0 = Date.now(); const ctx = await b.newContext(); const pg = await ctx.newPage(); let cab = null; const vistas = [];
+    pg.on('response', r => { if (/betha/.test(r.url())) vistas.push(r.status() + ' ' + r.url().slice(0, 120)); });
     pg.on('request', q => { if (!cab && q.url().startsWith(API + '/busca-textual/' + p.consulta + '?')) { const h = q.headers(); cab = { authorization: h.authorization, 'app-context': h['app-context'], 'content-type': 'application/json;charset=UTF-8', accept: 'application/json' }; } });
     await pg.goto(`https://transparencia.betha.cloud/#/${p.portal}/consulta/${p.consulta}`, { timeout: 90000, waitUntil: 'load' }).catch(() => null);
     for (let i = 0; i < 60 && !cab; i++) await pg.waitForTimeout(1000);
-    if (!cab) { console.log(`${p.nome}: a página não chamou a lista (nada gravado)`); await ctx.close(); continue; }
+    if (!cab) { console.log(`${p.nome}: a página não chamou a lista (nada gravado)`); console.log('  texto: ' + (await pg.innerText('body').catch(() => '')).replace(/\s+/g, ' ').slice(0, 600)); console.log('  chamadas: ' + vistas.slice(-12).join(' | ')); await ctx.close(); continue; }
     const itens = []; let off = 0, total = 0, parar = false;
     while (!parar) {
       const r = await ctx.request.post(`${API}/busca-textual/${p.consulta}?sortBy=null&sortDirection=null&offset=${off}&limit=100&hiperlink=false`, { headers: cab, data: {} });
