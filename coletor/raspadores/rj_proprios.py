@@ -236,9 +236,9 @@ def _lista(nome, territorio, urls):
 # Municípios que já tinham robô ganham sufixo _v3; os que não tinham, o nome simples.
 RjMaricaLista = _lista('marica_v3', '3302700', ['https://www.marica.rj.gov.br/diario-oficial-de-marica/', 'https://www.marica.rj.gov.br/jornal-oficial-marica/'])
 RjVoltaRedondaLista = _lista('volta_redonda', '3306305', ['https://www.voltaredonda.rj.gov.br/diario-oficial'])
-RjItaboraiLista = _lista('itaborai', '3301900', ['https://site.ib.itaborai.rj.gov.br/diario-oficial'])
+# RjItaboraiLista = _lista('itaborai', '3301900', ['https://site.ib.itaborai.rj.gov.br/diario-oficial'])  # trocado por robô próprio (2ª sondagem)
 RjAraruamaLista = _lista('araruama', '3300209', ['https://www.araruama.rj.gov.br/publicacoes/diario-oficial'])
-RjRioDasOstrasLista = _lista('rio_das_ostras', '3304524', ['https://www.riodasostras.rj.gov.br/jornal-oficial/'])
+# RjRioDasOstrasLista = _lista('rio_das_ostras', '3304524', ['https://www.riodasostras.rj.gov.br/jornal-oficial/'])  # trocado por robô próprio (2ª sondagem)
 RjItatiaiaLista = _lista('itatiaia', '3302254', ['https://itatiaia.rj.gov.br/diariooficial-2'])
 RjItaperunaLista = _lista('itaperuna', '3302205', ['https://itaperuna.rj.gov.br/pmi/jornal-oficial-2022'])
 RjNilopolisLista = _lista('nilopolis', '3303203', ['https://nilopolis.rj.gov.br/diario-oficial-online/', 'https://nilopolis.rj.gov.br/diario-oficial-extra-online/'])
@@ -250,6 +250,96 @@ RjNatividadeLista = _lista('natividade', '3303104', ['https://www.natividade.rj.
 RjRioBonitoLista = _lista('rio_bonito', '3304300', ['https://diario-oficial.riobonito.rj.gov.br/'])
 RjVarreSaiLista = _lista('varre_sai_v2', '3306156', ['https://varresai.rj.gov.br/diarios-oficiais'])
 RjBarraPiraiLista = _lista('barra_do_pirai', '3300308', ['https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico'])
-RjParaibaSulLista = _lista('paraiba_do_sul', '3303708', ['https://paraibadosul.rj.gov.br/page/3e364d6c-e018-47c3-aa46-db0c771424f6/diario-oficial'])
+# RjParaibaSulLista = _lista('paraiba_do_sul', '3303708', ['https://paraibadosul.rj.gov.br/page/3e364d6c-e018-47c3-aa46-db0c771424f6/diario-oficial'])  # trocado por robô próprio (2ª sondagem)
 RjCaxiasLista = _lista('duque_de_caxias_v2', '3301702', ['https://transparencia.duquedecaxias.rj.gov.br/diario_oficial_busca.php'])
 RjMiguelPereiraLista = _lista('miguel_pereira_v2', '3302908', ['https://transparencia.miguelpereira.rj.gov.br/?serv=113'])
+
+
+# ---- Robôs a partir da 2ª sondagem com navegador (10/11/2026) ----
+import json as _json
+
+
+class RjRioDasOstrasApiSpider(_Base):
+    """Rio das Ostras: a página do Jornal Oficial lê uma API pública em JSON (edicao, link do PDF, data)."""
+    name = 'rj_rio_das_ostras'
+    TERRITORY_ID = '3304524'
+    allowed_domains = ['riodasostras.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    API = 'https://appro.riodasostras.rj.gov.br/riodasostrasapp_server/api/jornais/search/site?&limit=600&offset=0&orderBy=data&orderDir=desc&ano={}'
+
+    async def start(self):
+        for ano in range(self.start_date.year, self.end_date.year + 1):
+            yield scrapy.Request(self.API.format(ano), callback=self.parse_api)
+
+    def parse_api(self, response):
+        for j in _json.loads(response.text):
+            try:
+                d = date.fromisoformat(str(j.get('data', ''))[:10])
+            except ValueError:
+                continue
+            if not self.dentro(d) or not j.get('link'):
+                continue
+            ed = j.get('edicao') or ''
+            m = re.search(r'(\d{2,6})', ed)
+            yield Gazette(date=d, edition_number=m.group(1) if m else '', is_extra_edition=bool(re.search(r'extra|suplement', ed, re.I)),
+                          file_urls=[j['link']], power='executive')
+
+
+class RjItaboraiDataSpider(_Base):
+    """Itaboraí: os PDFs ficam em do.ib.itaborai.rj.gov.br/edicoes/AAAA/, pasta pública com a lista dos arquivos
+    (AAAA-MM-DD.pdf; AAAA-MM-DDA.pdf, ...B.pdf para edições extras). O robô lê a lista de cada ano."""
+    name = 'rj_itaborai'
+    TERRITORY_ID = '3301900'
+    allowed_domains = ['itaborai.rj.gov.br']
+    start_date = date(2019, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        for ano in range(self.start_date.year, self.end_date.year + 1):
+            yield scrapy.Request(f'https://do.ib.itaborai.rj.gov.br/edicoes/{ano}/', callback=self.parse_pasta)
+
+    def parse_pasta(self, response):
+        for href in dict.fromkeys(response.css('a::attr(href)').getall()):
+            m = re.match(r'(?:.*/)?(\d{4})-(\d{2})-(\d{2})([A-Z]?)\.pdf$', href, re.I)
+            if not m: continue
+            try: d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError: continue
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number='', is_extra_edition=bool(m.group(4)),
+                              file_urls=[response.urljoin(href)], power='executive')
+
+
+class RjParaibaDoSulDriveSpider(_Base):
+    """Paraíba do Sul: a página do Diário Oficial lista cada edição como 'Diário Oficial Dia DD de <mês> de AAAA',
+    com o PDF no Google Drive (link público). O robô pega a data do texto e baixa pelo link de download do Drive."""
+    name = 'rj_paraiba_do_sul'
+    TERRITORY_ID = '3303708'
+    allowed_domains = ['paraibadosul.rj.gov.br', 'drive.google.com', 'drive.usercontent.google.com']
+    start_date = date(2015, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+    URL = 'https://paraibadosul.rj.gov.br/page/3e364d6c-e018-47c3-aa46-db0c771424f6/diario-oficial'
+
+    async def start(self):
+        yield scrapy.Request(self.URL, callback=self.parse_pag)
+
+    def parse_pag(self, response):
+        t = response.text.replace('\\u0026', '&').replace('\\/', '/')
+        vistos = set()
+        for m in re.finditer(r'drive\.google\.com/file/d/([\w-]{20,})', t):
+            fid = m.group(1)
+            if fid in vistos: continue
+            viz = re.sub(r'<[^>]+>', ' ', t[max(0, m.start() - 600):m.end() + 600])
+            datas = [(abs(x.start() - 600), x) for x in RX_DATA_EXT.finditer(viz)]
+            if not datas: continue
+            x = min(datas, key=lambda p: p[0])[1]
+            try: d = data_extenso(x.group(1), x.group(2).replace('ç', 'c'), x.group(3))
+            except (ValueError, TypeError): continue
+            if not self.dentro(d): continue
+            vistos.add(fid)
+            yield Gazette(date=d, edition_number='', is_extra_edition=False,
+                          file_urls=[f'https://drive.google.com/uc?export=download&id={fid}'], power='executive')
+
+
+# Nilópolis: o site da prefeitura aponta "Edição Impressa" para vozdosmunicipios.com.br/atos-oficiais/, onde cada
+# edição é .../atos-oficiais/AAAA/<Mês>/DD-MM-AAAA/prefeitura.pdf (também câmara e Previnil, o instituto de previdência).
+RjNilopolisVozLista = _lista('nilopolis_v2', '3303203', ['https://vozdosmunicipios.com.br/atos-oficiais/'])
