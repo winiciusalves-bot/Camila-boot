@@ -34,6 +34,33 @@ RX_TERMO = re.compile('|'.join(TERMOS), re.I)
 # Para gravar CNPJ como possível cliente, o termo precisa indicar ação sobre a empresa (não basta citar a secretaria ou o INEA)
 RX_LEAD = re.compile(r'auto de infra|licen[cç]a|licenciamento|embargo|multa|infra[cç][aã]o ambiental|crime ambiental|dano ambiental|supress[aã]o|'
                      r'ajustamento de conduta|interdi[cç][aã]o|notifica[cç][aã]o|compensa[cç][aã]o|PRAD|impacto ambiental', re.I)
+# Atos ambientais por categoria (relatório anual "quem publicou e quem não publicou"; 10/11/2026). Só conta quando há
+# contexto ambiental perto (evita "notificação" de servidor, "interdição" de rua etc.). Tudo INDÍCIO de publicação, não de irregularidade.
+AMB_CAT = [
+    ('notificacao_ambiental', re.compile(r'notifica[cç][aã]o', re.I)),
+    ('auto_infracao_ambiental', re.compile(r'auto de infra[cç][aã]o', re.I)),
+    ('embargo_interdicao', re.compile(r'\bembarg|interdi[cç][aã]o', re.I)),
+    ('licenca_ambiental', re.compile(r'licen[cç]a (?:ambiental|municipal ambiental|pr[eé]via|de instala[cç][aã]o|de opera[cç][aã]o|simplificada)|licenciamento ambiental|\bL[PIO]\s*n?[ºo°]', re.I)),
+    ('tac_ambiental', re.compile(r'termo de (?:ajustamento|compromisso ambiental)', re.I)),
+    ('supressao_vegetacao', re.compile(r'supress[aã]o de vegeta|corte de [aá]rvore|poda', re.I)),
+    ('compensacao_ambiental', re.compile(r'compensa[cç][aã]o ambiental', re.I)),
+]
+RX_AMB_CTX = re.compile(r'meio ambiente|ambient|SEMMA|SEMAM|SMMA|SEMMATRAN|licenciamento|\bINEA\b|vegeta[cç]|polui[cç]|res[ií]duo|recursos h[ií]dricos|fauna|flora|APA\b|unidade de conserva', re.I)
+JANELA_AMB = 300
+
+
+def atos_ambientais(txt):
+    """[(categoria, posição)] com contexto ambiental a até JANELA_AMB caracteres. Uma por categoria a cada 400 caracteres."""
+    out, ult = [], {}
+    for cat, rx in AMB_CAT:
+        for m in rx.finditer(txt):
+            i = m.start()
+            if i - ult.get(cat, -10**9) < 400: continue
+            if not RX_AMB_CTX.search(txt, max(0, i - JANELA_AMB), i + JANELA_AMB): continue
+            ult[cat] = i; out.append((cat, i))
+    return out
+
+
 RX_CNPJ = re.compile(r'(?<!\d)(\d{2})\.?(\d{3})\.?(\d{3})/?(\d{4})-?(\d{2})(?!\d)')
 JANELA = 250
 # atos de pessoal (plano único 09/11: mesmo formato da Vigia, nomeacoes_todas.csv). Secretário/subsecretário em destaque.
@@ -134,7 +161,7 @@ def cargo_ato(t):
     return m.group(1).strip() if m else ''
 
 
-def gravar_comum(manifesto, citados, pessoal, base):
+def gravar_comum(manifesto, citados, pessoal, base, ambiental=()):
     """Base comum do gabinete pelas funções RPC (regras de 09/11/2026). Nunca derruba a rodada."""
     from comum import Comum, hash_ato
     cm = Comum('diarios_rj.py', os.environ.get('GITHUB_SHA', 'local')[:12], 'GitHub Actions' if os.environ.get('GITHUB_ACTIONS') else 'local')
@@ -174,6 +201,12 @@ def gravar_comum(manifesto, citados, pessoal, base):
                              tipo='pessoal', pessoa_nome=a['_nome'] or None, cargo=a['_cargo'] or None, acao=a['_acao'],
                              nivel='alto escalão' if a['_alto'] else None, classe='INDICIO', link=a['link'], pagina=a['_pag'],
                              trecho=a['trecho'], hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'pessoal', a['_pos'])))
+        for a in ambiental:
+            if a['_k'] not in chave: continue
+            atos.append(dict(chave[a['_k']], orgao=f"PREFEITURA {a['ente'].upper()}", tipo='ambiental', acao=a['_cat'],
+                             cnpj=a['_cnpj'] or None, classe='INDICIO', link=a['link'], pagina=a['_pag'], trecho=a['trecho'],
+                             papel='ato ambiental publicado (categoria por palavra-chave; ler o ato)',
+                             hash_ato=hash_ato('QUERIDO_DIARIO', sha[a['_k']], 'ambiental', a['_cat'], a['_pos'])))
         n_ed, n_atos, n_rep = cm.gravar(edicoes, atos)
         log(f'base comum: {n_ed} edição(ões), {n_atos} ato(s) novo(s), {n_rep} repetido(s), {len(cm.rejeitados)} recusado(s) pelo banco')
         for r in cm.rejeitados[:10]: log(f'  recusado: {r}')
@@ -216,7 +249,7 @@ def main():
     log(f'{len(edicoes)} edições baixadas')
 
     achados, resumo, t0, t_ocr = [], {}, time.time(), 0.0
-    citados, pessoal, manifesto, aemerj = [], [], [], {}
+    citados, pessoal, manifesto, aemerj, ambiental = [], [], [], {}, []
     raiz_arquivos = os.environ.get('FILES_STORE', 'data')
     for k, ed in enumerate(edicoes, 1):
         r = resumo.setdefault(ed['municipio'], dict(edicoes=0, com_texto=0, ocr=0, cnpj_base=0, termos=0))
@@ -263,6 +296,11 @@ def main():
                                 tipo=('ALTO ESCALÃO - ' if RX_ALTO.search(t) else '') + m.group(1).upper(), valor='', classe='INDÍCIO',
                                 link=ed['url'], trecho=t, _k=k, _pag=txt.count('\f', 0, m.start()) + 1, _pos=m.start(),
                                 _acao=m.group(1).upper(), _nome=nome_ato(t, m.group(1)), _cargo=cargo_ato(t), _alto=bool(RX_ALTO.search(t))))
+        for cat, i in atos_ambientais(txt):
+            perto = [c for c, j in cn if abs(j - i) <= JANELA]
+            ambiental.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], cnpj=fmt(perto[0]) if perto else '', razao_receita='',
+                                  tipo='AMBIENTAL - ' + cat, valor='', classe='INDÍCIO', link=ed['url'], trecho=mascara(trecho(txt, i, 400)),
+                                  _k=k, _pag=txt.count('\f', 0, i) + 1, _pos=i, _cat=cat, _cnpj=perto[0] if perto else ''))
         # (a) CNPJ da nossa base citado no diário
         vistos = set()
         for c, i in cn:
@@ -292,7 +330,7 @@ def main():
 
     # formato comum do plano único (09/11/2026): data, fonte, ente, cnpj, razao_receita, tipo, valor, classe, link, trecho
     comum_cols = ['data', 'fonte', 'ente', 'cnpj', 'razao_receita', 'tipo', 'valor', 'classe', 'link', 'trecho']
-    for nome, linhas_ in (('cnpjs_citados.csv', citados), ('nomeacoes_todas.csv', pessoal)):
+    for nome, linhas_ in (('cnpjs_citados.csv', citados), ('nomeacoes_todas.csv', pessoal), ('atos_ambientais.csv', ambiental)):
         vis_ = set(); dd = []
         for a in linhas_:
             ch = (a['cnpj'], a['link'], a['tipo'], a['trecho'][:120])
@@ -303,7 +341,7 @@ def main():
     with open(os.path.join(saida, 'manifesto.csv'), 'w', newline='', encoding='utf-8-sig') as f:
         w = csv.DictWriter(f, fieldnames=['data', 'fonte', 'ente', 'edicao', 'link', 'sha256', 'bytes', 'texto'], delimiter=';', extrasaction='ignore')
         w.writeheader(); w.writerows(manifesto)
-    gravar_comum(manifesto, citados, pessoal, base)
+    gravar_comum(manifesto, citados, pessoal, base, ambiental)
     if aemerj: log('AEMERJ/Tribuna, entes que publicam: ' + ' · '.join(f'{k} ({v})' for k, v in sorted(aemerj.items(), key=lambda x: -x[1])[:60]))
     log(f"manifesto.csv: {len(manifesto)} edição(ões) com SHA-256; altos cargos: {sum(1 for a in pessoal if a['tipo'].startswith('ALTO'))}")
 
