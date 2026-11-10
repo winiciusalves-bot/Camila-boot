@@ -20,7 +20,9 @@ const LIXO = /google|clarity|userway|facebook|twitter|allorigins|cdn-cgi|popular
       const pdfs = await pg.$$eval('a', as => as.map(a => [a.textContent.replace(/\s+/g, ' ').trim().slice(0, 80), a.href])
         .filter(([t, h]) => /\.pdf|download|arquivo|visualiz|di[aá]rio|edi[cç]/i.test(h) || /edi[cç][aã]o|di[aá]rio oficial|baixar|download/i.test(t)));
       const forms = await pg.$$eval('form', fs => fs.map(f => ({ action: f.action, method: f.method, campos: [...f.elements].map(e => e.name + '=' + (e.value || '').slice(0, 20)).slice(0, 15) })));
-      console.log(JSON.stringify({ n, url, final: pg.url(), pdfs: pdfs.slice(0, 40), forms: forms.slice(0, 4), xhr: xhr.slice(0, 8) }));
+      const texto = (await pg.innerText('body').catch(() => '')).replace(/\s+/g, ' ').slice(0, 1500);
+      const cliques = await pg.$$eval('[onclick],button,input[type=submit],a[id*=":"]', es => es.map(e => (e.tagName + '#' + (e.id || '') + ' ' + (e.textContent || e.value || '').replace(/\s+/g, ' ').trim().slice(0, 40) + ' ' + (e.getAttribute('onclick') || '').slice(0, 160))).slice(0, 25));
+      console.log(JSON.stringify({ n, url, final: pg.url(), npdfs: pdfs.length, pdfs: pdfs.slice(0, 40), forms: forms.slice(0, 4), xhr: xhr.slice(0, 8), texto, cliques }));
     } catch (e) { console.log(JSON.stringify({ n, url, erro: String(e.message).split('\n')[0].slice(0, 150) })); }
     await pg.close();
   }
