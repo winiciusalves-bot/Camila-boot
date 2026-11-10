@@ -137,3 +137,26 @@ class RjArraialProprioSpider(_Base):
         if mais_antiga and mais_antiga >= self.start_date and pagina < 60 and primeiro and primeiro != anterior:
             yield scrapy.Request(f'{self.BASE}/diariooficial?page={pagina + 1}', dont_filter=True,
                                  cb_kwargs=dict(pagina=pagina + 1, anterior=primeiro))
+
+
+# ---- 10/11/2026: endereços achados pela sondagem por navegador (navegador-diarios.yml) ----
+# Mesmo sistema "jornal.php" (aDiários layout 2) que Cordeiro e Quissamã já usam: só configuração.
+from gazette.spiders.base.adiarios_v2 import BaseAdiariosV2Spider
+
+
+class RjBuziosJornalSpider(BaseAdiariosV2Spider):
+    """Búzios: o site novo da prefeitura aponta o Diário Oficial para transparencia.buzios.rj.gov.br/jornal.php."""
+    name = 'rj_armacao_dos_buzios_v3'
+    TERRITORY_ID = '3300233'
+    allowed_domains = ['buzios.rj.gov.br']
+    BASE_URL = 'https://transparencia.buzios.rj.gov.br'
+    start_date = date(2017, 1, 1)
+
+
+class RjSeropedicaJornalSpider(BaseAdiariosV2Spider):
+    """Seropédica (não tinha robô): transparencia.seropedica.rj.gov.br/jornal.php."""
+    name = 'rj_seropedica'
+    TERRITORY_ID = '3305554'
+    allowed_domains = ['seropedica.rj.gov.br']
+    BASE_URL = 'https://transparencia.seropedica.rj.gov.br'
+    start_date = date(2017, 1, 1)
