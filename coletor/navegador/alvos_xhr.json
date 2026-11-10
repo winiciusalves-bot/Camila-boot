@@ -1,16 +1,10 @@
 {
- "itaborai": "https://site.ib.itaborai.rj.gov.br/diario-oficial",
- "rio_das_ostras": "https://www.riodasostras.rj.gov.br/jornal-oficial/",
- "paracambi": "https://paracambi.rj.gov.br/diario-oficial-eletronico-2026/",
+ "bom_jardim": "https://diariooficial.bomjardim.rj.gov.br/",
  "paty_do_alferes": "https://patydoalferes.rj.gov.br/diario-oficial/",
- "duque_de_caxias": "https://transparencia.duquedecaxias.rj.gov.br/diario_oficial_busca.php",
- "miguel_pereira": "https://transparencia.miguelpereira.rj.gov.br/?serv=113",
- "barra_do_pirai": "https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico",
- "paraiba_do_sul": "https://paraibadosul.rj.gov.br/page/3e364d6c-e018-47c3-aa46-db0c771424f6/diario-oficial",
- "volta_redonda": "https://www.voltaredonda.rj.gov.br/diario-oficial/",
- "araruama": "https://www.araruama.rj.gov.br/publicacoes/diario-oficial",
+ "japeri": "https://japeri.geosiap.net.br/portal-transparencia/publicacoes?id_publicacao_tipo=7",
+ "miracema": "https://miracema.rj.gov.br/transparencia/index.php?view=menu&menu=17",
+ "paraty": "https://www.paraty.rj.gov.br/servicos/dom-diario-oficial-do-municipio",
  "itatiaia": "https://itatiaia.rj.gov.br/diariooficial-2",
- "natividade": "https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1",
- "marica_jom": "https://www.marica.rj.gov.br/jornal-oficial-marica/",
- "nilopolis_voz": "https://vozdosmunicipios.com.br/atos-oficiais/"
+ "porto_real": "https://portoreal.rj.gov.br/",
+ "tangua": "https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?exercicio=2026"
 }

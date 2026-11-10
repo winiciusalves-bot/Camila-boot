@@ -211,9 +211,9 @@ class _ListaPdfSpider(_Base):
         vistos = set()
         for a in response.css('a[href]'):
             href = a.attrib.get('href', '')
-            if not re.search(r'\.pdf($|\?)|download|arquivo|visualizar', href, re.I):
-                continue
             txt = ' '.join(a.css('::text').getall())
+            if not (re.search(r'\.pdf($|\?)|download|arquivo|visualizar|documento', href, re.I) or re.search(r'\.pdf\b', txt, re.I)):
+                continue
             viz = ' '.join(a.xpath('ancestor::*[position()<=3]//text()').getall())[:400]
             d = achar_data(txt) or achar_data(href) or achar_data(viz)
             url = response.urljoin(href)
@@ -243,7 +243,7 @@ RjItatiaiaLista = _lista('itatiaia', '3302254', ['https://itatiaia.rj.gov.br/dia
 RjItaperunaLista = _lista('itaperuna', '3302205', ['https://itaperuna.rj.gov.br/pmi/jornal-oficial-2022'])
 RjNilopolisLista = _lista('nilopolis', '3303203', ['https://nilopolis.rj.gov.br/diario-oficial-online/', 'https://nilopolis.rj.gov.br/diario-oficial-extra-online/'])
 RjParacambiLista = _lista('paracambi', '3303609', ['https://paracambi.rj.gov.br/diario-oficial-eletronico-2026/'])
-RjPatyLista = _lista('paty_do_alferes', '3303856', ['https://patydoalferes.rj.gov.br/diario-oficial/'])
+# RjPatyLista = _lista('paty_do_alferes', '3303856', ['https://patydoalferes.rj.gov.br/diario-oficial/'])
 RjSaoFidelisLista = _lista('sao_fidelis', '3304805', ['https://saofidelis.rj.gov.br/diario-oficial-eletronico/', 'https://saofidelis.rj.gov.br/diariooficial'])
 RjTrajanoLista = _lista('trajano_de_moraes', '3305901', ['https://www.trajanodemoraes.rj.gov.br/diario-oficial'])
 RjNatividadeLista = _lista('natividade', '3303104', ['https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1'])
@@ -343,3 +343,65 @@ class RjParaibaDoSulDriveSpider(_Base):
 # Nilópolis: o site da prefeitura aponta "Edição Impressa" para vozdosmunicipios.com.br/atos-oficiais/, onde cada
 # edição é .../atos-oficiais/AAAA/<Mês>/DD-MM-AAAA/prefeitura.pdf (também câmara e Previnil, o instituto de previdência).
 RjNilopolisVozLista = _lista('nilopolis_v2', '3303203', ['https://vozdosmunicipios.com.br/atos-oficiais/'])
+
+
+# ---- Rodada 3 (10/11/2026 tarde): achados pela varredura com navegador dos municípios sem coleta ----
+RjSaoGoncaloLista = _lista('sao_goncalo', '3304904', ['https://do.pmsg.rj.gov.br/'])
+# 0 edições no teste de 10/11 (lista montada por JS) — RjSaoJoseDeUbaLista = _lista('sao_jose_de_uba', '3305133', ['https://saojosedeuba.rj.gov.br/site/diarios_oficiais'])
+RjRioClaroLista = _lista('rio_claro', '3304409', ['https://rioclaro-rj.portaltp.com.br/consultas/documentos.aspx?id=492'])
+
+
+class RjCarmoGesdomSpider(_Base):
+    """Carmo: a página do Diário (transparencia.carmo.rj.gov.br/diario) lê gesdom_api.php?acao=edicoes, um JSON público
+    com EDICAO, DATA_EDICAO e ARQUIVO_ASSINADO; o PDF fica em gesdom.carmo.rj.gov.br/_lib/file/doc/pdf/<arquivo>."""
+    name = 'rj_carmo'
+    TERRITORY_ID = '3301207'
+    allowed_domains = ['carmo.rj.gov.br']
+    start_date = date(2021, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        yield scrapy.Request('https://transparencia.carmo.rj.gov.br/gesdom_api.php?acao=edicoes', callback=self.parse_api)
+
+    def parse_api(self, response):
+        from urllib.parse import quote
+        for j in _json.loads(response.text):
+            try:
+                d = date.fromisoformat(str(j.get('DATA_EDICAO', ''))[:10])
+            except ValueError:
+                continue
+            arq = j.get('ARQUIVO_ASSINADO') or ''
+            if not self.dentro(d) or not arq:
+                continue
+            yield Gazette(date=d, edition_number=str(j.get('EDICAO') or ''), is_extra_edition=bool(re.search(r'extra|suplement', arq, re.I)),
+                          file_urls=['https://gesdom.carmo.rj.gov.br/_lib/file/doc/pdf/' + quote(arq)], power='executive')
+
+
+class RjPatyAjaxSpider(_Base):
+    """Paty do Alferes: a página do Diário Oficial pergunta ao WordPress (admin-ajax.php, ação pública
+    pdo_get_versions_by_date) as edições de cada dia; a resposta traz número e link do PDF."""
+    name = 'rj_paty_do_alferes'
+    TERRITORY_ID = '3303856'
+    allowed_domains = ['patydoalferes.rj.gov.br']
+    start_date = date(2020, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        from datetime import timedelta
+        d = self.end_date
+        while d >= self.start_date:
+            if d.weekday() < 6:
+                yield scrapy.FormRequest('https://patydoalferes.rj.gov.br/wp-admin/admin-ajax.php',
+                                         formdata={'action': 'pdo_get_versions_by_date', 'date': d.isoformat()},
+                                         callback=self.parse_dia, cb_kwargs={'d': d}, dont_filter=True)
+            d -= timedelta(days=1)
+
+    def parse_dia(self, response, d):
+        try:
+            j = _json.loads(response.text)
+        except ValueError:
+            return
+        for v in ((j.get('data') or {}).get('versions') or []):
+            if v.get('url'):
+                yield Gazette(date=d, edition_number=str(v.get('edicao') or ''), is_extra_edition=bool(re.search(r'extra|suplement', (v.get('titulo') or '') + (v.get('desc') or ''), re.I)),
+                              file_urls=[v['url']], power='executive')

@@ -11,8 +11,8 @@ const LIXO = /google|clarity|userway|facebook|twitter|allorigins|cdn-cgi|popular
     pg.on('response', async r => {
       const q = r.request();
       if (!['xhr', 'fetch'].includes(q.resourceType()) || LIXO.test(q.url())) return;
-      let corpo = ''; try { corpo = (await r.text()).slice(0, 1500); } catch (e) {}
-      xhr.push({ m: q.method(), u: q.url().slice(0, 300), enviado: (q.postData() || '').slice(0, 400), st: r.status(), resp: corpo });
+      let corpo = ''; try { corpo = (await r.text()).slice(0, 2500); } catch (e) {}
+      xhr.push({ m: q.method(), u: q.url().slice(0, 300), enviado: (q.postData() || '').slice(0, 900), st: r.status(), resp: corpo });
     });
     try {
       await pg.goto(url, { timeout: 60000, waitUntil: 'networkidle' }).catch(() => null);
