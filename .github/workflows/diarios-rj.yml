@@ -61,6 +61,16 @@ jobs:
           # Aqui eles acessam o site direto; se o site recusar, a falha fica registrada (sem contornar).
           sed -i 's/zyte_smartproxy_enabled = True/zyte_smartproxy_enabled = False/' qd/querido_diario_raspadores/gazette/spiders/rj/*.py
           cd qd/querido_diario_raspadores && uv sync -q
+      - name: Listas que só abrem com navegador (portais Betha)
+        env:
+          INICIO: ${{ matrix.bloco.ini }}
+          FIM: ${{ matrix.bloco.fim }}
+          SO: ${{ github.event.inputs.so || '' }}
+        run: |
+          # Só a página pública, como visitante; se falhar, o robô registra que a lista não existe.
+          if echo rj_rio_das_flores_betha | grep -qE "${SO:-.}"; then
+            npm i --no-save playwright@1.48.2 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1 && timeout 900 node coletor/navegador/betha.js || echo "Betha: falhou (registrado, sem contornar)"
+          fi
       - name: Baixar diários (32 municípios do RJ + AEMERJ; Rio fica com o notebook)
         working-directory: qd/querido_diario_raspadores
         env:

@@ -2,8 +2,8 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'tangua', url: 'https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1', clicar: ['#j_idt62_button', 'a:has-text("Diário oficial") >> visible=true'] },
-  { n: 'betha', url: 'https://transparencia.betha.cloud/#/6pate64yBjikfhmXWCPx0Q==/consulta/5384', clicar: ['text=Ver arquivos >> nth=0'] },
+  { n: 'tangua', url: 'https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1', clicar: ['#j_idt62_button', 'a:has-text("Diário oficial") >> visible=true', 'label:has-text("Selecione") >> visible=true', 'li:has-text("Diário Oficial") >> visible=true', 'button:has-text("Pesquisar") >> visible=true'] },
+  // { n: 'betha', url: 'https://transparencia.betha.cloud/#/6pate64yBjikfhmXWCPx0Q==/consulta/5384', clicar: ['text=Ver arquivos >> nth=0'] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
