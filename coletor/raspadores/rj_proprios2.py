@@ -194,3 +194,26 @@ class RjTribunaMunicipiosWpSpider(_WpMediaSpider):
     start_date = date(2024, 1, 1)
     BASE = 'https://tribunadosmunicipios.com.br'
     RX_ARQ = re.compile(r'^(edicao-digit|tribuna-\d)', re.I)
+
+
+class RjItatiaiaWpSpider(_WpMediaSpider):
+    """Itatiaia: o site (WordPress) publica o 'Diario-Regular-Ed.-<N>-Ano-<A>.pdf' como mídia (achado em 10/11/2026)."""
+    name = 'rj_itatiaia_v2'
+    TERRITORY_ID = '3302254'
+    allowed_domains = ['itatiaia.rj.gov.br']
+    start_date = date(2019, 1, 1)
+    BASE = 'https://itatiaia.rj.gov.br'
+    BUSCA = 'diario'
+    RX_ARQ = re.compile(r'^Diario[-_ ](Regular|Extra|Oficial)', re.I)
+
+
+class RjGuapimirimWpSpider(_WpMediaSpider):
+    """Guapimirim: PDFs 'Diario-<N>.pdf' em wp-content/uploads (achados por busca em 10/11/2026). Se o site recusar
+    a API (o servidor tem Mod_Security), a falha fica no log e o município vai para a coleta pelo PC."""
+    name = 'rj_guapimirim'
+    TERRITORY_ID = '3301850'
+    allowed_domains = ['guapimirim.rj.gov.br']
+    start_date = date(2019, 1, 1)
+    BASE = 'https://guapimirim.rj.gov.br'
+    BUSCA = 'diario'
+    RX_ARQ = re.compile(r'^Diario[-_ ]?\d+', re.I)
