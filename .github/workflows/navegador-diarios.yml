@@ -65,5 +65,5 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -I coletor/sondar_urls.py
+      - run: python3 -I coletor/sondar2.py
       # - run: python3 -I coletor/sondar_cabofrio.py  (10/11: todos os ids passam por captcha; não contornar)
