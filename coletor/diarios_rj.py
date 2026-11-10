@@ -228,9 +228,15 @@ def main():
                 txt = subprocess.run(['pdftotext', '-q', pdf, '-']   # sem -layout: -layout mistura colunas vizinhas (falso positivo em 09/11)
                                  , capture_output=True, timeout=120).stdout.decode('utf-8', 'ignore')
             except Exception: txt = ''
-            if not txt.strip():
+            # Texto quase vazio também vai para OCR: PDF feito no CorelDRAW (Paty, 10/11/2026) tem o texto virado desenho
+            # e só ~450 letras por página saem no pdftotext (assinaturas/carimbos), sem nenhum ato.
+            paginas = txt.count('\f') or 1
+            pouco_texto = len(re.findall(r'[A-Za-zÀ-ú]', txt)) < 600 * paginas
+            if not txt.strip() or pouco_texto:
                 if t_ocr / 60 < OCR_MAX_MIN:
-                    t1 = time.time(); txt, lidas, tot = ocr(pdf); t_ocr += time.time() - t1
+                    t_pdf = txt; t1 = time.time(); txt, lidas, tot = ocr(pdf)
+                    t_ocr += time.time() - t1
+                    if len(txt) < len(t_pdf): txt = t_pdf   # OCR não melhorou: fica o texto do PDF
                     if txt.strip(): r['ocr'] += 1
                     log(f"OCR {ed['municipio']} {ed['data']}: {lidas} de {tot} página(s) lidas"
                         + (f' (limite de {OCR_MAX_PAG})' if tot > lidas else '') + f', {len(txt.strip())} caracteres')
