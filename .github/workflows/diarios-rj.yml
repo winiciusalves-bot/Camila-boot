@@ -6,16 +6,45 @@ on:
   workflow_dispatch:
     inputs:
       dias:
-        description: 'Quantos dias para trás'
+        description: 'Quantos dias para trás (rodada normal)'
         default: '7'
+      meses:
+        description: 'Histórico: quantos blocos de 30 dias para trás (ex.: 12 = 1 ano). Vazio = rodada normal'
+        default: ''
   schedule:
     - cron: '0 11 * * 1-5'  # 1ª rotina do dia útil: 08:00 (Brasília). sempre olha 5 dias para trás
 permissions:
   contents: read
 jobs:
-  diarios:
+  plano:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    outputs:
+      blocos: ${{ steps.p.outputs.blocos }}
+    steps:
+      - id: p
+        env:
+          DIAS: ${{ github.event.inputs.dias || '5' }}
+          MESES: ${{ github.event.inputs.meses || '' }}
+        run: |
+          # rodada normal: 1 bloco (hoje - DIAS até hoje). Histórico: blocos de 30 dias, do mais novo ao mais antigo
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime as dt, json, os
+          hoje = dt.date.today(); m = os.environ['MESES'].strip()
+          if m:
+              b = [{'ini': str(hoje - dt.timedelta(days=30 * (i + 1) - 1)), 'fim': str(hoje - dt.timedelta(days=30 * i))} for i in range(int(m))]
+          else:
+              b = [{'ini': str(hoje - dt.timedelta(days=int(os.environ['DIAS']))), 'fim': str(hoje)}]
+          print('blocos=' + json.dumps(b))
+          PY
+  diarios:
+    needs: plano
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 1   # um bloco por vez: não sobrecarrega os sites das prefeituras
+      matrix:
+        bloco: ${{ fromJSON(needs.plano.outputs.blocos) }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -32,22 +61,23 @@ jobs:
       - name: Baixar diários (32 municípios do RJ + AEMERJ; Rio fica com o notebook)
         working-directory: qd/querido_diario_raspadores
         env:
-          DIAS: ${{ github.event.inputs.dias || '5' }}   # rotina: 5 dias para trás (cobre fim de semana, feriado e ponto facultativo, inclusive carnaval); repetição não duplica
+          INICIO: ${{ matrix.bloco.ini }}   # rotina: 5 dias para trás (cobre fim de semana, feriado e ponto facultativo, inclusive carnaval); repetição não duplica
+          FIM: ${{ matrix.bloco.fim }}
+          LIMITE: ${{ github.event.inputs.meses && '2400' || '1200' }}   # segundos por raspador: 20 min na rotina, 40 min num bloco de 30 dias
         run: |
-          INICIO=$(date -d "-${DIAS} days" +%F)
           mkdir -p "$GITHUB_WORKSPACE/out" "$GITHUB_WORKSPACE/logs" "$GITHUB_WORKSPACE/db"
           # Rio (DOWeb) sai daqui: o notebook baixa o DO Rio de IP do Brasil (plano único 09/11); o GitHub é recusado
           uv run scrapy list | grep '^rj_' | grep -v '^rj_rio_de_janeiro$' > rj.txt
-          echo "$(wc -l < rj.txt) raspadores do RJ, desde $INICIO"
-          # 6 por vez; cada um tem até 20 min. Bloqueio/captcha = falha registrada, nunca contornada.
-          cat rj.txt | xargs -P 6 -I{} sh -c 'QUERIDODIARIO_DATABASE_URL=sqlite:///$GITHUB_WORKSPACE/db/{}.db timeout 1200 uv run scrapy crawl {} -a start='"$INICIO"' -s SPIDERMON_ENABLED=False -s LOG_LEVEL=INFO -s LOG_FILE=$GITHUB_WORKSPACE/logs/{}.log -s FILES_STORE=$GITHUB_WORKSPACE/pdf -O $GITHUB_WORKSPACE/out/{}.jsonl; echo "{}: fim (código $?)"' || true
+          echo "$(wc -l < rj.txt) raspadores do RJ, de $INICIO a $FIM"
+          # 6 por vez; cada um tem até $LIMITE s. Bloqueio/captcha = falha registrada, nunca contornada.
+          cat rj.txt | xargs -P 6 -I{} sh -c 'QUERIDODIARIO_DATABASE_URL=sqlite:///$GITHUB_WORKSPACE/db/{}.db timeout $LIMITE uv run scrapy crawl {} -a start='"$INICIO"' -a end='"$FIM"' -s SPIDERMON_ENABLED=False -s LOG_LEVEL=INFO -s LOG_FILE=$GITHUB_WORKSPACE/logs/{}.log -s FILES_STORE=$GITHUB_WORKSPACE/pdf -O $GITHUB_WORKSPACE/out/{}.jsonl; echo "{}: fim (código $?)"' || true
           true
       - name: Ler os PDFs e procurar empresas e termos ambientais
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           FILES_STORE: ${{ github.workspace }}/pdf
-          DIAS: ${{ github.event.inputs.dias || '5' }}
+          DIAS: ${{ matrix.bloco.ini }} a ${{ matrix.bloco.fim }}
         run: |
           python3 -I coletor/diarios_rj.py out relatorio
           for f in logs/*.log; do n=$(basename $f .log); e=$(grep -c ' ERROR: ' $f || true); echo "$n;$e erros" ; done > relatorio/erros_por_raspador.txt
@@ -61,7 +91,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: diarios-rj-relatorio
+          name: diarios-rj-relatorio-${{ matrix.bloco.ini }}
           path: |
             relatorio/
             logs/
