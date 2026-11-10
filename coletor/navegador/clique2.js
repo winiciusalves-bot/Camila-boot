@@ -2,11 +2,8 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'tangua', url: 'https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1', clicar: ['text=- Diário oficial'] },
-  { n: 'betha', url: 'https://transparencia.betha.cloud/#/6pate64yBjikfhmXWCPx0Q==/consulta/5384', clicar: [] },
-  { n: 'mage_bio', url: 'https://mage.rj.gov.br/bio/', clicar: [] },
-  { n: 'mage_bioextra', url: 'https://mage.rj.gov.br/bioextra/', clicar: [] },
-  { n: 'mage_biosantigos', url: 'https://mage.rj.gov.br/biosantigos', clicar: [] },
+  { n: 'tangua', url: 'https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1', clicar: ['#j_idt62_button', 'a:has-text("Diário oficial") >> visible=true'] },
+  { n: 'betha', url: 'https://transparencia.betha.cloud/#/6pate64yBjikfhmXWCPx0Q==/consulta/5384', clicar: ['text=Ver arquivos >> nth=0'] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
@@ -29,8 +26,8 @@ async function foto(pg) {
     pg.on('response', async r => {
       const q = r.request();
       if (!['xhr', 'fetch'].includes(q.resourceType()) || LIXO.test(q.url())) return;
-      let c = ''; try { c = (await r.text()).slice(0, 2000); } catch (e) {}
-      xhr.push({ m: q.method(), u: q.url().slice(0, 300), env: (q.postData() || '').slice(0, 600), st: r.status(), resp: c });
+      let c = ''; try { c = (await r.text()).slice(0, 6000); } catch (e) {}
+      const h = q.headers(); xhr.push({ m: q.method(), u: q.url().slice(0, 300), env: (q.postData() || '').slice(0, 600), st: r.status(), cab: Object.fromEntries(Object.entries(h).filter(([k]) => !/user-agent|accept-lang|sec-|referer|accept-enc/.test(k))), resp: c });
     });
     await pg.goto(a.url, { timeout: 60000, waitUntil: 'load' }).catch(e => console.log(a.n, 'goto', String(e.message).slice(0, 100)));
     await pg.waitForTimeout(6000);
