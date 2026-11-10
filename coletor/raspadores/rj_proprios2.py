@@ -24,7 +24,7 @@ class _Base2(BaseGazetteSpider):
 
 
 class RjDuqueDeCaxiasApiSpider(_Base2):
-    """Duque de Caxias: a página diario_oficial_busca.php lê uma lista JSON por mês (POST mesano=MM/AAAA) e
+    """Duque de Caxias: a página diario_oficial_busca.php lê uma lista JSON por mês (POST mesano=M/AAAA, mês SEM zero à esquerda: "05/2026" volta vazio) e
     o PDF sai em diario_oficial_get_anexo.php?codigo=<Codigo_ANEXO>. Conferido em 10/11/2026."""
     name = 'rj_duque_de_caxias_v3'
     TERRITORY_ID = '3301702'
@@ -34,7 +34,7 @@ class RjDuqueDeCaxiasApiSpider(_Base2):
 
     async def start(self):
         for a, m in self.meses():
-            yield scrapy.FormRequest(f'{self.BASE}/diario_oficial_get.php', formdata={'mesano': f'{m:02d}/{a}', 'pagina': '1'},
+            yield scrapy.FormRequest(f'{self.BASE}/diario_oficial_get.php', formdata={'mesano': f'{m}/{a}', 'pagina': '1'},
                                      callback=self.parse_mes, dont_filter=True)
 
     def parse_mes(self, response):
