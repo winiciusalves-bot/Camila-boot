@@ -243,7 +243,7 @@ RjItatiaiaLista = _lista('itatiaia', '3302254', ['https://itatiaia.rj.gov.br/dia
 RjItaperunaLista = _lista('itaperuna', '3302205', ['https://itaperuna.rj.gov.br/pmi/jornal-oficial-2022'])
 RjNilopolisLista = _lista('nilopolis', '3303203', ['https://nilopolis.rj.gov.br/diario-oficial-online/', 'https://nilopolis.rj.gov.br/diario-oficial-extra-online/'])
 RjParacambiLista = _lista('paracambi', '3303609', ['https://paracambi.rj.gov.br/diario-oficial-eletronico-2026/'])
-RjPatyLista = _lista('paty_do_alferes', '3303856', ['https://patydoalferes.rj.gov.br/diario-oficial/'])
+# RjPatyLista = _lista('paty_do_alferes', '3303856', ['https://patydoalferes.rj.gov.br/diario-oficial/'])
 RjSaoFidelisLista = _lista('sao_fidelis', '3304805', ['https://saofidelis.rj.gov.br/diario-oficial-eletronico/', 'https://saofidelis.rj.gov.br/diariooficial'])
 RjTrajanoLista = _lista('trajano_de_moraes', '3305901', ['https://www.trajanodemoraes.rj.gov.br/diario-oficial'])
 RjNatividadeLista = _lista('natividade', '3303104', ['https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1'])
@@ -375,3 +375,33 @@ class RjCarmoGesdomSpider(_Base):
                 continue
             yield Gazette(date=d, edition_number=str(j.get('EDICAO') or ''), is_extra_edition=bool(re.search(r'extra|suplement', arq, re.I)),
                           file_urls=['https://gesdom.carmo.rj.gov.br/_lib/file/doc/pdf/' + quote(arq)], power='executive')
+
+
+class RjPatyAjaxSpider(_Base):
+    """Paty do Alferes: a página do Diário Oficial pergunta ao WordPress (admin-ajax.php, ação pública
+    pdo_get_versions_by_date) as edições de cada dia; a resposta traz número e link do PDF."""
+    name = 'rj_paty_do_alferes'
+    TERRITORY_ID = '3303856'
+    allowed_domains = ['patydoalferes.rj.gov.br']
+    start_date = date(2020, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        from datetime import timedelta
+        d = self.end_date
+        while d >= self.start_date:
+            if d.weekday() < 6:
+                yield scrapy.FormRequest('https://patydoalferes.rj.gov.br/wp-admin/admin-ajax.php',
+                                         formdata={'action': 'pdo_get_versions_by_date', 'date': d.isoformat()},
+                                         callback=self.parse_dia, cb_kwargs={'d': d}, dont_filter=True)
+            d -= timedelta(days=1)
+
+    def parse_dia(self, response, d):
+        try:
+            j = _json.loads(response.text)
+        except ValueError:
+            return
+        for v in ((j.get('data') or {}).get('versions') or []):
+            if v.get('url'):
+                yield Gazette(date=d, edition_number=str(v.get('edicao') or ''), is_extra_edition=bool(re.search(r'extra|suplement', (v.get('titulo') or '') + (v.get('desc') or ''), re.I)),
+                              file_urls=[v['url']], power='executive')
