@@ -347,7 +347,7 @@ RjNilopolisVozLista = _lista('nilopolis_v2', '3303203', ['https://vozdosmunicipi
 
 # ---- Rodada 3 (10/11/2026 tarde): achados pela varredura com navegador dos municípios sem coleta ----
 RjSaoGoncaloLista = _lista('sao_goncalo', '3304904', ['https://do.pmsg.rj.gov.br/'])
-RjSaoJoseDeUbaLista = _lista('sao_jose_de_uba', '3305133', ['https://saojosedeuba.rj.gov.br/site/diarios_oficiais'])
+# 0 edições no teste de 10/11 (lista montada por JS) — RjSaoJoseDeUbaLista = _lista('sao_jose_de_uba', '3305133', ['https://saojosedeuba.rj.gov.br/site/diarios_oficiais'])
 RjRioClaroLista = _lista('rio_claro', '3304409', ['https://rioclaro-rj.portaltp.com.br/consultas/documentos.aspx?id=492'])
 
 
