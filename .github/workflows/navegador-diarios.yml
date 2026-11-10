@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       qual:
-        description: 'sondar | fontes | links | achar'
+        description: 'sondar | fontes | links | achar | urls'
         default: 'links'
 permissions:
   contents: read
@@ -59,3 +59,10 @@ jobs:
           npm i --no-save playwright@1.48.2 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
           node coletor/navegador/achar.js | tee achar.jsonl
+  urls:
+    if: inputs.qual == 'urls'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I coletor/sondar_urls.py
