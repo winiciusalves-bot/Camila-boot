@@ -13,7 +13,7 @@ import hashlib, json, os, re, urllib.request
 
 FONTE = 'QUERIDO_DIARIO'
 PROJETO = 'Ambiental Costa (Camila-boot)'
-_CPF_FMT = re.compile(r'(?<![0-9])(\d{3})\.(\d{3})\.(\d{3})-(\d{2})(?![0-9])')
+_CPF_FMT = re.compile(r'(?<![0-9])(\d{3})\.(\d{3})\.(\d{3})[-.](\d{2})(?![0-9])')
 _CPF_11 = re.compile(r'(?<![0-9./-])(\d{3})(\d{3})(\d{3})(\d{2})(?![0-9])')
 
 

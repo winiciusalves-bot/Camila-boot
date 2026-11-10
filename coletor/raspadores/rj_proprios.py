@@ -405,3 +405,36 @@ class RjPatyAjaxSpider(_Base):
             if v.get('url'):
                 yield Gazette(date=d, edition_number=str(v.get('edicao') or ''), is_extra_edition=bool(re.search(r'extra|suplement', (v.get('titulo') or '') + (v.get('desc') or ''), re.I)),
                               file_urls=[v['url']], power='executive')
+
+
+class _BethaSpider(_Base):
+    """Portal Betha: a lista (com links de PDF assinados por 24 h) é montada antes pelo coletor/navegador/betha.js,
+    que abre a página pública como visitante. Aqui só lemos listas/betha_<NOME>.json e baixamos os PDFs."""
+    NOME = ''
+    allowed_domains = ['amazonaws.com', 'betha.cloud']
+    start_date = date(2010, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+
+    async def start(self):
+        import json, os
+        arq = os.path.join(os.environ.get('GITHUB_WORKSPACE', '.'), 'listas', f'betha_{self.NOME}.json')
+        if not os.path.exists(arq):
+            self.logger.error(f'lista {arq} não existe (o passo do navegador não rodou ou falhou)')
+            return
+        for it in json.load(open(arq)):
+            d = date.fromisoformat(it['data'])
+            if self.dentro(d) and it['urls']:
+                yield Gazette(date=d, edition_number=it.get('edicao', ''), is_extra_edition=bool(it.get('extra')),
+                              file_urls=it['urls'], power='executive')
+        if False:
+            yield
+
+
+# Desligado em 10/11/2026: o login anônimo do portal Betha responde 403 ao navegador do GitHub (bloqueio; não contornar).
+# Religar se rodar do Dell. 
+_RjRioDasFloresBetha = None
+class _RjRioDasFloresBethaSpider(_BethaSpider):
+    """Rio das Flores: Boletim Municipal no portal Betha (consulta 5384), 665 edições em 10/11/2026, sem captcha."""
+    nome_quando_religar = 'rj_rio_das_flores_betha'
+    TERRITORY_ID = '3304508'
+    NOME = 'rio_das_flores'

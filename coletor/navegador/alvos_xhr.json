@@ -1,10 +1,6 @@
 {
- "bom_jardim": "https://diariooficial.bomjardim.rj.gov.br/",
- "paty_do_alferes": "https://patydoalferes.rj.gov.br/diario-oficial/",
- "japeri": "https://japeri.geosiap.net.br/portal-transparencia/publicacoes?id_publicacao_tipo=7",
- "miracema": "https://miracema.rj.gov.br/transparencia/index.php?view=menu&menu=17",
- "paraty": "https://www.paraty.rj.gov.br/servicos/dom-diario-oficial-do-municipio",
- "itatiaia": "https://itatiaia.rj.gov.br/diariooficial-2",
- "porto_real": "https://portoreal.rj.gov.br/",
- "tangua": "https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?exercicio=2026"
+ "tangua": "https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1",
+ "mage_bio": "https://mage.rj.gov.br/bio/",
+ "mage_bioextra": "https://mage.rj.gov.br/bioextra/",
+ "mage_biosantigos": "https://mage.rj.gov.br/biosantigos"
 }

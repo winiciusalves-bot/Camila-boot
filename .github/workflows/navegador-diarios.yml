@@ -47,7 +47,7 @@ jobs:
           npm i --no-save playwright@1.48.2 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
           true
-          echo "===== XHR ====="; node coletor/navegador/xhr.js
+          echo "===== XHR ====="; node coletor/navegador/clique2.js
   achar:
     # municípios sem coleta: acha o diário a partir da página inicial da prefeitura
     if: inputs.qual == 'achar'
@@ -65,4 +65,5 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -I coletor/sondar_urls.py
+      - run: python3 -I coletor/sondar2.py
+      # - run: python3 -I coletor/sondar_cabofrio.py  (10/11: todos os ids passam por captcha; não contornar)

@@ -87,9 +87,11 @@ def dv_cpf(c):
         if (sum(c[i] * (n + 1 - i) for i in range(n)) * 10) % 11 % 10 != c[n]: return False
     return True
 
-CPF_RE = re.compile(r'(?<![\d./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?!\d|[./-]\d)')   # pega também CPF no fim de frase (seguido de ponto)
+CPF_RE = re.compile(r'(?<![\d./-])(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})(?!\d|[./-]\d)')   # pega também CPF no fim de frase e com ponto no lugar do traço (123.456.789.01, visto em Tanguá 10/11/2026)
+CPF_ROTULO = re.compile(r'(C\.?\s?P\.?\s?F\.?\s*(?:/MF)?\s*(?:n[ºo°.]*)?\s*[:-]?\s*)[\d.\s/-]{9,16}\d', re.I)   # depois de "CPF", mascara sempre (mesmo com dígito errado)
 def mascara(t):
-    return CPF_RE.sub(lambda m: '[CPF omitido]' if dv_cpf(''.join(m.groups())) else m.group(0), t or '').strip()
+    t = CPF_ROTULO.sub(lambda m: m.group(1) + '[CPF omitido]', t or '')
+    return CPF_RE.sub(lambda m: '[CPF omitido]' if dv_cpf(''.join(m.groups())) else m.group(0), t).strip()
 
 def fmt_cnpj(c):
     c = re.sub(r'\D', '', c); return f'{c[:2]}.{c[2:5]}.{c[5:8]}/{c[8:12]}-{c[12:]}'
