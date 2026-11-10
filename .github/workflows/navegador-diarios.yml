@@ -46,4 +46,5 @@ jobs:
       - run: |
           npm i --no-save playwright@1.48.2 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          node coletor/navegador/links.js | tee links.jsonl
+          true
+          echo "===== XHR ====="; node coletor/navegador/xhr.js
