@@ -1,15 +1,10 @@
-"""Reteste da API do Querido Diário (10/11/2026), do GitHub: handshake TLS, versão/cifra e uma consulta."""
-import ssl, socket, urllib.request, json
-for host in ['api.queridodiario.ok.org.br', 'queridodiario.ok.org.br', 'docs.queridodiario.ok.org.br']:
-    try:
-        with socket.create_connection((host, 443), timeout=20) as s:
-            with ssl.create_default_context().wrap_socket(s, server_hostname=host) as t:
-                print('TLS OK', host, t.version(), t.cipher()[0])
-    except Exception as e:
-        print('TLS FALHA', host, type(e).__name__, str(e)[:160])
-for u in ['https://api.queridodiario.ok.org.br/gazettes?territory_ids=3304557&size=1', 'https://queridodiario.ok.org.br/api/gazettes?territory_ids=3304557&size=1', 'https://api.queridodiario.ok.org.br/docs']:
-    try:
-        r = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=30)
-        print('HTTP', r.status, u, r.read(400).decode('utf-8', 'replace').replace('\n', ' '))
-    except Exception as e:
-        print('HTTP FALHA', u, type(e).__name__, str(e)[:160])
+"""Paty do Alferes (10/11/2026): 255 edições lidas e 0 atos. Ver se o texto extraído do PDF é legível."""
+import urllib.request, subprocess, re
+U = 'https://patydoalferes.rj.gov.br/wp-content/uploads/auto-publication/diario-oficial/2026/D.O.%204852%20-%2009.11.2026.pdf'
+b = urllib.request.urlopen(urllib.request.Request(U, headers={'User-Agent': 'Mozilla/5.0'}), timeout=60).read()
+open('/tmp/p.pdf', 'wb').write(b)
+print('bytes', len(b), b[:8])
+print(subprocess.run(['pdfinfo', '/tmp/p.pdf'], capture_output=True, text=True).stdout)
+t = subprocess.run(['pdftotext', '-q', '/tmp/p.pdf', '-'], capture_output=True).stdout.decode('utf-8', 'ignore')
+print('chars', len(t), 'letras', len(re.findall(r'[A-Za-zÀ-ú]', t)), 'cnpj', len(re.findall(r'\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}', t)))
+print(re.sub(r'\d', '#', re.sub(r'\s+', ' ', t))[:900])   # dígitos trocados por # (log é público)
