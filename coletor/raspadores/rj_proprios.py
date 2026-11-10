@@ -430,8 +430,11 @@ class _BethaSpider(_Base):
             yield
 
 
-class RjRioDasFloresBethaSpider(_BethaSpider):
+# Desligado em 10/11/2026: o login anônimo do portal Betha responde 403 ao navegador do GitHub (bloqueio; não contornar).
+# Religar se rodar do Dell. 
+_RjRioDasFloresBetha = None
+class _RjRioDasFloresBethaSpider(_BethaSpider):
     """Rio das Flores: Boletim Municipal no portal Betha (consulta 5384), 665 edições em 10/11/2026, sem captcha."""
-    name = 'rj_rio_das_flores_betha'
+    nome_quando_religar = 'rj_rio_das_flores_betha'
     TERRITORY_ID = '3304508'
     NOME = 'rio_das_flores'

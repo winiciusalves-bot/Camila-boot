@@ -69,7 +69,8 @@ jobs:
         run: |
           # Só a página pública, como visitante; se falhar, o robô registra que a lista não existe.
           npm i --no-save playwright@1.48.2 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1 || echo "navegador não instalou"
-          if echo rj_rio_das_flores_betha | grep -qE "${SO:-.}"; then timeout 900 node coletor/navegador/betha.js || echo "Betha: falhou (registrado, sem contornar)"; fi
+          # Betha (Rio das Flores) desligado em 10/11: o portal responde 403 ao navegador do GitHub. Religar do Dell.
+          if false; then timeout 900 node coletor/navegador/betha.js || echo "Betha: falhou (registrado, sem contornar)"; fi
           # Tanguá (Supernova/JSF): o PDF sai por formulário; o navegador baixa e grava out/rj_tangua.jsonl direto
           if echo rj_tangua | grep -qE "${SO:-.}"; then timeout 1500 node coletor/navegador/tangua.js || echo "Tanguá: falhou (registrado, sem contornar)"; fi
       - name: Baixar diários (32 municípios do RJ + AEMERJ; Rio fica com o notebook)
