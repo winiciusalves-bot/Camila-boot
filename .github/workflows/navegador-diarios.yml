@@ -14,3 +14,18 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null 2>&1
           node coletor/navegador/sondar.js | tee sondagem.jsonl
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat sondagem.jsonl >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+  fontes:
+    # PNCP + site da prefeitura + plataformas comuns, para os 92 municípios do RJ
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 -I coletor/sondar_fontes.py relatorio
+          cat relatorio/fontes_municipios.md >> "$GITHUB_STEP_SUMMARY"
+          echo "===== CSV ====="; cat relatorio/fontes_municipios.csv
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fontes-municipios
+          path: relatorio/
