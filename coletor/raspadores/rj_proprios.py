@@ -576,5 +576,15 @@ class RjSaoJoaoDaBarraListaSpider(_Base):
             except Exception: continue
             if self.dentro(d) and it.get('arquivo'):
                 yield Gazette(date=d, edition_number=f"{it.get('numero', '')}/{it.get('ano', '')}",
-                              is_extra_edition='extra' in (it.get('descricao') or '' + it['arquivo']).lower(),
+                              is_extra_edition='extra' in ((it.get('descricao') or '') + it['arquivo']).lower(),
                               file_urls=[f"{self.BASE}/arquivos/diario_oficial/{it['arquivo']}"], power='executive')
+
+
+class RjNovaFriburgoDioenetSpider(BaseDioenetSpider):
+    """Nova Friburgo: o site do diário (diario.novafriburgo) não abre de fora; as edições estão também na
+    plataforma Dioenet (plenussistemas.dioenet.com.br/list/nova-friburgo), achada pela sondagem de 10/11/2026."""
+    name = 'rj_nova_friburgo_dioenet'
+    TERRITORY_ID = '3303401'
+    start_date = date(2021, 1, 1)
+    BASE_URL = 'https://plenussistemas.dioenet.com.br/list/nova-friburgo'
+    power = 'executive'
