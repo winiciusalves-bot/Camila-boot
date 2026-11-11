@@ -466,3 +466,48 @@ class RjSaoFranciscoDeItabapoanaApiSpider(_Base):
                               file_urls=[f"{self.BASE}/api/v1/storage/sfi/final/{it['id']}.pdf"], power='executive')
         if itens and mais_velha and mais_velha >= self.start_date and pagina * 50 < (j.get('total') or 0):
             yield scrapy.Request(f'{self.BASE}/api/v1/tenant/sfi/edicoes?size=50&page={pagina + 1}', callback=self.parse_lista, cb_kwargs={'pagina': pagina + 1})
+
+
+class RjGuapimirimSeqSpider(_Base):
+    """Guapimirim: o Diário fica em guapimirim.rj.gov.br/wp-content/uploads/AAAA/MM/Diario-NNNN.pdf (número sequencial,
+    pasta do mês do envio). A página de lista não abre e a API do WordPress pede login (401), então seguimos o número:
+    para cada N testamos a pasta do mês atual e as 2 seguintes (HEAD); 25 números seguidos sem arquivo = fim.
+    Âncora (busca na web, 11/11/2026): nº 1756 em 2025/11 e nº 1903 em 2026/07 (~9 por mês).
+    DATA: é o Last-Modified do arquivo (dia do envio ao site), não lida do PDF. HIPÓTESE: coincide com a publicação."""
+    name = 'rj_guapimirim_seq'
+    TERRITORY_ID = '3301850'
+    allowed_domains = ['guapimirim.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+    URL = 'https://guapimirim.rj.gov.br/wp-content/uploads/{a:04d}/{m:02d}/Diario-{n}.pdf'
+
+    def _mes(self, a, m, k):
+        m += k
+        return (a + (m - 1) // 12, (m - 1) % 12 + 1)
+
+    async def start(self):
+        meses = (self.start_date.year - 2025) * 12 + self.start_date.month - 11
+        n = max(1000, int(1756 + 9.2 * meses) - 20)
+        a, m = self._mes(self.start_date.year, self.start_date.month, -1)
+        yield self._tenta(n, a, m, 0, 0)
+
+    def _tenta(self, n, a, m, k, faltas):
+        aa, mm = self._mes(a, m, k)
+        return scrapy.Request(self.URL.format(a=aa, m=mm, n=n), method='HEAD', callback=self.parse_head, dont_filter=True,
+                              meta={'handle_httpstatus_list': [403, 404]}, cb_kwargs=dict(n=n, a=a, m=m, k=k, faltas=faltas))
+
+    def parse_head(self, response, n, a, m, k, faltas):
+        if response.status == 200:
+            lm = response.headers.get('Last-Modified', b'').decode()
+            try: d = datetime.strptime(lm[5:16], '%d %b %Y').date()
+            except Exception: d = None
+            aa, mm = self._mes(a, m, k)
+            if d and self.dentro(d):
+                yield Gazette(date=d, edition_number=str(n), is_extra_edition=False, file_urls=[response.url], power='executive')
+            if d and d > self.end_date:
+                return
+            yield self._tenta(n + 1, aa, mm, 0, 0)
+        elif k < 2:
+            yield self._tenta(n, a, m, k + 1, faltas)
+        elif faltas < 25:
+            yield self._tenta(n + 1, a, m, 0, faltas + 1)
