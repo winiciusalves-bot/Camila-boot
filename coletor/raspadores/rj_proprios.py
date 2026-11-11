@@ -438,3 +438,78 @@ class _RjRioDasFloresBethaSpider(_BethaSpider):
     nome_quando_religar = 'rj_rio_das_flores_betha'
     TERRITORY_ID = '3304508'
     NOME = 'rio_das_flores'
+
+
+class RjSaoFranciscoDeItabapoanaApiSpider(_Base):
+    """São Francisco de Itabapoana: diário próprio (sfi.diariooficial.pmsfi.rj.gov.br) com API pública de leitura:
+    /api/v1/tenant/sfi/edicoes?size=&page= (id, numero_edicao, data_publicacao, tipo regular/suplemento);
+    PDF em /api/v1/storage/sfi/final/<id>.pdf. Achado em 11/11/2026 (busca na web + navegador)."""
+    name = 'rj_sao_francisco_de_itabapoana_api'
+    TERRITORY_ID = '3304755'
+    allowed_domains = ['sfi.diariooficial.pmsfi.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+    BASE = 'https://sfi.diariooficial.pmsfi.rj.gov.br'
+
+    async def start(self):
+        yield scrapy.Request(f'{self.BASE}/api/v1/tenant/sfi/edicoes?size=50&page=1', callback=self.parse_lista, cb_kwargs={'pagina': 1})
+
+    def parse_lista(self, response, pagina):
+        j = response.json(); itens = j.get('items') or []
+        mais_velha = None
+        for it in itens:
+            try: d = date.fromisoformat(it['data_publicacao'][:10])
+            except Exception: continue
+            mais_velha = d
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=str(it.get('numero_edicao', '')), is_extra_edition=it.get('tipo') != 'regular',
+                              file_urls=[f"{self.BASE}/api/v1/storage/sfi/final/{it['id']}.pdf"], power='executive')
+        if itens and mais_velha and mais_velha >= self.start_date and pagina * 50 < (j.get('total') or 0):
+            yield scrapy.Request(f'{self.BASE}/api/v1/tenant/sfi/edicoes?size=50&page={pagina + 1}', callback=self.parse_lista, cb_kwargs={'pagina': pagina + 1})
+
+
+class RjGuapimirimSeqSpider(_Base):
+    """Guapimirim: o Diário fica em guapimirim.rj.gov.br/wp-content/uploads/AAAA/MM/Diario-NNNN.pdf (número sequencial,
+    pasta do mês do envio). A página de lista não abre e a API do WordPress pede login (401), então seguimos o número:
+    para cada N testamos a pasta do mês atual e as vizinhas (±2 meses, HEAD); 40 números seguidos sem arquivo = fim.
+    Âncora (busca na web, 11/11/2026): nº 1756 em 2025/11 e nº 1903 em 2026/07 (~9 por mês).
+    DATA: é o Last-Modified do arquivo (dia do envio ao site), não lida do PDF. HIPÓTESE: coincide com a publicação."""
+    name = 'rj_guapimirim_seq'
+    TERRITORY_ID = '3301850'
+    allowed_domains = ['guapimirim.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+    URL = 'https://guapimirim.rj.gov.br/wp-content/uploads/{a:04d}/{m:02d}/Diario-{n}.pdf'
+
+    def _mes(self, a, m, k):
+        m += k
+        return (a + (m - 1) // 12, (m - 1) % 12 + 1)
+
+    async def start(self):
+        # ritmo visto: 1784 em 2026/01 e 1903 em 2026/07 (~20 por mês); 1756 em 2025/11
+        meses = (self.start_date.year - 2026) * 12 + self.start_date.month - 7
+        n = max(1000, int(1903 + 19.8 * meses) - 40)
+        yield self._tenta(n, self.start_date.year, self.start_date.month, 0, 0)
+
+    OFS = [0, 1, -1, 2, -2]   # pasta do mês: a atual, depois vizinhas
+
+    def _tenta(self, n, a, m, k, faltas):
+        aa, mm = self._mes(a, m, self.OFS[k])
+        return scrapy.Request(self.URL.format(a=aa, m=mm, n=n), method='HEAD', callback=self.parse_head, dont_filter=True,
+                              meta={'handle_httpstatus_list': [403, 404]}, cb_kwargs=dict(n=n, a=a, m=m, k=k, faltas=faltas))
+
+    def parse_head(self, response, n, a, m, k, faltas):
+        if response.status == 200:
+            lm = response.headers.get('Last-Modified', b'').decode()
+            try: d = datetime.strptime(lm[5:16], '%d %b %Y').date()
+            except Exception: d = None
+            aa, mm = self._mes(a, m, self.OFS[k])
+            if d and self.dentro(d):
+                yield Gazette(date=d, edition_number=str(n), is_extra_edition=False, file_urls=[response.url], power='executive')
+            if d and d > self.end_date:
+                return
+            yield self._tenta(n + 1, aa, mm, 0, 0)
+        elif k < len(self.OFS) - 1:
+            yield self._tenta(n, a, m, k + 1, faltas)
+        elif faltas < 40:
+            yield self._tenta(n + 1, a, m, 0, faltas + 1)

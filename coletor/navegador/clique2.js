@@ -2,8 +2,12 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'tangua', url: 'https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1', clicar: ['#j_idt62_button', 'a:has-text("Diário oficial") >> visible=true', 'label:has-text("Selecione") >> visible=true', 'li:has-text("Diário Oficial") >> visible=true', 'button:has-text("Pesquisar") >> visible=true'] },
-  // { n: 'betha', url: 'https://transparencia.betha.cloud/#/6pate64yBjikfhmXWCPx0Q==/consulta/5384', clicar: ['text=Ver arquivos >> nth=0'] },
+  { n: 'sjb', url: 'https://sjb.rj.gov.br/diario-oficial', clicar: [] },
+  { n: 'sfi', url: 'https://sfi.diariooficial.pmsfi.rj.gov.br/', clicar: [] },
+  { n: 'sfi2', url: 'https://pmsfi.rj.gov.br/servico/diario-oficial/', clicar: [] },
+  { n: 'guapimirim', url: 'https://guapimirim.rj.gov.br/?s=diario+oficial', clicar: [] },
+  { n: 'araruama', url: 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial', clicar: [] },
+  { n: 'campos', url: 'https://www.campos.rj.gov.br/diario-oficial.php', clicar: [] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
