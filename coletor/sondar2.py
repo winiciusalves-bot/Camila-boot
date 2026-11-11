@@ -10,11 +10,11 @@ def get(u):
         return 0, str(e)[:200]
 B = 'https://japeri.geosiap.net.br/portal-transparencia/'
 st, h = get(B + 'publicacoes?id_publicacao_tipo=7')
-for s in re.findall(r'src="([^"]+\.js)"', h):
-    st2, js = get(B + s.lstrip('/') if not s.startswith('http') else s)
-    for m in re.finditer(r'publicac', js):
-        print(json.dumps({'js': s, 'trecho': js[max(0, m.start() - 150): m.start() + 200]}, ensure_ascii=False))
-for u in ['http://www2.voltaredonda.rj.gov.br/vrdestaque/13-interno/94-vrdestaque/', 'https://www2.voltaredonda.rj.gov.br/vrdestaque/13-geral/94-vrdestaque']:
-    st, h = get(u)
-    print(json.dumps({'url': u, 'st': st, 'tam': len(h), 'links': list(dict.fromkeys(re.findall(r'href="([^"]+)"', h)))[:80],
-                      'texto': re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', h))[:1500]}, ensure_ascii=False))
+for s_ in re.findall(r'src="([^"]+\.js)"', h):
+    st2, js = get(B + s_.lstrip('/'))
+    for m in re.finditer(r'\b15:"([0-9a-f]{16,24})"', js):
+        for nome in ['15.' + m.group(1) + '.js', '15-es2015.' + m.group(1) + '.js', '15-es5.' + m.group(1) + '.js']:
+            st3, ch = get(B + nome)
+            print(json.dumps({'js': nome, 'trecho': 'st=%s tam=%s' % (st3, len(ch))}))
+            for k in re.finditer(r'download|arquivo|/api|window.open|\.pdf', ch):
+                print(json.dumps({'js': nome, 'trecho': ch[max(0, k.start() - 200): k.start() + 200]}, ensure_ascii=False))
