@@ -691,12 +691,12 @@ class RjNatividadeListaSpider(_Base):
                 yield response.follow(prox.replace('&amp;', '&'), callback=self.parse_lista)
 
 
-class RjSantaMariaMadalenaListaSpider(_Base):
+class _RjSantaMariaMadalenaListaSpider(_Base):   # DESLIGADO 11/11: o site exige o cookie 'pmsmm_humano' posto por JS (filtro de robô); não contornamos
     """Santa Maria Madalena: página /diario_oficial_eletronico lista as edições por mês com o PDF em
     /transparencia/publicacoes_oficiais/diario_oficial_eletronico/AAAA/mes/EDIÇÃO_-_354_-_..._-_23-10_A_31-10.pdf.
     A pasta em si dá 403 (não contornamos); só seguimos os links que a página mostra. Achado em 11/11/2026.
     DATA: o nome traz o período (ex.: 23-10 a 31-10); usamos o ÚLTIMO dia do período. HIPÓTESE: é o dia da publicação."""
-    name = 'rj_santa_maria_madalena_lista'
+    nome_quando_religar = 'rj_santa_maria_madalena_lista'
     TERRITORY_ID = '3304607'
     allowed_domains = ['www.pmsmm.rj.gov.br', 'pmsmm.rj.gov.br']
     start_date = date(2020, 5, 1)
