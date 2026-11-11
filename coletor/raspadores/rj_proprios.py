@@ -513,3 +513,44 @@ class RjGuapimirimSeqSpider(_Base):
             yield self._tenta(n, a, m, k + 1, faltas)
         elif faltas < 40:
             yield self._tenta(n + 1, a, m, 0, faltas + 1)
+
+
+class RjAraruamaListaSpider(_Base):
+    """Araruama: lista pública em /publicacoes/diario-oficial?page=N (links '06-de-novembro-de-2026-ano-xix-no-1871');
+    cada edição tem página própria com o PDF em /storage/content/publicacoes/diario-oficial/<id>/arquivos/<hash>.pdf.
+    Achado pela sondagem por navegador em 11/11/2026."""
+    name = 'rj_araruama_lista'
+    TERRITORY_ID = '3300209'
+    allowed_domains = ['www.araruama.rj.gov.br', 'araruama.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://www.araruama.rj.gov.br'
+    RX = re.compile(r'href=["\'](?:https?://www\.araruama\.rj\.gov\.br)?(/publicacoes/diario-oficial/'
+                    r'(\d{1,2})-de-([a-z]+)-de-(\d{4})([a-z0-9-]*))["\']', re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/publicacoes/diario-oficial', callback=self.parse_lista, cb_kwargs=dict(pagina=1, anterior=None))
+
+    def parse_lista(self, response, pagina, anterior):
+        vistos, mais_velha = [], None
+        for m in self.RX.finditer(response.text):
+            url = self.BASE + m.group(1)
+            if url in vistos:
+                continue
+            vistos.append(url)
+            d = data_extenso(m.group(2), m.group(3), m.group(4))
+            if not d:
+                continue
+            mais_velha = d if not mais_velha or d < mais_velha else mais_velha
+            if self.dentro(d):
+                num = re.search(r'-no-(\d+)', m.group(5))
+                yield scrapy.Request(url, callback=self.parse_edicao, cb_kwargs=dict(
+                    d=d, num=num.group(1) if num else '', extra='extra' in m.group(5).lower()))
+        if vistos and vistos[0] != anterior and mais_velha and mais_velha >= self.start_date and pagina < 600:
+            yield scrapy.Request(f'{self.BASE}/publicacoes/diario-oficial?page={pagina + 1}', callback=self.parse_lista,
+                                 dont_filter=True, cb_kwargs=dict(pagina=pagina + 1, anterior=vistos[0]))
+
+    def parse_edicao(self, response, d, num, extra):
+        pdfs = list(dict.fromkeys(re.findall(r'(/storage/content/publicacoes/diario-oficial/\d+/arquivos/[^"\'\s]+?\.pdf)', response.text)))
+        if pdfs:
+            yield Gazette(date=d, edition_number=num, is_extra_edition=extra,
+                          file_urls=[self.BASE + p for p in pdfs], power='executive')
