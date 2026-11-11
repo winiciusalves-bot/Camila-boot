@@ -3,7 +3,27 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://japeri.geosiap.net.br/portal-transparencia/api//publicacoes/publicacoes?id_publicacao_tipo=7&exercicio=2025',
+ 'https://www.italva.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.cardosomoreira.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.porciuncula.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.silvajardim.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.pinheiral.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.pirai.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.santoantoniodepadua.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://portoreal.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://valenca.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.cambuci.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.macuco.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.santamariamadalena.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.cantagalo.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.carapebus.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.itaocara.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.lajedomuriae.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.saosebastiaodoalto.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.conceicaodemacabu.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.bomjesusdoitabapoana.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.cachoeirasdemacacu.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
+ 'https://www.mangaratiba.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
 ]
 for u in URLS:
     try:
