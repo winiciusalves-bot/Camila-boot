@@ -3,12 +3,14 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://sfi.diariooficial.pmsfi.rj.gov.br/api/v1/tenant/sfi/edicoes/94897c7a-d808-4be2-ac3d-6a1dbdd8eedd',
- 'https://sfi.diariooficial.pmsfi.rj.gov.br/api/v1/tenant/sfi/edicoes?size=3&page=2',
- 'https://sfi.diariooficial.pmsfi.rj.gov.br/api/v1/tenant/sfi/edicoes/94897c7a-d808-4be2-ac3d-6a1dbdd8eedd/pdf',
- 'https://sfi.diariooficial.pmsfi.rj.gov.br/api/v1/tenant/sfi/edicoes/94897c7a-d808-4be2-ac3d-6a1dbdd8eedd/download',
+ 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial',
  'https://www.araruama.rj.gov.br/publicacoes/diario-oficial?page=2',
- 'https://guapimirim.rj.gov.br/wp-json/wp/v2/search?search=Diario&per_page=5',
+ 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial?page=30',
+ 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial/06-de-novembro-de-2026-ano-xix-no-1871',
+ 'https://www.sjb.rj.gov.br/diario_oficial',
+ 'https://sjb.rj.gov.br/views/diario_oficial.php',
+ 'https://sjb.rj.gov.br/#/diario_oficial',
+ 'https://sjb.rj.gov.br/arquivos/diario_oficial/',
 ]
 for u in URLS:
     try:
