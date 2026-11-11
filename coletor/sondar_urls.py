@@ -3,11 +3,7 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://sjb.rj.gov.br/views/home.php',
- 'https://sjb.rj.gov.br/',
- 'https://sjb.rj.gov.br/views/diario.php',
- 'https://sjb.rj.gov.br/views/diariooficial.php',
- 'https://sjb.rj.gov.br/views/diario_oficial/diario_oficial.php',
+ 'https://sjb.rj.gov.br/scripts/controllers_rotas_app/control_rota_diario.js',
 ]
 for u in URLS:
     try:
@@ -23,4 +19,4 @@ for u in URLS:
     print(json.dumps({'url': u, 'st': st, 'final': fin, 'tam': len(t), 'titulo': (tit.group(1).strip()[:80] if tit else ''),
                       'indice': bool(re.search(r'Index of|Parent Directory', t)), 'n_pdf': len(pdfs),
                       'ex': [p.replace('\\/', '/') for p in pdfs[:4]], 'diario': list(dict.fromkeys(re.findall(r'href=["\']([^"\']*(?:diario|boletim|jornal-oficial|publicac)[^"\']*)', t, re.I)))[:5],
-                      'inicio': t[:200] if st != 200 else '', 'json': t[:1800] if t.lstrip()[:1] in '[{' else '', 'diar': list(dict.fromkeys(re.findall(r'.{0,120}[Dd]i[aá]rio.{0,160}', t)))[:12], 'storage': list(dict.fromkeys(re.findall(r'["\'](\S*(?:storage|arquivos|edicao|edicoes|download)\S*?)["\']', t, re.I)))[:8]}, ensure_ascii=False))
+                      'inicio': t[:200] if st != 200 else '', 'json': t[:6000] if t.lstrip()[:1] in '[{' or 'controller' in t[:3000] else '', 'x': '' if t.lstrip()[:1] in '[{' else '', 'diar': list(dict.fromkeys(re.findall(r'.{0,120}[Dd]i[aá]rio.{0,160}', t)))[:12], 'storage': list(dict.fromkeys(re.findall(r'["\'](\S*(?:storage|arquivos|edicao|edicoes|download)\S*?)["\']', t, re.I)))[:8]}, ensure_ascii=False))

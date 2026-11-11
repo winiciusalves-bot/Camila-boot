@@ -2,8 +2,7 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'sjb', url: 'https://sjb.rj.gov.br/', clicar: ['a:has-text("Diário Oficial") >> nth=0'] },
-  { n: 'araruama', url: 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial', clicar: [] },
+  { n: 'sjb', url: 'https://sjb.rj.gov.br/site/diarios_oficiais', clicar: [] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
