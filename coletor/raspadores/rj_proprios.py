@@ -673,13 +673,13 @@ class RjNatividadeListaSpider(_Base):
     allowed_domains = ['www.natividade.rj.gov.br', 'natividade.rj.gov.br']
     start_date = date(2015, 1, 1)
     BASE = 'https://www.natividade.rj.gov.br'
-    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})(\d{2})(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
+    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})-?(\d{2})-?(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
 
     async def start(self):
         yield scrapy.Request(self.LISTA.format(0), callback=self.parse_lista, cb_kwargs={'offset': 0})
 
     # DOCman (Joomla) pagina por limit/offset; a página só mostra os links por JavaScript
-    LISTA = BASE + '/diario-oficial?category[0]=3&category_children=1&limit=50&offset={}'
+    LISTA = BASE + '/diario-oficial?category[0]=3&category_children=1&limit=100&offset={}'
 
     def parse_lista(self, response, offset=0):
         mais_velha = None
@@ -690,7 +690,7 @@ class RjNatividadeListaSpider(_Base):
             if self.dentro(d):
                 yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in url.lower(), file_urls=[self.BASE + url], power='executive')
         if mais_velha and mais_velha >= self.start_date and offset < 3000:
-            yield scrapy.Request(self.LISTA.format(offset + 50), callback=self.parse_lista, cb_kwargs={'offset': offset + 50})
+            yield scrapy.Request(self.LISTA.format(offset + 100), callback=self.parse_lista, cb_kwargs={'offset': offset + 100})
 
 
 class _RjSantaMariaMadalenaListaSpider(_Base):   # DESLIGADO 11/11: o site exige o cookie 'pmsmm_humano' posto por JS (filtro de robô); não contornamos
