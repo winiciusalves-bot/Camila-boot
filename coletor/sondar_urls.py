@@ -4,12 +4,6 @@ import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
  'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1',
- 'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1&limit=50',
- 'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1&offset=10',
- 'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1&limitstart=10',
- 'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1&start=10',
- 'https://www.natividade.rj.gov.br/diario-oficial?category[0]=3&category_children=1&page=2',
- 'https://www.natividade.rj.gov.br/diario-oficial/diario-oficial-2025',
 ]
 for u in URLS:
     try:
