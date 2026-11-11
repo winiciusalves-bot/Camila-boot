@@ -3,16 +3,7 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://japeri.geosiap.net.br/portal-transparencia/api//publicacoes?id_publicacao_tipo=7',
- 'https://japeri.geosiap.net.br/portal-transparencia/api//publicacoes/publicacoes?id_publicacao_tipo=7',
- 'https://japeri.geosiap.net.br/portal-transparencia/api//portal/publicacoes?id_publicacao_tipo=7',
- 'https://japeri.geosiap.net.br/portal-transparencia/api/docs',
- 'https://japeri.geosiap.net.br/portal-transparencia/api/swagger',
- 'https://japeri.geosiap.net.br/portal-transparencia/api/swagger.json',
- 'https://japeri.geosiap.net.br/portal-transparencia/api//publicacao_tipo',
- 'https://japeri.geosiap.net.br/portal-transparencia/swagger',
- 'https://www.voltaredonda.rj.gov.br/vr-destaque-a-partir-de-2019',
- 'https://www2.voltaredonda.rj.gov.br/vrdestaque/',
+ 'https://japeri.geosiap.net.br/portal-transparencia/api//publicacoes/publicacoes?id_publicacao_tipo=7&exercicio=2025',
 ]
 for u in URLS:
     try:
