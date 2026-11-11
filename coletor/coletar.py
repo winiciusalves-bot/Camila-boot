@@ -12,6 +12,9 @@ Uso local de teste:  python coletar.py --csv arquivo.csv --sem-supabase --sem-ca
 Variáveis no Actions: SUPABASE_URL e SUPABASE_SERVICE_KEY (em Secrets, nunca no código).
 """
 import argparse, csv, datetime as dt, io, json, os, re, sys, tempfile, time, unicodedata, urllib.request, urllib.error, zipfile
+import importlib.util as _ilu   # coletor/chance.py (o workflow roda com python -I, que não põe a pasta do script no sys.path)
+_sp = _ilu.spec_from_file_location('chance', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chance.py'))
+_ch = _ilu.module_from_spec(_sp); _sp.loader.exec_module(_ch); chance_licenciamento = _ch.chance
 csv.field_size_limit(2**31 - 1)   # descrições muito longas em alguns CSVs do IBAMA
 
 FONTE_URL = 'https://stibamadadosabertosprd.blob.core.windows.net/dados-abertos/dados/SIFISC/auto_infracao/auto_infracao/auto_infracao_csv.zip'
@@ -798,12 +801,23 @@ def main():
         # base única: o que veio hoje + o que já está no banco (inclui o enviado pelo Radar do PC: INEA, DOU etc.)
         if sb:
             sb.upsert('ocorrencias', occ, 'chave')          # primeira_coleta fica com o default/valor antigo
-            occ_todas = sb.todos('ocorrencias', 'cnpj,orgao,tipo_documento,data_documento,data_ciencia,prazo_defesa_fim_estimado,situacao,nivel,valor_indicado_rs_nao_e_dano')
+            occ_todas = sb.todos('ocorrencias', 'cnpj,orgao,tipo_documento,data_documento,data_ciencia,prazo_defesa_fim_estimado,situacao,nivel,valor_indicado_rs_nao_e_dano,descricao,assunto')
         else:
             occ_todas = occ
         por_o = {}
         for o in occ_todas: por_o.setdefault(o['cnpj'], []).append(o)
         pont = [dict(cnpj=c, **pontuar_occ(e, por_o.get(c, []), hoje, ult.get(c), excluidas)) for c, e in todas.items()]
+        # 4b) chance de contratar licenciamento (pedido do usuário, 11/11/2026: sempre antes de atualizar o painel)
+        tem_chance = True
+        if sb:
+            try: sb.req('GET', '/empresas?select=chance_licenciamento&limit=1')
+            except Exception: tem_chance = False; log('AVISO: colunas de chance ainda não existem: rode supabase/07_chance_licenciamento.sql', 92)
+        for p in pont:
+            c = chance_licenciamento(todas[p['cnpj']], por_o.get(p['cnpj'], []), hoje, p['prioridade'])
+            if tem_chance: p.update(c)
+            else: p['_chance'] = c['chance_licenciamento']
+        log('chance de licenciamento: ' + ', '.join(f"{k} {sum(1 for p in pont if (p.get('chance_licenciamento') or p.get('_chance')) == k)}" for k in ('Alta', 'Média', 'Baixa')), 92)
+        for p in pont: p.pop('_chance', None)
         dist = {}
         for p in pont: dist[p['prioridade'][0]] = dist.get(p['prioridade'][0], 0) + 1
         log(f'prioridades: {dist}', 95)
