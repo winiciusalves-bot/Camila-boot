@@ -689,3 +689,37 @@ class RjNatividadeListaSpider(_Base):
         if mais_velha and mais_velha >= self.start_date:
             for prox in set(re.findall(r'href="([^"]*[?&](?:start|limitstart)=\d+[^"]*)"', response.text)):
                 yield response.follow(prox.replace('&amp;', '&'), callback=self.parse_lista)
+
+
+class RjSantaMariaMadalenaListaSpider(_Base):
+    """Santa Maria Madalena: página /diario_oficial_eletronico lista as edições por mês com o PDF em
+    /transparencia/publicacoes_oficiais/diario_oficial_eletronico/AAAA/mes/EDIÇÃO_-_354_-_..._-_23-10_A_31-10.pdf.
+    A pasta em si dá 403 (não contornamos); só seguimos os links que a página mostra. Achado em 11/11/2026.
+    DATA: o nome traz o período (ex.: 23-10 a 31-10); usamos o ÚLTIMO dia do período. HIPÓTESE: é o dia da publicação."""
+    name = 'rj_santa_maria_madalena_lista'
+    TERRITORY_ID = '3304607'
+    allowed_domains = ['www.pmsmm.rj.gov.br', 'pmsmm.rj.gov.br']
+    start_date = date(2020, 5, 1)
+    BASE = 'https://www.pmsmm.rj.gov.br'
+    RX = re.compile(r'href="([^"]*/diario_oficial_eletronico/(\d{4})/[^"/]+/[^"]+?\.pdf)"', re.I)
+    RX_NUM = re.compile(r'EDI(?:%C3%87%C3%83O|ÇÃO|CAO)_-_(\d+)', re.I)
+    RX_PER = re.compile(r'(\d{2})-(\d{2})_A_(\d{2})-(\d{2})', re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/diario_oficial_eletronico', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        html = response.text.replace('&amp;', '&')
+        for url, ano in set(self.RX.findall(html)):
+            per = self.RX_PER.search(url); num = self.RX_NUM.search(url)
+            if not per:
+                continue
+            try: d = date(int(ano), int(per.group(4)), int(per.group(3)))
+            except ValueError: continue
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=num.group(1) if num else '', is_extra_edition='extra' in url.lower(),
+                              file_urls=[response.urljoin(url)], power='executive')
+        for prox in set(re.findall(r'href="([^"]*diario_oficial_eletronico\?[^"]+)"', html)):
+            m = re.search(r'ano=(\d{4})', prox)
+            if not m or self.start_date.year <= int(m.group(1)) <= self.end_date.year:
+                yield response.follow(prox, callback=self.parse_lista)
