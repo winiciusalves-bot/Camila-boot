@@ -438,3 +438,31 @@ class _RjRioDasFloresBethaSpider(_BethaSpider):
     nome_quando_religar = 'rj_rio_das_flores_betha'
     TERRITORY_ID = '3304508'
     NOME = 'rio_das_flores'
+
+
+class RjSaoFranciscoDeItabapoanaApiSpider(_Base):
+    """São Francisco de Itabapoana: diário próprio (sfi.diariooficial.pmsfi.rj.gov.br) com API pública de leitura:
+    /api/v1/tenant/sfi/edicoes?size=&page= (id, numero_edicao, data_publicacao, tipo regular/suplemento);
+    PDF em /api/v1/storage/sfi/final/<id>.pdf. Achado em 11/11/2026 (busca na web + navegador)."""
+    name = 'rj_sao_francisco_de_itabapoana_api'
+    TERRITORY_ID = '3304755'
+    allowed_domains = ['sfi.diariooficial.pmsfi.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False}
+    BASE = 'https://sfi.diariooficial.pmsfi.rj.gov.br'
+
+    async def start(self):
+        yield scrapy.Request(f'{self.BASE}/api/v1/tenant/sfi/edicoes?size=50&page=1', callback=self.parse_lista, cb_kwargs={'pagina': 1})
+
+    def parse_lista(self, response, pagina):
+        j = response.json(); itens = j.get('items') or []
+        mais_velha = None
+        for it in itens:
+            try: d = date.fromisoformat(it['data_publicacao'][:10])
+            except Exception: continue
+            mais_velha = d
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=str(it.get('numero_edicao', '')), is_extra_edition=it.get('tipo') != 'regular',
+                              file_urls=[f"{self.BASE}/api/v1/storage/sfi/final/{it['id']}.pdf"], power='executive')
+        if itens and mais_velha and mais_velha >= self.start_date and pagina * 50 < (j.get('total') or 0):
+            yield scrapy.Request(f'{self.BASE}/api/v1/tenant/sfi/edicoes?size=50&page={pagina + 1}', callback=self.parse_lista, cb_kwargs={'pagina': pagina + 1})
