@@ -1,4 +1,4 @@
-// São João da Barra e São José de Ubá: mesmo sistema de site (AngularJS). A página pública /site/diarios_oficiais
+// São João da Barra, São José de Ubá, Italva e Cardoso Moreira: mesmo sistema de site (AngularJS). A página pública /site/diarios_oficiais
 // pede a lista por POST a controllers/diario_oficial/class_diario.php e recebe JSON (numero, ano, data, arquivo).
 // Fora do navegador o servidor responde 403 (11/11/2026), então abrimos a página como visitante, lemos a resposta
 // que a própria página recebe e baixamos os PDFs da janela INICIO–FIM. Sem login, sem captcha, sem contornar nada.
@@ -9,6 +9,8 @@ const INICIO = process.env.INICIO || '2026-10-01', FIM = process.env.FIM || '209
 const SITES = [
   { nome: 'sao_joao_da_barra', ibge: '3304904', base: 'https://sjb.rj.gov.br' },
   { nome: 'sao_jose_de_uba', ibge: '3305133', base: 'https://saojosedeuba.rj.gov.br' },
+  { nome: 'italva', ibge: '3302056', base: 'https://www.italva.rj.gov.br' },              // mesmo sistema (11/11/2026)
+  { nome: 'cardoso_moreira', ibge: '3301157', base: 'https://www.cardosomoreira.rj.gov.br' },
 ];
 fs.mkdirSync(path.join(W, 'out'), { recursive: true });
 (async () => {
