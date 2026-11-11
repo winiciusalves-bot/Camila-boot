@@ -17,7 +17,7 @@ fs.mkdirSync(path.join(W, 'out'), { recursive: true });
 (async () => {
   const b = await chromium.launch();
   for (const s of SITES) {
-    if (!SO.test('rj_' + s.nome)) continue;
+    if (!SO.test('rj_' + s.nome + '_nav')) continue;
     const t0 = Date.now(); const itens = []; let falhas = 0;
     const PASTA = path.join(W, 'pdf', s.nome); fs.mkdirSync(PASTA, { recursive: true });
     const ctx = await b.newContext(); const pg = await ctx.newPage();
