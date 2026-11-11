@@ -73,6 +73,8 @@ jobs:
           if false; then timeout 900 node coletor/navegador/betha.js || echo "Betha: falhou (registrado, sem contornar)"; fi
           # Tanguá (Supernova/JSF): o PDF sai por formulário; o navegador baixa e grava out/rj_tangua.jsonl direto
           if echo rj_tangua | grep -qE "${SO:-.}"; then timeout 1500 node coletor/navegador/tangua.js || echo "Tanguá: falhou (registrado, sem contornar)"; fi
+          # São João da Barra e São José de Ubá: a lista vem por POST que só responde à própria página (11/11/2026)
+          if printf 'rj_sao_joao_da_barra\nrj_sao_jose_de_uba\n' | grep -qE "${SO:-.}"; then timeout 1500 node coletor/navegador/portalgov.js || echo "SJB/Ubá: falhou (registrado, sem contornar)"; fi
       - name: Baixar diários (32 municípios do RJ + AEMERJ; Rio fica com o notebook)
         working-directory: qd/querido_diario_raspadores
         env:

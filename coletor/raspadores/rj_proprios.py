@@ -556,24 +556,7 @@ class RjAraruamaListaSpider(_Base):
                           file_urls=[self.BASE + p for p in pdfs], power='executive')
 
 
-class _PortalGovDiarioSpider(_Base):
-    """São João da Barra: o site (AngularJS) pede a lista inteira por POST público em
-    controllers/diario_oficial/class_diario.php (func=5, param=1) e recebe JSON com numero, ano, data e arquivo;
-    o PDF fica em /arquivos/diario_oficial/<arquivo>. Achado pela sondagem por navegador em 11/11/2026."""
-    start_date = date(2015, 1, 1)
-
-    async def start(self):
-        yield scrapy.FormRequest(self.BASE + '/controllers/diario_oficial/class_diario.php',
-                                 formdata={'func': '5', 'param': '1'}, callback=self.parse_lista)
-
-    def parse_lista(self, response):
-        for it in response.json() or []:
-            try: d = datetime.strptime(it.get('data', ''), '%d/%m/%Y').date()
-            except Exception: continue
-            if self.dentro(d) and it.get('arquivo'):
-                yield Gazette(date=d, edition_number=f"{it.get('numero', '')}/{it.get('ano', '')}",
-                              is_extra_edition='extra' in ((it.get('descricao') or '') + it['arquivo']).lower(),
-                              file_urls=[f"{self.BASE}/arquivos/diario_oficial/{it['arquivo']}"], power='executive')
+# São João da Barra e São José de Ubá: lidos por coletor/navegador/portalgov.js (o POST da lista dá 403 fora do navegador).
 
 
 class RjNovaFriburgoDioenetSpider(BaseDioenetSpider):
@@ -584,18 +567,3 @@ class RjNovaFriburgoDioenetSpider(BaseDioenetSpider):
     start_date = date(2021, 1, 1)
     BASE_URL = 'https://plenussistemas.dioenet.com.br/list/nova-friburgo'
     power = 'executive'
-
-
-class RjSaoJoaoDaBarraListaSpider(_PortalGovDiarioSpider):
-    name = 'rj_sao_joao_da_barra_lista'
-    TERRITORY_ID = '3304904'
-    allowed_domains = ['sjb.rj.gov.br', 'www.sjb.rj.gov.br']
-    BASE = 'https://sjb.rj.gov.br'
-
-
-class RjSaoJoseDeUbaListaSpider(_PortalGovDiarioSpider):
-    """São José de Ubá: mesmo sistema de São João da Barra (site/diarios_oficiais), achado em 11/11/2026."""
-    name = 'rj_sao_jose_de_uba_lista'
-    TERRITORY_ID = '3305133'
-    allowed_domains = ['saojosedeuba.rj.gov.br', 'www.saojosedeuba.rj.gov.br']
-    BASE = 'https://saojosedeuba.rj.gov.br'
