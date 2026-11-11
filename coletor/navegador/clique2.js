@@ -2,8 +2,8 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'smm', url: 'https://www.pmsmm.rj.gov.br/', clicar: ['a[href*="diario_oficial_eletronico"] >> nth=0'] },
-  { n: 'ssalto', url: 'https://ssalto.rj.gov.br/', clicar: ['a:has-text("Diário Oficial") >> nth=0'] },
+  { n: 'smm', url: 'https://www.pmsmm.rj.gov.br/diario_oficial_eletronico', clicar: [] },
+  { n: 'ssalto', url: 'https://ssalto.rj.gov.br/?s=di%C3%A1rio+oficial', clicar: [] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
