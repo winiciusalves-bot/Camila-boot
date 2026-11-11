@@ -3,18 +3,21 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://mage.rj.gov.br/wp-json/wp/v2/media?search=BIO&per_page=20&orderby=date&order=desc&_fields=date,title,source_url',
- 'https://mage.rj.gov.br/wp-json/wp/v2/media?mime_type=application/pdf&per_page=20&orderby=date&order=desc&_fields=date,title,source_url',
- 'https://diario.novafriburgo.rj.gov.br/diario-oficial',
- 'https://diario.novafriburgo.rj.gov.br/',
- 'https://pmnf.rj.gov.br/servico/view/11/diario-oficial-eletronico',
- 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial',
- 'https://tribunadosmunicipios.com.br/wp-json/wp/v2/media?mime_type=application/pdf&per_page=20&_fields=date,title,source_url',
+ 'https://guapimirim.rj.gov.br/wp-json/wp/v2/media?search=Diario&per_page=10&orderby=date&order=desc&_fields=date,title,source_url',
+ 'https://guapimirim.rj.gov.br/diario-oficial/',
+ 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO751.pdf',
+ 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO760.pdf',
+ 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO780.pdf',
+ 'https://sjb.rj.gov.br/arquivos/diario_oficial/075_26_do-30042026-ed075.pdf',
+ 'https://sjb.rj.gov.br/diario-oficial',
+ 'https://sjb.rj.gov.br/',
+ 'https://www.petropolis.rj.gov.br/gap/diario-oficial/diarios/2026/janeiro/7318.pdf',
+ 'https://www.petropolis.rj.gov.br/gap/diario-oficial/',
 ]
 for u in URLS:
     try:
         r = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': UA}), timeout=30)
-        t = r.read(3_000_000).decode('utf-8', 'replace'); st = r.status; fin = r.geturl()
+        t = r.read(3_000_000) if 'pdf' not in (r.headers.get('Content-Type') or '') else ('PDF ' + str(r.headers.get('Content-Length')) + ' ' + str(r.headers.get('Last-Modified'))).decode('utf-8', 'replace'); st = r.status; fin = r.geturl()
     except urllib.error.HTTPError as e:
         t, st, fin = '', e.code, u
     except Exception as e:
