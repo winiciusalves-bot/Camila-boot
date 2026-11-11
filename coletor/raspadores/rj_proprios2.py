@@ -256,3 +256,47 @@ class RjMaricaWpSpider(_WpMediaSpider):
         tot = int(response.headers.get('X-WP-TotalPages', b'1').decode() or 1)
         if pagina < tot and pagina < 60:
             yield scrapy.Request(self._url_b(pagina + 1, busca), callback=self.parse_marica, cb_kwargs=dict(pagina=pagina + 1, busca=busca))
+
+
+class _TranspExibirSpider(_Base2):
+    """Portais de transparência com a seção 'Diário Oficial Eletrônico' em /transparencia/exibir/<seção>/<pasta>/<página>/.
+    Cada linha da tabela traz 'Edição N', a data de publicação e /transparencia/download/<id>. Pastas (ano, mês) são
+    seguidas pelos próprios links da página. Só leitura de página pública."""
+    BASE = ''
+    SECAO = ''
+    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1}
+    RX_LINHA = re.compile(r'<tr>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>.*?(\d{2})/(\d{2})/(\d{4}).*?</td>\s*<td[^>]*>.*?href="([^"]*/transparencia/download/\d+)"', re.S | re.I)
+
+    async def start(self):
+        self._vistos = set()
+        yield scrapy.Request(f'{self.BASE}/transparencia/exibir/{self.SECAO}/0/1/', callback=self.parse_pasta)
+
+    def parse_pasta(self, response):
+        for tit, dd, mm, aa, url in self.RX_LINHA.findall(response.text):
+            tit = re.sub(r'<[^>]+>|\s+', ' ', tit).strip()
+            try:
+                d = date(int(aa), int(mm), int(dd))
+            except ValueError:
+                continue
+            if url in self._vistos or not self.dentro(d):
+                continue
+            self._vistos.add(url)
+            n = re.search(r'(\d{1,5})', tit)
+            yield Gazette(date=d, edition_number=n.group(1) if n else '', is_extra_edition=bool(re.search(r'extra|suplement', tit, re.I)),
+                          file_urls=[url], power='executive')
+        for p in sorted(set(re.findall(rf'/transparencia/exibir/{self.SECAO}/(\d+)/(\d+)/', response.text))):
+            u = f'{self.BASE}/transparencia/exibir/{self.SECAO}/{p[0]}/{p[1]}/'
+            if u not in self._vistos:
+                self._vistos.add(u)
+                yield scrapy.Request(u, callback=self.parse_pasta)
+
+
+class RjCambuciSpider(_TranspExibirSpider):
+    """Cambuci: prefeituradecambuci.rj.gov.br/transparencia/exibir/53/... (domínio achado na sondagem de 11/11/2026;
+    abre da nuvem). Edições 529 (10/11/2025) a 711 (10/11/2026) vistas na conferência."""
+    name = 'rj_cambuci'
+    TERRITORY_ID = '3300902'
+    allowed_domains = ['prefeituradecambuci.rj.gov.br']
+    start_date = date(2021, 1, 1)
+    BASE = 'https://prefeituradecambuci.rj.gov.br'
+    SECAO = '53'
