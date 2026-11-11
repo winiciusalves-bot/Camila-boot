@@ -554,3 +554,27 @@ class RjAraruamaListaSpider(_Base):
         if pdfs:
             yield Gazette(date=d, edition_number=num, is_extra_edition=extra,
                           file_urls=[self.BASE + p for p in pdfs], power='executive')
+
+
+class RjSaoJoaoDaBarraListaSpider(_Base):
+    """São João da Barra: o site (AngularJS) pede a lista inteira por POST público em
+    controllers/diario_oficial/class_diario.php (func=5, param=1) e recebe JSON com numero, ano, data e arquivo;
+    o PDF fica em /arquivos/diario_oficial/<arquivo>. Achado pela sondagem por navegador em 11/11/2026."""
+    name = 'rj_sao_joao_da_barra_lista'
+    TERRITORY_ID = '3304904'
+    allowed_domains = ['sjb.rj.gov.br', 'www.sjb.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://sjb.rj.gov.br'
+
+    async def start(self):
+        yield scrapy.FormRequest(self.BASE + '/controllers/diario_oficial/class_diario.php',
+                                 formdata={'func': '5', 'param': '1'}, callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        for it in response.json() or []:
+            try: d = datetime.strptime(it.get('data', ''), '%d/%m/%Y').date()
+            except Exception: continue
+            if self.dentro(d) and it.get('arquivo'):
+                yield Gazette(date=d, edition_number=f"{it.get('numero', '')}/{it.get('ano', '')}",
+                              is_extra_edition='extra' in (it.get('descricao') or '' + it['arquivo']).lower(),
+                              file_urls=[f"{self.BASE}/arquivos/diario_oficial/{it['arquivo']}"], power='executive')
