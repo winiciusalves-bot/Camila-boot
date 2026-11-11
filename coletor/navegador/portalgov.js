@@ -11,6 +11,7 @@ const SITES = [
   { nome: 'sao_jose_de_uba', ibge: '3305133', base: 'https://saojosedeuba.rj.gov.br' },
   { nome: 'italva', ibge: '3302056', base: 'https://www.italva.rj.gov.br' },              // mesmo sistema (11/11/2026)
   { nome: 'cardoso_moreira', ibge: '3301157', base: 'https://www.cardosomoreira.rj.gov.br' },
+  { nome: 'bom_jesus_do_itabapoana', ibge: '3300605', base: 'https://bomjesus.rj.gov.br' },
 ];
 fs.mkdirSync(path.join(W, 'out'), { recursive: true });
 (async () => {

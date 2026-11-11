@@ -2,10 +2,8 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'vr1', url: 'https://www2.voltaredonda.rj.gov.br/vrdestaque/', clicar: [] },
-  { n: 'vr2', url: 'https://www.voltaredonda.rj.gov.br/diario-oficial/', clicar: ['text=VR Destaque a partir de 2019'] },
-  { n: 'portoreal', url: 'https://portoreal.rj.gov.br/', clicar: ['a:has-text("Diário Oficial") >> nth=0'] },
-  { n: 'natividade', url: 'https://www.natividade.rj.gov.br/', clicar: ['a:has-text("Diário Oficial") >> nth=0'] },
+  { n: 'smm', url: 'https://www.pmsmm.rj.gov.br/', clicar: ['a[href*="diario_oficial_eletronico"] >> nth=0'] },
+  { n: 'ssalto', url: 'https://ssalto.rj.gov.br/', clicar: ['a:has-text("Diário Oficial") >> nth=0'] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
