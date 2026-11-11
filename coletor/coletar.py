@@ -89,8 +89,11 @@ def dv_cpf(c):
 
 CPF_RE = re.compile(r'(?<![\d./-])(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})(?!\d|[./-]\d)')   # pega também CPF no fim de frase e com ponto no lugar do traço (123.456.789.01, visto em Tanguá 10/11/2026)
 CPF_ROTULO = re.compile(r'(C\.?\s?P\.?\s?F\.?\s*(?:/MF)?\s*(?:n[ºo°.]*)?\s*[:-]?\s*)[\d.\s/-]{9,16}\d', re.I)   # depois de "CPF", mascara sempre (mesmo com dígito errado)
+CPF_FORMATADO = re.compile(r'(?<![\d./-])\d{3}\.\d{3}\.\d{3}-\d{2}(?![\d/-])')   # 123.456.789-00: mascara sempre, mesmo com DV errado (Vigia 10/11/2026)
+
 def mascara(t):
     t = CPF_ROTULO.sub(lambda m: m.group(1) + '[CPF omitido]', t or '')
+    t = CPF_FORMATADO.sub('[CPF omitido]', t)
     return CPF_RE.sub(lambda m: '[CPF omitido]' if dv_cpf(''.join(m.groups())) else m.group(0), t).strip()
 
 def fmt_cnpj(c):
