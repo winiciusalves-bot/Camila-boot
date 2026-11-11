@@ -207,3 +207,52 @@ class RjItatiaiaWpSpider(_WpMediaSpider):
     RX_ARQ = re.compile(r'^Diario[-_ ](Regular|Extra|Oficial)', re.I)
 
 # Guapimirim: coberto pelo rj_guapimirim_seq (rj_proprios.py); a API de mídia do WordPress respondeu 401 em 10/11/2026.
+
+
+class RjMaricaWpSpider(_WpMediaSpider):
+    """Maricá: o site (WordPress) publica o Jornal Oficial (JOM_<N>_DD-MM-AAAA.pdf, até 03/2026) e o Diário Oficial
+    (DOM_<N>_DD-MM-AAAA_.pdf, numeração nova desde 09/03/2026) como mídia. Achado pela sondagem do PC em 11/11/2026 e
+    conferido da nuvem (a API abre). O robô antigo do Querido Diário parou em 10/03/2026. Reenvios do mesmo arquivo
+    (sufixo -1, -2...) entram uma vez só: fica o mais recente."""
+    name = 'rj_marica_wp'
+    TERRITORY_ID = '3302700'
+    allowed_domains = ['www.marica.rj.gov.br', 'marica.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    BASE = 'https://www.marica.rj.gov.br'
+    RX_ARQ = re.compile(r'^(DOM|JOM)[_\-]?(\d{1,5})[_\-]', re.I)
+    BUSCAS = ('DOM', 'JOM')
+
+    async def start(self):
+        self._vistos = set()
+        for b in self.BUSCAS:
+            self.BUSCA = b
+            yield scrapy.Request(self._url(1), callback=self.parse_marica, cb_kwargs=dict(pagina=1, busca=b))
+
+    def _url_b(self, pagina, busca):
+        self.BUSCA = busca
+        return self._url(pagina)
+
+    def parse_marica(self, response, pagina, busca):
+        try:
+            itens = json.loads(response.text)
+        except ValueError:
+            self.logger.error(f'resposta não é JSON: {response.text[:200]!r}')
+            return
+        for it in itens:   # vem do mais novo para o mais antigo
+            url = (it.get('source_url') or '').replace('\\/', '/')
+            nome = url.rsplit('/', 1)[-1]
+            m = self.RX_ARQ.search(nome)
+            if not m:
+                continue
+            d = self.data_do_arquivo(nome, date.fromisoformat(it['date'][:10]))
+            if not self.dentro(d):
+                continue
+            extra = bool(re.search(r'extra|suplement', nome, re.I))
+            chave = (m.group(1).upper(), int(m.group(2)), d, extra)
+            if chave in self._vistos:
+                continue
+            self._vistos.add(chave)
+            yield Gazette(date=d, edition_number=str(int(m.group(2))), is_extra_edition=extra, file_urls=[url], power='executive')
+        tot = int(response.headers.get('X-WP-TotalPages', b'1').decode() or 1)
+        if pagina < tot and pagina < 60:
+            yield scrapy.Request(self._url_b(pagina + 1, busca), callback=self.parse_marica, cb_kwargs=dict(pagina=pagina + 1, busca=busca))
