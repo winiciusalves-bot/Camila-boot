@@ -673,12 +673,15 @@ class RjNatividadeListaSpider(_Base):
     allowed_domains = ['www.natividade.rj.gov.br', 'natividade.rj.gov.br']
     start_date = date(2015, 1, 1)
     BASE = 'https://www.natividade.rj.gov.br'
-    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})(\d{2})(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
+    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})-?(\d{2})-?(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
 
     async def start(self):
-        yield scrapy.Request(self.BASE + '/diario-oficial?category[0]=3&category_children=1', callback=self.parse_lista)
+        yield scrapy.Request(self.LISTA.format(0), callback=self.parse_lista, cb_kwargs={'offset': 0})
 
-    def parse_lista(self, response):
+    # DOCman (Joomla) pagina por limit/offset; a página só mostra os links por JavaScript
+    LISTA = BASE + '/diario-oficial?category[0]=3&category_children=1&limit=100&offset={}'
+
+    def parse_lista(self, response, offset=0):
         mais_velha = None
         for url, num, dd, mm, aa in set(self.RX.findall(response.text.replace('&amp;', '&'))):
             try: d = date(int(aa), int(mm), int(dd))
@@ -686,9 +689,8 @@ class RjNatividadeListaSpider(_Base):
             mais_velha = d if not mais_velha or d < mais_velha else mais_velha
             if self.dentro(d):
                 yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in url.lower(), file_urls=[self.BASE + url], power='executive')
-        if mais_velha and mais_velha >= self.start_date:
-            for prox in set(re.findall(r'href="([^"]*[?&](?:start|limitstart)=\d+[^"]*)"', response.text)):
-                yield response.follow(prox.replace('&amp;', '&'), callback=self.parse_lista)
+        if mais_velha and mais_velha >= self.start_date and offset < 3000:
+            yield scrapy.Request(self.LISTA.format(offset + 100), callback=self.parse_lista, cb_kwargs={'offset': offset + 100})
 
 
 class _RjSantaMariaMadalenaListaSpider(_Base):   # DESLIGADO 11/11: o site exige o cookie 'pmsmm_humano' posto por JS (filtro de robô); não contornamos
