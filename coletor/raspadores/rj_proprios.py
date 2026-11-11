@@ -579,7 +579,9 @@ class RjParatyApiSpider(_Base):
     BASE = 'https://www.paraty.rj.gov.br/API/API/Documentos?CategoriaId=6&Edicao=&PageSize=50&Palavra=&Tag=&Todos=&PageNumber={}'
 
     async def start(self):
-        yield scrapy.Request(self.BASE.format(1), callback=self.parse_api, cb_kwargs={'pagina': 1})
+        yield scrapy.Request(self.BASE.format(1), callback=self.parse_api, cb_kwargs={'pagina': 1}, headers=self.JSON)
+
+    JSON = {'Accept': 'application/json'}   # a API (ASP.NET) responde XML se o pedido não disser que quer JSON
 
     def parse_api(self, response, pagina):
         itens = response.json() or []
@@ -596,7 +598,7 @@ class RjParatyApiSpider(_Base):
             yield Gazette(date=d, edition_number=m.group(1) if m else tit[:30], is_extra_edition=bool(re.search(r'extra|-[A-Z]\b', tit, re.I)),
                           file_urls=[arq], power='executive')
         if itens and mais_velha and mais_velha >= self.start_date and pagina < 400:
-            yield scrapy.Request(self.BASE.format(pagina + 1), callback=self.parse_api, cb_kwargs={'pagina': pagina + 1})
+            yield scrapy.Request(self.BASE.format(pagina + 1), callback=self.parse_api, cb_kwargs={'pagina': pagina + 1}, headers=self.JSON)
 
 
 class RjBarraDoPiraiListaSpider(_Base):
@@ -633,3 +635,30 @@ class RjBarraDoPiraiListaSpider(_Base):
                 yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in (resto + url).lower(), file_urls=[url], power='executive')
         if not n:
             self.logger.error(f'Barra do Piraí {ano}: nenhuma edição no HTML')
+
+
+class RjJaperiGeosiapSpider(_Base):
+    """Japeri: Portal da Transparência GeoSiap, aba Publicações, tipo 7 = Diário Oficial. A própria página documenta a
+    API de dados abertos: lista em api//publicacoes/publicacoes?id_publicacao_tipo=7&exercicio=AAAA e o arquivo em
+    publicacoes/get_arquivo.anexo?...&id_publicacao=<id> (demais ids = 0). Achado em 11/11/2026."""
+    name = 'rj_japeri_geosiap'
+    TERRITORY_ID = '3302270'
+    allowed_domains = ['japeri.geosiap.net.br']
+    start_date = date(2015, 1, 1)
+    API = 'https://japeri.geosiap.net.br/portal-transparencia/api/'
+    ARQ = API + 'publicacoes/get_arquivo.anexo?id_subtipo=0&id_publicacao={}&id_publicacao_tipo=0&id_publicacao_sub_tipo=0&id_publicacao_periodo=0&exercicio=0&mes=0&id_relatorio=0'
+
+    async def start(self):
+        for ano in range(self.start_date.year, self.end_date.year + 1):
+            yield scrapy.Request(f'{self.API}/publicacoes/publicacoes?id_publicacao_tipo=7&exercicio={ano}', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        for it in (response.json() or {}).get('publicacoes') or []:
+            try: d = date.fromisoformat((it.get('dt_publicacao') or '')[:10])
+            except ValueError: continue
+            if not self.dentro(d) or not it.get('id_publicacao'):
+                continue
+            nome = it.get('nome_arquivo') or ''
+            m = re.search(r'-\s*(\d{3,6})\s*-', nome)
+            yield Gazette(date=d, edition_number=m.group(1) if m else '', is_extra_edition='extra' in nome.lower(),
+                          file_urls=[self.ARQ.format(it['id_publicacao'])], power='executive')
