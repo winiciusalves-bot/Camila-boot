@@ -2,11 +2,10 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'paraty', url: 'https://www.paraty.rj.gov.br/servicos/dom-diario-oficial-do-municipio', clicar: [] },
-  { n: 'japeri', url: 'https://japeri.geosiap.net.br/portal-transparencia/publicacoes?id_publicacao_tipo=7', clicar: [] },
-  { n: 'barrapirai', url: 'https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico', clicar: [] },
-  { n: 'barramansa', url: 'https://portaltransparencia.barramansa.rj.gov.br/boletim-oficial/', clicar: [] },
-  { n: 'voltaredonda', url: 'https://www.voltaredonda.rj.gov.br/diario-oficial/', clicar: [] },
+  { n: 'paraty', url: 'https://www.paraty.rj.gov.br/multimidia/documentos', clicar: [] },
+  { n: 'japeri', url: 'https://japeri.geosiap.net.br/portal-transparencia/publicacoes?id_publicacao_tipo=7', clicar: ['button:has-text("Pesquisar")'] },
+  { n: 'barrapirai', url: 'https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico', clicar: ['text=2026 >> nth=0'] },
+  { n: 'voltaredonda', url: 'https://www.voltaredonda.rj.gov.br/diario-oficial/', clicar: ['a:has-text("a partir de 2019")'] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
