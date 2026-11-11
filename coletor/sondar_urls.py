@@ -3,21 +3,23 @@ se é índice de pasta, quantos PDFs e exemplos. Só GET em página pública."""
 import re, sys, urllib.request, json
 UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 URLS = [
- 'https://guapimirim.rj.gov.br/wp-json/wp/v2/media?search=Diario&per_page=10&orderby=date&order=desc&_fields=date,title,source_url',
- 'https://guapimirim.rj.gov.br/diario-oficial/',
- 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO751.pdf',
- 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO760.pdf',
- 'https://mage.rj.gov.br/wp-content/uploads/BIO/2026/BIO780.pdf',
  'https://sjb.rj.gov.br/arquivos/diario_oficial/075_26_do-30042026-ed075.pdf',
+ 'https://sjb.rj.gov.br/arquivos/diario_oficial/',
  'https://sjb.rj.gov.br/diario-oficial',
+ 'https://sjb.rj.gov.br/diario_oficial',
  'https://sjb.rj.gov.br/',
- 'https://www.petropolis.rj.gov.br/gap/diario-oficial/diarios/2026/janeiro/7318.pdf',
- 'https://www.petropolis.rj.gov.br/gap/diario-oficial/',
+ 'https://pmsfi.rj.gov.br/wp-json/wp/v2/media?search=DO&per_page=10&orderby=date&order=desc&_fields=date,title,source_url',
+ 'https://pmsfi.rj.gov.br/',
+ 'https://guapimirim.rj.gov.br/',
+ 'https://guapimirim.rj.gov.br/wp-content/uploads/2026/07/Diario-1903.pdf',
+ 'https://www.campos.rj.gov.br/app/assets/diario-oficial/link/7723',
+ 'https://araruama.rj.gov.br/storage/content/publicacoes/diario-oficial/39588/arquivos/6a91798935506w83oh.pdf',
 ]
 for u in URLS:
     try:
         r = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': UA}), timeout=30)
-        t = r.read(3_000_000) if 'pdf' not in (r.headers.get('Content-Type') or '') else ('PDF ' + str(r.headers.get('Content-Length')) + ' ' + str(r.headers.get('Last-Modified'))).decode('utf-8', 'replace'); st = r.status; fin = r.geturl()
+        b = r.read(3_000_000); st = r.status; fin = r.geturl()
+        t = ('PDF ' + str(len(b)) + ' bytes ' + str(r.headers.get('Last-Modified'))) if b[:5] == b'%PDF-' else b.decode('utf-8', 'replace')
     except urllib.error.HTTPError as e:
         t, st, fin = '', e.code, u
     except Exception as e:
