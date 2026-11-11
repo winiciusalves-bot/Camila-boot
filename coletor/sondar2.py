@@ -1,25 +1,20 @@
-"""Reteste da API do Querido Diário (11/11/2026): TLS e o que existe do RJ (municípios e edições recentes)."""
-import ssl, socket, urllib.request, json
-H = 'api.queridodiario.ok.org.br'
-try:
-    with socket.create_connection((H, 443), timeout=20) as s:
-        with ssl.create_default_context().wrap_socket(s, server_hostname=H) as t:
-            print('TLS OK', t.version(), t.cipher()[0])
-except Exception as e:
-    print('TLS FALHA', type(e).__name__, str(e)[:160])
+"""Sonda 11/11/2026: acha no código público (JS) do portal GeoSiap de Japeri o endereço de download das publicações,
+e lê a página do VR Destaque (Volta Redonda). Só GET em página pública."""
+import re, urllib.request, json
+UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
 def get(u):
     try:
-        r = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=40)
-        return r.status, json.loads(r.read())
+        r = urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': UA}), timeout=40)
+        return r.status, r.read(8_000_000).decode('utf-8', 'replace')
     except Exception as e:
-        return 0, f'{type(e).__name__}: {str(e)[:160]}'
-st, cid = get(f'https://{H}/cities?city_name=')
-rj = [c for c in cid.get('cities', []) if c.get('state_code') == 'RJ'] if isinstance(cid, dict) else []
-print('cidades', st, len(rj) if rj else cid)
-ok = [c for c in rj if str(c.get('level')) not in ('None', '0')]
-print('RJ com nível>0:', len(ok), sorted(c['territory_name'] for c in ok))
-for q in ['', '&published_since=2026-10-01']:
-    st, g = get(f'https://{H}/gazettes?' + '&'.join('territory_ids=' + c['territory_id'] for c in rj) + f'&size=5&sort_by=descending_date{q}')
-    print('gazettes', q, st, g.get('total_gazettes') if isinstance(g, dict) else g)
-    if isinstance(g, dict):
-        for x in g.get('gazettes', [])[:5]: print('  ', x.get('date'), x.get('territory_name'), x.get('url', '')[:90])
+        return 0, str(e)[:200]
+B = 'https://japeri.geosiap.net.br/portal-transparencia/'
+st, h = get(B + 'publicacoes?id_publicacao_tipo=7')
+for s_ in re.findall(r'src="([^"]+\.js)"', h):
+    st2, js = get(B + s_.lstrip('/'))
+    for m in re.finditer(r'\b15:"([0-9a-f]{16,24})"', js):
+        for nome in ['15.' + m.group(1) + '.js', '15-es2015.' + m.group(1) + '.js', '15-es5.' + m.group(1) + '.js']:
+            st3, ch = get(B + nome)
+            print(json.dumps({'js': nome, 'trecho': 'st=%s tam=%s' % (st3, len(ch))}))
+            for k in re.finditer(r'download|arquivo|/api|window.open|\.pdf', ch):
+                print(json.dumps({'js': nome, 'trecho': ch[max(0, k.start() - 200): k.start() + 200]}, ensure_ascii=False))

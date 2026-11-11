@@ -513,3 +513,213 @@ class RjGuapimirimSeqSpider(_Base):
             yield self._tenta(n, a, m, k + 1, faltas)
         elif faltas < 40:
             yield self._tenta(n + 1, a, m, 0, faltas + 1)
+
+
+class RjAraruamaListaSpider(_Base):
+    """Araruama: lista pública em /publicacoes/diario-oficial?page=N (links '06-de-novembro-de-2026-ano-xix-no-1871');
+    cada edição tem página própria com o PDF em /storage/content/publicacoes/diario-oficial/<id>/arquivos/<hash>.pdf.
+    Achado pela sondagem por navegador em 11/11/2026."""
+    name = 'rj_araruama_lista'
+    TERRITORY_ID = '3300209'
+    allowed_domains = ['www.araruama.rj.gov.br', 'araruama.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://www.araruama.rj.gov.br'
+    RX = re.compile(r'href=["\'](?:https?://www\.araruama\.rj\.gov\.br)?(/publicacoes/diario-oficial/'
+                    r'(\d{1,2})-de-([a-z]+)-de-(\d{4})([a-z0-9-]*))["\']', re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/publicacoes/diario-oficial', callback=self.parse_lista, cb_kwargs=dict(pagina=1, anterior=None))
+
+    def parse_lista(self, response, pagina, anterior):
+        vistos, mais_velha = [], None
+        for m in self.RX.finditer(response.text):
+            url = self.BASE + m.group(1)
+            if url in vistos:
+                continue
+            vistos.append(url)
+            d = data_extenso(m.group(2), m.group(3), m.group(4))
+            if not d:
+                continue
+            mais_velha = d if not mais_velha or d < mais_velha else mais_velha
+            if self.dentro(d):
+                num = re.search(r'-no-(\d+)', m.group(5))
+                yield scrapy.Request(url, callback=self.parse_edicao, cb_kwargs=dict(
+                    d=d, num=num.group(1) if num else '', extra='extra' in m.group(5).lower()))
+        if vistos and vistos[0] != anterior and mais_velha and mais_velha >= self.start_date and pagina < 600:
+            yield scrapy.Request(f'{self.BASE}/publicacoes/diario-oficial?page={pagina + 1}', callback=self.parse_lista,
+                                 dont_filter=True, cb_kwargs=dict(pagina=pagina + 1, anterior=vistos[0]))
+
+    def parse_edicao(self, response, d, num, extra):
+        pdfs = list(dict.fromkeys(re.findall(r'(/storage/content/publicacoes/diario-oficial/\d+/arquivos/[^"\'\s]+?\.pdf)', response.text)))
+        if pdfs:
+            yield Gazette(date=d, edition_number=num, is_extra_edition=extra,
+                          file_urls=[self.BASE + p for p in pdfs], power='executive')
+
+
+# São João da Barra e São José de Ubá: lidos por coletor/navegador/portalgov.js (o POST da lista dá 403 fora do navegador).
+
+
+class RjNovaFriburgoDioenetSpider(BaseDioenetSpider):
+    """Nova Friburgo: o site do diário (diario.novafriburgo) não abre de fora; as edições estão também na
+    plataforma Dioenet (plenussistemas.dioenet.com.br/list/nova-friburgo), achada pela sondagem de 10/11/2026."""
+    name = 'rj_nova_friburgo_dioenet'
+    TERRITORY_ID = '3303401'
+    start_date = date(2021, 1, 1)
+    BASE_URL = 'https://plenussistemas.dioenet.com.br/list/nova-friburgo'
+    power = 'executive'
+
+
+class RjParatyApiSpider(_Base):
+    """Paraty: a página pública multimidia/documentos lê a API JSON /API/API/Documentos (CategoriaId=6 = Diário Oficial),
+    com Titulo 'Edição N°. 2138/2026', DataPublicacao e o PDF em DocumentoArquivoAtual. Achado em 11/11/2026."""
+    name = 'rj_paraty_api'
+    TERRITORY_ID = '3303807'
+    allowed_domains = ['www.paraty.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://www.paraty.rj.gov.br/API/API/Documentos?CategoriaId=6&Edicao=&PageSize=50&Palavra=&Tag=&Todos=&PageNumber={}'
+
+    async def start(self):
+        yield scrapy.Request(self.BASE.format(1), callback=self.parse_api, cb_kwargs={'pagina': 1}, headers=self.JSON)
+
+    JSON = {'Accept': 'application/json'}   # a API (ASP.NET) responde XML se o pedido não disser que quer JSON
+
+    def parse_api(self, response, pagina):
+        itens = response.json() or []
+        mais_velha = None
+        for it in itens:
+            try: d = datetime.strptime(it.get('DataPublicacao', ''), '%d/%m/%Y').date()
+            except Exception: continue
+            mais_velha = d
+            arq = (it.get('DocumentoArquivoAtual') or {}).get('CaminhoLogicoArquivo')
+            if not self.dentro(d) or not arq:
+                continue
+            tit = it.get('Titulo') or ''
+            m = re.search(r'(\d+(?:-[A-Z])?)\s*/\s*\d{4}', tit)
+            yield Gazette(date=d, edition_number=m.group(1) if m else tit[:30], is_extra_edition=bool(re.search(r'extra|-[A-Z]\b', tit, re.I)),
+                          file_urls=[arq], power='executive')
+        if itens and mais_velha and mais_velha >= self.start_date and pagina < 400:
+            yield scrapy.Request(self.BASE.format(pagina + 1), callback=self.parse_api, cb_kwargs={'pagina': pagina + 1}, headers=self.JSON)
+
+
+class RjBarraDoPiraiListaSpider(_Base):
+    """Barra do Piraí: página 'Diário Oficial Eletrônico' com um link por ano (/page/<id>/boletim-municipal-AAAA);
+    cada ano lista 'DOE 205 - Data 10-11.pdf' com o PDF em gestor.barradopirai.rj.gov.br/uploads/files/barradopirai/.
+    Achado pela sondagem por navegador em 11/11/2026."""
+    name = 'rj_barra_do_pirai_lista'
+    TERRITORY_ID = '3300308'
+    allowed_domains = ['barradopirai.rj.gov.br', 'gestor.barradopirai.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    INICIO = 'https://barradopirai.rj.gov.br/page/4edb08b8-3bae-4279-ad18-e8b88e798bda/diario-oficial-eletronico'
+    RX = re.compile(r'(https://gestor\.barradopirai\.rj\.gov\.br/uploads/files/barradopirai/[^"\'\s<>\\]+?\.pdf)'
+                    r'[^<]{0,400}?>\s*(?:<[^>]+>\s*)*DOE\s*(\d+)\s*-\s*Data\s*(\d{1,2})-(\d{1,2})([^<]*)', re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.INICIO, callback=self.parse_anos)
+
+    def parse_anos(self, response):
+        achou = 0
+        for href, ano in set(re.findall(r'(/page/[0-9a-f-]{36}/boletim-municipal-(\d{4}))', response.text)):
+            if self.start_date.year <= int(ano) <= self.end_date.year:
+                achou += 1
+                yield scrapy.Request(response.urljoin(href), callback=self.parse_ano, cb_kwargs={'ano': int(ano)})
+        if not achou:
+            self.logger.error('Barra do Piraí: links dos anos não vieram no HTML (página montada no navegador?)')
+
+    def parse_ano(self, response, ano):
+        n = 0
+        for url, num, dia, mes, resto in self.RX.findall(response.text):
+            try: d = date(ano, int(mes), int(dia))
+            except ValueError: continue
+            n += 1
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in (resto + url).lower(), file_urls=[url], power='executive')
+        if not n:
+            self.logger.error(f'Barra do Piraí {ano}: nenhuma edição no HTML')
+
+
+class RjJaperiGeosiapSpider(_Base):
+    """Japeri: Portal da Transparência GeoSiap, aba Publicações, tipo 7 = Diário Oficial. A própria página documenta a
+    API de dados abertos: lista em api//publicacoes/publicacoes?id_publicacao_tipo=7&exercicio=AAAA e o arquivo em
+    publicacoes/get_arquivo.anexo?...&id_publicacao=<id> (demais ids = 0). Achado em 11/11/2026."""
+    name = 'rj_japeri_geosiap'
+    TERRITORY_ID = '3302270'
+    allowed_domains = ['japeri.geosiap.net.br']
+    start_date = date(2015, 1, 1)
+    API = 'https://japeri.geosiap.net.br/portal-transparencia/api/'
+    ARQ = API + 'publicacoes/get_arquivo.anexo?id_subtipo=0&id_publicacao={}&id_publicacao_tipo=0&id_publicacao_sub_tipo=0&id_publicacao_periodo=0&exercicio=0&mes=0&id_relatorio=0'
+
+    async def start(self):
+        for ano in range(self.start_date.year, self.end_date.year + 1):
+            yield scrapy.Request(f'{self.API}/publicacoes/publicacoes?id_publicacao_tipo=7&exercicio={ano}', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        for it in (response.json() or {}).get('publicacoes') or []:
+            try: d = date.fromisoformat((it.get('dt_publicacao') or '')[:10])
+            except ValueError: continue
+            if not self.dentro(d) or not it.get('id_publicacao'):
+                continue
+            nome = it.get('nome_arquivo') or ''
+            m = re.search(r'-\s*(\d{3,6})\s*-', nome)
+            yield Gazette(date=d, edition_number=m.group(1) if m else '', is_extra_edition='extra' in nome.lower(),
+                          file_urls=[self.ARQ.format(it['id_publicacao'])], power='executive')
+
+
+class RjNatividadeListaSpider(_Base):
+    """Natividade: página /diario-oficial (Joomla) lista 'Edição 402 de 31/10/2026'; o botão 'Baixar pdf' chama
+    handleDownloadClick('/diario-oficial/<id>-edicao-<n>-de-<ddmmaaaa>/file?category_id=..'), endereço público do PDF.
+    Achado pela sondagem por navegador em 11/11/2026. Segue os links de página (start=) que a própria lista mostra."""
+    name = 'rj_natividade_lista'
+    TERRITORY_ID = '3303104'
+    allowed_domains = ['www.natividade.rj.gov.br', 'natividade.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://www.natividade.rj.gov.br'
+    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})(\d{2})(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/diario-oficial?category[0]=3&category_children=1', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        mais_velha = None
+        for url, num, dd, mm, aa in set(self.RX.findall(response.text.replace('&amp;', '&'))):
+            try: d = date(int(aa), int(mm), int(dd))
+            except ValueError: continue
+            mais_velha = d if not mais_velha or d < mais_velha else mais_velha
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in url.lower(), file_urls=[self.BASE + url], power='executive')
+        if mais_velha and mais_velha >= self.start_date:
+            for prox in set(re.findall(r'href="([^"]*[?&](?:start|limitstart)=\d+[^"]*)"', response.text)):
+                yield response.follow(prox.replace('&amp;', '&'), callback=self.parse_lista)
+
+
+class _RjSantaMariaMadalenaListaSpider(_Base):   # DESLIGADO 11/11: o site exige o cookie 'pmsmm_humano' posto por JS (filtro de robô); não contornamos
+    """Santa Maria Madalena: página /diario_oficial_eletronico lista as edições por mês com o PDF em
+    /transparencia/publicacoes_oficiais/diario_oficial_eletronico/AAAA/mes/EDIÇÃO_-_354_-_..._-_23-10_A_31-10.pdf.
+    A pasta em si dá 403 (não contornamos); só seguimos os links que a página mostra. Achado em 11/11/2026.
+    DATA: o nome traz o período (ex.: 23-10 a 31-10); usamos o ÚLTIMO dia do período. HIPÓTESE: é o dia da publicação."""
+    nome_quando_religar = 'rj_santa_maria_madalena_lista'
+    TERRITORY_ID = '3304607'
+    allowed_domains = ['www.pmsmm.rj.gov.br', 'pmsmm.rj.gov.br']
+    start_date = date(2020, 5, 1)
+    BASE = 'https://www.pmsmm.rj.gov.br'
+    RX = re.compile(r'href="([^"]*/diario_oficial_eletronico/(\d{4})/[^"/]+/[^"]+?\.pdf)"', re.I)
+    RX_NUM = re.compile(r'EDI(?:%C3%87%C3%83O|ÇÃO|CAO)_-_(\d+)', re.I)
+    RX_PER = re.compile(r'(\d{2})-(\d{2})_A_(\d{2})-(\d{2})', re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/diario_oficial_eletronico', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        html = response.text.replace('&amp;', '&')
+        for url, ano in set(self.RX.findall(html)):
+            per = self.RX_PER.search(url); num = self.RX_NUM.search(url)
+            if not per:
+                continue
+            try: d = date(int(ano), int(per.group(4)), int(per.group(3)))
+            except ValueError: continue
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=num.group(1) if num else '', is_extra_edition='extra' in url.lower(),
+                              file_urls=[response.urljoin(url)], power='executive')
+        for prox in set(re.findall(r'href="([^"]*diario_oficial_eletronico\?[^"]+)"', html)):
+            m = re.search(r'ano=(\d{4})', prox)
+            if not m or self.start_date.year <= int(m.group(1)) <= self.end_date.year:
+                yield response.follow(prox, callback=self.parse_lista)

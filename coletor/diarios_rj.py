@@ -184,7 +184,7 @@ def gravar_comum(manifesto, citados, pessoal, base):
 
 def municipio_de(arq):
     n = os.path.basename(arq).replace('.jsonl', '').replace('rj_', '').replace('_v2', '').replace('_v3', '')
-    n = re.sub(r'_(betha|api|seq|lista|gesdom|ajax|drive)$', '', n)   # sufixo do tipo de robô não entra no nome do município
+    n = re.sub(r'_(betha|api|seq|lista|gesdom|ajax|drive|dioenet|geosiap|nav)$', '', n)   # sufixo do tipo de robô não entra no nome do município
     if n == 'aemerj': return 'AEMERJ (vários municípios)'
     return n.replace('_', ' ').title().replace(' De ', ' de ').replace(' Do ', ' do ').replace(' Da ', ' da ').replace(' Dos ', ' dos ')
 

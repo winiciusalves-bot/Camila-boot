@@ -2,21 +2,17 @@
 // Não preenche login, não contorna captcha.
 const { chromium } = require('playwright');
 const ALVOS = [
-  { n: 'sjb', url: 'https://sjb.rj.gov.br/diario-oficial', clicar: [] },
-  { n: 'sfi', url: 'https://sfi.diariooficial.pmsfi.rj.gov.br/', clicar: [] },
-  { n: 'sfi2', url: 'https://pmsfi.rj.gov.br/servico/diario-oficial/', clicar: [] },
-  { n: 'guapimirim', url: 'https://guapimirim.rj.gov.br/?s=diario+oficial', clicar: [] },
-  { n: 'araruama', url: 'https://www.araruama.rj.gov.br/publicacoes/diario-oficial', clicar: [] },
-  { n: 'campos', url: 'https://www.campos.rj.gov.br/diario-oficial.php', clicar: [] },
+  { n: 'smm', url: 'https://www.pmsmm.rj.gov.br/diario_oficial_eletronico', clicar: [] },
+  { n: 'ssalto', url: 'https://ssalto.rj.gov.br/?s=di%C3%A1rio+oficial', clicar: [] },
 ];
 const LIXO = /google|clarity|userway|facebook|vlibras|hotjar|cdn-cgi|elementor/i;
 async function foto(pg) {
   for (let i = 0; i < 3; i++) {
     try {
       await pg.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => null);
-      const texto = (await pg.innerText('body')).replace(/\s+/g, ' ').slice(0, 2500);
+      const texto = (await pg.innerText('body')).replace(/\s+/g, ' ').slice(0, 4000);
       const links = await pg.$$eval('a', as => as.map(a => [a.textContent.replace(/\s+/g, ' ').trim().slice(0, 70), a.href, (a.getAttribute('onclick') || '').slice(0, 120)])
-        .filter(([t, h, o]) => /\.pdf|download|arquivo|visualiz|anexo/i.test(h + o) || /baixar|download|visualizar|pdf|edi[cç][aã]o/i.test(t)));
+        .filter(([t, h, o]) => /\.pdf|download|arquivo|visualiz|anexo|storage|diario-oficial\/|diario_oficial/i.test(h + o) || /baixar|download|visualizar|pdf|edi[cç][aã]o/i.test(t)));
       return { final: pg.url(), texto, nlinks: links.length, links: links.slice(0, 30) };
     } catch (e) { await pg.waitForTimeout(3000); }
   }
