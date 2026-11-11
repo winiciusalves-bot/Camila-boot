@@ -662,3 +662,30 @@ class RjJaperiGeosiapSpider(_Base):
             m = re.search(r'-\s*(\d{3,6})\s*-', nome)
             yield Gazette(date=d, edition_number=m.group(1) if m else '', is_extra_edition='extra' in nome.lower(),
                           file_urls=[self.ARQ.format(it['id_publicacao'])], power='executive')
+
+
+class RjNatividadeListaSpider(_Base):
+    """Natividade: página /diario-oficial (Joomla) lista 'Edição 402 de 31/10/2026'; o botão 'Baixar pdf' chama
+    handleDownloadClick('/diario-oficial/<id>-edicao-<n>-de-<ddmmaaaa>/file?category_id=..'), endereço público do PDF.
+    Achado pela sondagem por navegador em 11/11/2026. Segue os links de página (start=) que a própria lista mostra."""
+    name = 'rj_natividade_lista'
+    TERRITORY_ID = '3303104'
+    allowed_domains = ['www.natividade.rj.gov.br', 'natividade.rj.gov.br']
+    start_date = date(2015, 1, 1)
+    BASE = 'https://www.natividade.rj.gov.br'
+    RX = re.compile(r"(/diario-oficial/\d+-edicao-(\d+)[a-z0-9-]*?-de-(\d{2})(\d{2})(\d{4})[a-z0-9-]*/file\?category_id=\d+)", re.I)
+
+    async def start(self):
+        yield scrapy.Request(self.BASE + '/diario-oficial?category[0]=3&category_children=1', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        mais_velha = None
+        for url, num, dd, mm, aa in set(self.RX.findall(response.text.replace('&amp;', '&'))):
+            try: d = date(int(aa), int(mm), int(dd))
+            except ValueError: continue
+            mais_velha = d if not mais_velha or d < mais_velha else mais_velha
+            if self.dentro(d):
+                yield Gazette(date=d, edition_number=num, is_extra_edition='extra' in url.lower(), file_urls=[self.BASE + url], power='executive')
+        if mais_velha and mais_velha >= self.start_date:
+            for prox in set(re.findall(r'href="([^"]*[?&](?:start|limitstart)=\d+[^"]*)"', response.text)):
+                yield response.follow(prox.replace('&amp;', '&'), callback=self.parse_lista)
