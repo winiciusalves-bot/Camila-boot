@@ -1,0 +1,19 @@
+name: conferir-ps
+on:
+  workflow_dispatch:
+  push:
+    paths: ['ferramentas/dell/**']
+jobs:
+  sintaxe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: |
+          $ok = $true
+          foreach ($f in Get-ChildItem ferramentas/dell -Filter *.ps1) {
+            $t = $null; $e = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$t, [ref]$e)
+            if ($e) { $ok = $false; $e | ForEach-Object { Write-Host "$($f.Name):$($_.Extent.StartLineNumber): $($_.Message)" } } else { Write-Host "$($f.Name): sintaxe OK" }
+          }
+          if (-not $ok) { exit 1 }
