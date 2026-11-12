@@ -181,10 +181,11 @@
     $('a-xls').addEventListener('click', baixarPlanilha);
     try { grupo = localStorage.getItem('ac_grupo') || grupo; } catch (e) {}
     document.querySelectorAll('.sub-aba').forEach(function (b) { b.addEventListener('click', function () { grupo = b.getAttribute('data-g'); try { localStorage.setItem('ac_grupo', grupo); } catch (e) {} renderAprovados(); }); });
-    ['f-pri', 'f-mun', 'f-novos', 'f-tel', 'r-q', 'r-tipo', 'r-org', 'r-niv', 'r-val'].forEach(function (id) { $(id).addEventListener('input', render); });
+    ['f-chance', 'f-pri', 'f-mun', 'f-novos', 'f-tel', 'r-q', 'r-tipo', 'r-org', 'r-niv', 'r-val'].forEach(function (id) { $(id).addEventListener('input', render); });
     $('p-st').innerHTML = '<option value="">Todos</option>' + Object.keys(ST).map(function (k) { return '<option value="' + k + '">' + ST[k] + '</option>'; }).join('');
-    $('p-ord').value = D.empresas.some(function (e) { return e.pontos != null; }) ? 'pontos' : 'recente';
+    $('p-ord').value = 'recente';   // mais novos primeiro (pedido do usuário, 10/11/2026)
     if (!D.empresas.some(function (e) { return e.prioridade; })) $('f-pri').value = '';   // base ainda sem pontuação
+    if (!D.empresas.some(function (e) { return e.chance_licenciamento; })) $('f-chance').value = '';   // base ainda sem a peneira de licenciamento
     ['p-q', 'p-mun', 'p-st', 'p-ord', 'p-ativas', 'p-tel', 'p-pri'].forEach(function (id) { $(id).addEventListener('input', render); });
     render();
   }
@@ -218,7 +219,7 @@
       if (ord === 'qtd') return b.autos.length - a.autos.length;
       if (ord === 'pontos') return (b.e.pontos || 0) - (a.e.pontos || 0);
       if (ord === 'nome') return a.e.razao_social.localeCompare(b.e.razao_social);
-      return a.ultimo < b.ultimo ? 1 : -1;
+      return maisNovoPrimeiro(a, b);
     });
     var todos = Object.keys(porCnpj).map(function (k) { return porCnpj[k]; });
     var cont = function (f) { return todos.filter(f).length; };
@@ -247,12 +248,14 @@
       if (x.status === 'nao_contatar' || x.status === 'cliente' || x.status === 'sem_interesse') return false;
       if (x.tri === 'reprovado') return false;
       if (pf === 'AB' ? !(x.pri === 'A' || x.pri === 'B') : (pf && x.pri !== pf)) return false;
+      var ch = $('f-chance').value, xc = x.e.chance_licenciamento || '';
+      if (ch === 'AM' ? !(xc === 'Alta' || xc === 'Média') : (ch && xc !== ch)) return false;
       if (mun && x.muns.indexOf(mun) < 0) return false;
       if ($('f-novos').checked && x.status !== 'novo') return false;
       if ($('f-tel').checked && !x.tels.length) return false;
       return true;
-    }).sort(function (a, b) { return (b.e.pontos || 0) - (a.e.pontos || 0) || (a.ultimo < b.ultimo ? 1 : -1); });
-    $('f-info').textContent = lista.length + ' empresa(s) na fila, da maior para a menor pontuação. A pontuação indica urgência de contato, não culpa nem dano.';
+    }).sort(maisNovoPrimeiro);
+    $('f-info').textContent = lista.length + ' empresa(s) na fila, das mais recentes para as mais antigas (empate: maior pontuação primeiro). A pontuação indica urgência de contato, não culpa nem dano.';
     $('f-cards').innerHTML = lista.slice(0, 300).map(function (x) {
       var e = x.e, d = x.doc, cel = x.tels.filter(celular)[0];
       var mot = String(e.motivos || '').split('; ').slice(0, 3).join(' · ');
@@ -269,6 +272,9 @@
   }
 
 
+  // Regra do usuário (10/11/2026): no painel vêm primeiro os mais novos e por último os mais antigos
+  function maisNovoPrimeiro(a, b) { return String(a.ultimo || '') < String(b.ultimo || '') ? 1 : String(a.ultimo || '') > String(b.ultimo || '') ? -1 : (b.e.pontos || 0) - (a.e.pontos || 0); }
+
   // ---------- Conferência diária (✕ / ✓) ----------
   function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function diaLocal(t) { var d = new Date(t); return isNaN(d) ? '' : d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -280,7 +286,7 @@
       if (pf === 'X') return x.pri === 'X';
       if (x.pri === 'X') return false;
       return pf === 'AB' ? (x.pri === 'A' || x.pri === 'B') : (!pf || x.pri === pf);
-    }).sort(function (a, b) { return (b.e.pontos || 0) - (a.e.pontos || 0) || (a.ultimo < b.ultimo ? 1 : -1); });
+    }).sort(maisNovoPrimeiro);
     if (forcar && porCnpj[forcar] && !porCnpj[forcar].tri) { l = l.filter(function (x) { return x.e.cnpj !== forcar; }); l.unshift(porCnpj[forcar]); }
     return l;
   }
@@ -395,10 +401,10 @@
     document.querySelectorAll('.sub-aba').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-g') === grupo ? 'true' : 'false'); });
     $('n-apr').textContent = (g.acontatar.length + g.semretorno.length) || '';
     var l = g[grupo].sort(function (a, b) {
-      if (grupo === 'acontatar') return (b.e.pontos || 0) - (a.e.pontos || 0);
+      if (grupo === 'acontatar') return maisNovoPrimeiro(a, b);
       return String(a.ultContato) < String(b.ultContato) ? (grupo === 'semretorno' ? -1 : 1) : (grupo === 'semretorno' ? 1 : -1);
     });
-    var TXT = { acontatar: 'aprovada(s) e ainda sem nenhum contato, da maior para a menor pontuação.', aguardando: 'contatada(s), aguardando resposta. Sem resposta, voltam para nova tentativa em ' + VOLTAS[0] + ' dias e depois em ' + VOLTAS[1] + ' dias.',
+    var TXT = { acontatar: 'aprovada(s) e ainda sem nenhum contato, das mais recentes para as mais antigas.', aguardando: 'contatada(s), aguardando resposta. Sem resposta, voltam para nova tentativa em ' + VOLTAS[0] + ' dias e depois em ' + VOLTAS[1] + ' dias.',
       semretorno: 'sem resposta: hora da nova tentativa, de preferência por outro canal. Se a 3ª mensagem ficar ' + VOLTAS[1] + ' dias sem resposta, a empresa vai para o lixo.', retorno: 'responderam, têm reunião marcada ou já são clientes.', encerrados: 'sem interesse ou pediram para não ser contatadas.' };
     $('a-info').textContent = l.length + ' empresa(s) ' + TXT[grupo];
     $('a-cards').innerHTML = l.map(function (x) {
