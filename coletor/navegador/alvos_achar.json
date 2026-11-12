@@ -1,179 +1,205 @@
 {
 "Angra dos Reis": [
-"https://www.angradosreis.rj.gov.br",
-"https://angradosreis.rj.gov.br",
-"https://prefeituraangradosreis.rj.gov.br"
-],
-"Barra do Piraí": [
-"https://www.barradopirai.rj.gov.br",
-"https://barradopirai.rj.gov.br",
-"https://prefeiturabarradopirai.rj.gov.br"
+"https://prefeituradeangradosreis.rj.gov.br",
+"https://www.prefeituradeangradosreis.rj.gov.br",
+"https://prefeituraangradosreis.rj.gov.br",
+"https://pmangradosreis.rj.gov.br",
+"https://www.angradosreis.rj.gov.br"
 ],
 "Barra Mansa": [
-"https://www.barramansa.rj.gov.br",
-"https://barramansa.rj.gov.br",
-"https://prefeiturabarramansa.rj.gov.br"
-],
-"Bom Jesus do Itabapoana": [
-"https://www.bomjesusdoitabapoana.rj.gov.br",
-"https://bomjesusdoitabapoana.rj.gov.br",
-"https://prefeiturabomjesusdoitabapoana.rj.gov.br"
+"https://prefeituradebarramansa.rj.gov.br",
+"https://www.prefeituradebarramansa.rj.gov.br",
+"https://prefeiturabarramansa.rj.gov.br",
+"https://pmbarramansa.rj.gov.br",
+"https://www.barramansa.rj.gov.br"
 ],
 "Cachoeiras de Macacu": [
-"https://www.cachoeirasdemacacu.rj.gov.br",
-"https://cachoeirasdemacacu.rj.gov.br",
-"https://prefeituracachoeirasdemacacu.rj.gov.br"
-],
-"Cambuci": [
-"https://www.cambuci.rj.gov.br",
-"https://cambuci.rj.gov.br",
-"https://prefeituracambuci.rj.gov.br"
+"https://prefeituradecachoeirasdemacacu.rj.gov.br",
+"https://www.prefeituradecachoeirasdemacacu.rj.gov.br",
+"https://prefeituracachoeirasdemacacu.rj.gov.br",
+"https://pmcachoeirasdemacacu.rj.gov.br",
+"https://www.cachoeirasdemacacu.rj.gov.br"
 ],
 "Cantagalo": [
-"https://www.cantagalo.rj.gov.br",
-"https://cantagalo.rj.gov.br",
-"https://prefeituracantagalo.rj.gov.br"
+"https://prefeituradecantagalo.rj.gov.br",
+"https://www.prefeituradecantagalo.rj.gov.br",
+"https://prefeituracantagalo.rj.gov.br",
+"https://pmcantagalo.rj.gov.br",
+"https://www.cantagalo.rj.gov.br"
 ],
 "Carapebus": [
-"https://www.carapebus.rj.gov.br",
-"https://carapebus.rj.gov.br",
-"https://prefeituracarapebus.rj.gov.br"
-],
-"Cardoso Moreira": [
-"https://www.cardosomoreira.rj.gov.br",
-"https://cardosomoreira.rj.gov.br",
-"https://prefeituracardosomoreira.rj.gov.br"
+"https://prefeituradecarapebus.rj.gov.br",
+"https://www.prefeituradecarapebus.rj.gov.br",
+"https://prefeituracarapebus.rj.gov.br",
+"https://pmcarapebus.rj.gov.br",
+"https://www.carapebus.rj.gov.br"
 ],
 "Conceição de Macabu": [
-"https://www.conceicaodemacabu.rj.gov.br",
-"https://conceicaodemacabu.rj.gov.br",
-"https://prefeituraconceicaodemacabu.rj.gov.br"
-],
-"Italva": [
-"https://www.italva.rj.gov.br",
-"https://italva.rj.gov.br",
-"https://prefeituraitalva.rj.gov.br"
+"https://prefeituradeconceicaodemacabu.rj.gov.br",
+"https://www.prefeituradeconceicaodemacabu.rj.gov.br",
+"https://prefeituraconceicaodemacabu.rj.gov.br",
+"https://pmconceicaodemacabu.rj.gov.br",
+"https://www.conceicaodemacabu.rj.gov.br"
 ],
 "Itaocara": [
-"https://www.itaocara.rj.gov.br",
-"https://itaocara.rj.gov.br",
-"https://prefeituraitaocara.rj.gov.br"
-],
-"Japeri": [
-"https://www.japeri.rj.gov.br",
-"https://japeri.rj.gov.br",
-"https://prefeiturajaperi.rj.gov.br",
-"https://japeri.geosiap.net.br"
-],
-"Laje do Muriaé": [
-"https://www.lajedomuriae.rj.gov.br",
-"https://lajedomuriae.rj.gov.br",
-"https://prefeituralajedomuriae.rj.gov.br"
-],
-"Macuco": [
-"https://www.macuco.rj.gov.br",
-"https://macuco.rj.gov.br",
-"https://prefeituramacuco.rj.gov.br"
+"https://prefeituradeitaocara.rj.gov.br",
+"https://www.prefeituradeitaocara.rj.gov.br",
+"https://prefeituraitaocara.rj.gov.br",
+"https://pmitaocara.rj.gov.br",
+"https://www.itaocara.rj.gov.br"
 ],
 "Magé": [
-"https://www.mage.rj.gov.br",
-"https://mage.rj.gov.br",
-"https://prefeituramage.rj.gov.br"
+"https://prefeiturademage.rj.gov.br",
+"https://www.prefeiturademage.rj.gov.br",
+"https://prefeituramage.rj.gov.br",
+"https://pmmage.rj.gov.br",
+"https://www.mage.rj.gov.br"
 ],
 "Mangaratiba": [
-"https://www.mangaratiba.rj.gov.br",
-"https://mangaratiba.rj.gov.br",
-"https://prefeituramangaratiba.rj.gov.br"
-],
-"Natividade": [
-"https://www.natividade.rj.gov.br",
-"https://natividade.rj.gov.br",
-"https://prefeituranatividade.rj.gov.br"
-],
-"Paraty": [
-"https://www.paraty.rj.gov.br",
-"https://paraty.rj.gov.br",
-"https://prefeituraparaty.rj.gov.br"
+"https://prefeiturademangaratiba.rj.gov.br",
+"https://www.prefeiturademangaratiba.rj.gov.br",
+"https://prefeituramangaratiba.rj.gov.br",
+"https://pmmangaratiba.rj.gov.br",
+"https://www.mangaratiba.rj.gov.br"
 ],
 "Petrópolis": [
-"https://www.petropolis.rj.gov.br",
-"https://petropolis.rj.gov.br",
-"https://prefeiturapetropolis.rj.gov.br"
+"https://prefeituradepetropolis.rj.gov.br",
+"https://www.prefeituradepetropolis.rj.gov.br",
+"https://prefeiturapetropolis.rj.gov.br",
+"https://pmpetropolis.rj.gov.br",
+"https://www.petropolis.rj.gov.br"
 ],
 "Pinheiral": [
-"https://www.pinheiral.rj.gov.br",
-"https://pinheiral.rj.gov.br",
-"https://prefeiturapinheiral.rj.gov.br"
+"https://prefeituradepinheiral.rj.gov.br",
+"https://www.prefeituradepinheiral.rj.gov.br",
+"https://prefeiturapinheiral.rj.gov.br",
+"https://pmpinheiral.rj.gov.br",
+"https://www.pinheiral.rj.gov.br"
 ],
 "Piraí": [
-"https://www.pirai.rj.gov.br",
-"https://pirai.rj.gov.br",
-"https://prefeiturapirai.rj.gov.br"
+"https://prefeituradepirai.rj.gov.br",
+"https://www.prefeituradepirai.rj.gov.br",
+"https://prefeiturapirai.rj.gov.br",
+"https://pmpirai.rj.gov.br",
+"https://www.pirai.rj.gov.br"
 ],
 "Porciúncula": [
-"https://www.porciuncula.rj.gov.br",
-"https://porciuncula.rj.gov.br",
-"https://prefeituraporciuncula.rj.gov.br"
+"https://prefeituradeporciuncula.rj.gov.br",
+"https://www.prefeituradeporciuncula.rj.gov.br",
+"https://prefeituraporciuncula.rj.gov.br",
+"https://pmporciuncula.rj.gov.br",
+"https://www.porciuncula.rj.gov.br"
 ],
 "Porto Real": [
-"https://www.portoreal.rj.gov.br",
-"https://portoreal.rj.gov.br",
-"https://prefeituraportoreal.rj.gov.br"
+"https://prefeituradeportoreal.rj.gov.br",
+"https://www.prefeituradeportoreal.rj.gov.br",
+"https://prefeituraportoreal.rj.gov.br",
+"https://pmportoreal.rj.gov.br",
+"https://www.portoreal.rj.gov.br"
 ],
 "Resende": [
-"https://www.resende.rj.gov.br",
-"https://resende.rj.gov.br",
-"https://prefeituraresende.rj.gov.br"
+"https://prefeituraderesende.rj.gov.br",
+"https://www.prefeituraderesende.rj.gov.br",
+"https://prefeituraresende.rj.gov.br",
+"https://pmresende.rj.gov.br",
+"https://www.resende.rj.gov.br"
 ],
 "Rio das Flores": [
-"https://www.riodasflores.rj.gov.br",
-"https://riodasflores.rj.gov.br",
-"https://prefeiturariodasflores.rj.gov.br"
-],
-"Santa Maria Madalena": [
-"https://www.santamariamadalena.rj.gov.br",
-"https://santamariamadalena.rj.gov.br",
-"https://prefeiturasantamariamadalena.rj.gov.br"
+"https://prefeituraderiodasflores.rj.gov.br",
+"https://www.prefeituraderiodasflores.rj.gov.br",
+"https://prefeiturariodasflores.rj.gov.br",
+"https://pmriodasflores.rj.gov.br",
+"https://www.riodasflores.rj.gov.br"
 ],
 "Santo Antônio de Pádua": [
-"https://www.santoantoniodepadua.rj.gov.br",
-"https://santoantoniodepadua.rj.gov.br",
-"https://prefeiturasantoantoniodepadua.rj.gov.br"
-],
-"São José de Ubá": [
-"https://www.saojosedeuba.rj.gov.br",
-"https://saojosedeuba.rj.gov.br",
-"https://prefeiturasaojosedeuba.rj.gov.br"
-],
-"São Sebastião do Alto": [
-"https://www.saosebastiaodoalto.rj.gov.br",
-"https://saosebastiaodoalto.rj.gov.br",
-"https://prefeiturasaosebastiaodoalto.rj.gov.br"
+"https://prefeituradesantoantoniodepadua.rj.gov.br",
+"https://www.prefeituradesantoantoniodepadua.rj.gov.br",
+"https://prefeiturasantoantoniodepadua.rj.gov.br",
+"https://pmsantoantoniodepadua.rj.gov.br",
+"https://www.santoantoniodepadua.rj.gov.br"
 ],
 "Silva Jardim": [
-"https://www.silvajardim.rj.gov.br",
-"https://silvajardim.rj.gov.br",
-"https://prefeiturasilvajardim.rj.gov.br"
+"https://prefeituradesilvajardim.rj.gov.br",
+"https://www.prefeituradesilvajardim.rj.gov.br",
+"https://prefeiturasilvajardim.rj.gov.br",
+"https://pmsilvajardim.rj.gov.br",
+"https://www.silvajardim.rj.gov.br"
 ],
 "Teresópolis": [
-"https://www.teresopolis.rj.gov.br",
-"https://teresopolis.rj.gov.br",
-"https://prefeiturateresopolis.rj.gov.br"
+"https://prefeituradeteresopolis.rj.gov.br",
+"https://www.prefeituradeteresopolis.rj.gov.br",
+"https://prefeiturateresopolis.rj.gov.br",
+"https://pmteresopolis.rj.gov.br",
+"https://www.teresopolis.rj.gov.br"
 ],
 "Três Rios": [
-"https://www.tresrios.rj.gov.br",
-"https://tresrios.rj.gov.br",
-"https://prefeituratresrios.rj.gov.br"
+"https://prefeituradetresrios.rj.gov.br",
+"https://www.prefeituradetresrios.rj.gov.br",
+"https://prefeituratresrios.rj.gov.br",
+"https://pmtresrios.rj.gov.br",
+"https://www.tresrios.rj.gov.br"
 ],
 "Valença": [
-"https://www.valenca.rj.gov.br",
-"https://valenca.rj.gov.br",
-"https://prefeituravalenca.rj.gov.br"
+"https://prefeituradevalenca.rj.gov.br",
+"https://www.prefeituradevalenca.rj.gov.br",
+"https://prefeituravalenca.rj.gov.br",
+"https://pmvalenca.rj.gov.br",
+"https://www.valenca.rj.gov.br"
 ],
 "Volta Redonda": [
-"https://www.voltaredonda.rj.gov.br",
-"https://voltaredonda.rj.gov.br",
+"https://prefeituradevoltaredonda.rj.gov.br",
+"https://www.prefeituradevoltaredonda.rj.gov.br",
 "https://prefeituravoltaredonda.rj.gov.br",
-"https://new.voltaredonda.rj.gov.br"
+"https://pmvoltaredonda.rj.gov.br",
+"https://www.voltaredonda.rj.gov.br"
+],
+"Macuco": [
+"https://prefeiturademacuco.rj.gov.br",
+"https://www.prefeiturademacuco.rj.gov.br",
+"https://prefeituramacuco.rj.gov.br",
+"https://pmmacuco.rj.gov.br",
+"https://www.macuco.rj.gov.br"
+],
+"Laje do Muriaé": [
+"https://prefeituradelajedomuriae.rj.gov.br",
+"https://www.prefeituradelajedomuriae.rj.gov.br",
+"https://prefeituralajedomuriae.rj.gov.br",
+"https://pmlajedomuriae.rj.gov.br",
+"https://www.lajedomuriae.rj.gov.br"
+],
+"São Sebastião do Alto": [
+"https://prefeituradesaosebastiaodoalto.rj.gov.br",
+"https://www.prefeituradesaosebastiaodoalto.rj.gov.br",
+"https://prefeiturasaosebastiaodoalto.rj.gov.br",
+"https://pmsaosebastiaodoalto.rj.gov.br",
+"https://www.saosebastiaodoalto.rj.gov.br"
+],
+"Italva": [
+"https://prefeituradeitalva.rj.gov.br",
+"https://www.prefeituradeitalva.rj.gov.br",
+"https://prefeituraitalva.rj.gov.br",
+"https://pmitalva.rj.gov.br",
+"https://www.italva.rj.gov.br"
+],
+"Cardoso Moreira": [
+"https://prefeituradecardosomoreira.rj.gov.br",
+"https://www.prefeituradecardosomoreira.rj.gov.br",
+"https://prefeituracardosomoreira.rj.gov.br",
+"https://pmcardosomoreira.rj.gov.br",
+"https://www.cardosomoreira.rj.gov.br"
+],
+"Santa Maria Madalena": [
+"https://prefeituradesantamariamadalena.rj.gov.br",
+"https://www.prefeituradesantamariamadalena.rj.gov.br",
+"https://prefeiturasantamariamadalena.rj.gov.br",
+"https://pmsantamariamadalena.rj.gov.br",
+"https://www.santamariamadalena.rj.gov.br"
+],
+"Nova Friburgo": [
+"https://prefeituradenovafriburgo.rj.gov.br",
+"https://www.prefeituradenovafriburgo.rj.gov.br",
+"https://prefeituranovafriburgo.rj.gov.br",
+"https://pmnovafriburgo.rj.gov.br",
+"https://www.novafriburgo.rj.gov.br"
 ]
 }
