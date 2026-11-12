@@ -32,7 +32,7 @@
   } else if (window.DADOS_LOCAIS) {
     modo = 'local';
     $('faixa-previa').hidden = false;
-    D.empresas = DADOS_LOCAIS.empresas; D.autos = DADOS_LOCAIS.autos; D.embargos = DADOS_LOCAIS.embargos || []; D.ocorrencias = DADOS_LOCAIS.ocorrencias || [];
+    D.empresas = DADOS_LOCAIS.empresas; D.autos = DADOS_LOCAIS.autos; D.embargos = DADOS_LOCAIS.embargos || []; D.ocorrencias = DADOS_LOCAIS.ocorrencias || []; tirarDescartadas();
     try { D.contatos = JSON.parse(localStorage.getItem('ac_contatos') || '[]'); } catch (e) { D.contatos = []; }
     try { TRI = JSON.parse(localStorage.getItem('ac_triagem') || '{}'); } catch (e) { TRI = {}; }
     usuario = 'prévia local'; montar();
@@ -83,8 +83,18 @@
       var err = r.find(function (x) { return x.error; });
       if (err) { alert('Erro ao carregar os dados: ' + err.error.message); return; }
       if (!r[0].data.length) { $('tela-login').hidden = true; $('tela-sem-config').hidden = false; $('tela-sem-config').innerHTML = '<h1 class="login-tit">Sem acesso aos dados</h1><p>Seu login funcionou, mas este e-mail não está na lista de usuários autorizados (tabela usuarios_autorizados).</p>'; $('usuario').hidden = false; $('usuario-email').textContent = usuario; return; }
-      D.empresas = r[0].data; D.autos = r[1].data; D.contatos = r[2].data; D.embargos = r[3].data || []; D.ocorrencias = r[4].data || []; montar();
+      D.empresas = r[0].data; D.autos = r[1].data; D.contatos = r[2].data; D.embargos = r[3].data || []; D.ocorrencias = r[4].data || []; tirarDescartadas(); montar();
     });
+  }
+
+  // Descartadas (prioridade X: CNPJ baixado/suspenso, órgão público, lista de exclusão) nem entram no painel.
+  function tirarDescartadas() {
+    var fora = {};
+    D.empresas.forEach(function (e) {
+      if (String(e.prioridade || '').charAt(0) === 'X' || (e.situacao_receita && e.situacao_receita !== 'ATIVA')) fora[e.cnpj] = 1;
+    });
+    function f(l) { return (l || []).filter(function (o) { return !fora[o.cnpj]; }); }
+    D.empresas = f(D.empresas); D.autos = f(D.autos); D.contatos = f(D.contatos); D.embargos = f(D.embargos); D.ocorrencias = f(D.ocorrencias);
   }
 
   function indexar() {
@@ -171,10 +181,11 @@
     $('a-xls').addEventListener('click', baixarPlanilha);
     try { grupo = localStorage.getItem('ac_grupo') || grupo; } catch (e) {}
     document.querySelectorAll('.sub-aba').forEach(function (b) { b.addEventListener('click', function () { grupo = b.getAttribute('data-g'); try { localStorage.setItem('ac_grupo', grupo); } catch (e) {} renderAprovados(); }); });
-    ['f-pri', 'f-mun', 'f-novos', 'f-tel', 'r-q', 'r-tipo', 'r-org', 'r-niv', 'r-val'].forEach(function (id) { $(id).addEventListener('input', render); });
+    ['f-chance', 'f-pri', 'f-mun', 'f-novos', 'f-tel', 'r-q', 'r-tipo', 'r-org', 'r-niv', 'r-val'].forEach(function (id) { $(id).addEventListener('input', render); });
     $('p-st').innerHTML = '<option value="">Todos</option>' + Object.keys(ST).map(function (k) { return '<option value="' + k + '">' + ST[k] + '</option>'; }).join('');
-    $('p-ord').value = D.empresas.some(function (e) { return e.pontos != null; }) ? 'pontos' : 'recente';
+    $('p-ord').value = 'recente';   // mais novos primeiro (pedido do usuário, 10/11/2026)
     if (!D.empresas.some(function (e) { return e.prioridade; })) $('f-pri').value = '';   // base ainda sem pontuação
+    if (!D.empresas.some(function (e) { return e.chance_licenciamento; })) $('f-chance').value = '';   // base ainda sem a peneira de licenciamento
     ['p-q', 'p-mun', 'p-st', 'p-ord', 'p-ativas', 'p-tel', 'p-pri'].forEach(function (id) { $(id).addEventListener('input', render); });
     render();
   }
@@ -184,6 +195,7 @@
     if (t && t.decisao === 'aprovado') s += '<span class="selo selo-apr">✓ Aprovado na conferência</span>';
     if (t && t.decisao === 'reprovado') s += '<span class="selo selo-verm">✕ Reprovado na conferência</span>';
     if (e.prioridade) s += '<span class="selo pri pri-' + esc(e.prioridade.charAt(0)) + '" title="' + esc(e.motivos || '') + '">Prioridade ' + esc(e.prioridade) + (e.pontos != null ? ' · ' + e.pontos + ' pts' : '') + '</span>';
+    if (e.chance_licenciamento) s += '<span class="selo chance chance-' + esc(e.chance_licenciamento.toLowerCase()) + '" title="' + esc(e.chance_motivo || '') + '">Chance de licenciamento: ' + esc(e.chance_licenciamento) + (e.chance_pontos != null ? ' · ' + e.chance_pontos + ' pts' : '') + '</span>';
     if (e.embargos_vigentes) s += '<span class="selo selo-verm">' + e.embargos_vigentes + ' embargo(s) vigente(s)</span>';
     if (e.situacao_receita && e.situacao_receita !== 'ATIVA') s += '<span class="selo selo-verm">' + esc(e.situacao_receita) + ' na Receita</span>';
     if (e.nome_divergente) s += '<span class="selo selo-amar">Nome no auto ≠ razão social</span>';
@@ -207,7 +219,7 @@
       if (ord === 'qtd') return b.autos.length - a.autos.length;
       if (ord === 'pontos') return (b.e.pontos || 0) - (a.e.pontos || 0);
       if (ord === 'nome') return a.e.razao_social.localeCompare(b.e.razao_social);
-      return a.ultimo < b.ultimo ? 1 : -1;
+      return maisNovoPrimeiro(a, b);
     });
     var todos = Object.keys(porCnpj).map(function (k) { return porCnpj[k]; });
     var cont = function (f) { return todos.filter(f).length; };
@@ -236,12 +248,14 @@
       if (x.status === 'nao_contatar' || x.status === 'cliente' || x.status === 'sem_interesse') return false;
       if (x.tri === 'reprovado') return false;
       if (pf === 'AB' ? !(x.pri === 'A' || x.pri === 'B') : (pf && x.pri !== pf)) return false;
+      var ch = $('f-chance').value, xc = x.e.chance_licenciamento || '';
+      if (ch === 'AM' ? !(xc === 'Alta' || xc === 'Média') : (ch && xc !== ch)) return false;
       if (mun && x.muns.indexOf(mun) < 0) return false;
       if ($('f-novos').checked && x.status !== 'novo') return false;
       if ($('f-tel').checked && !x.tels.length) return false;
       return true;
-    }).sort(function (a, b) { return (b.e.pontos || 0) - (a.e.pontos || 0) || (a.ultimo < b.ultimo ? 1 : -1); });
-    $('f-info').textContent = lista.length + ' empresa(s) na fila, da maior para a menor pontuação. A pontuação indica urgência de contato, não culpa nem dano.';
+    }).sort(maisNovoPrimeiro);
+    $('f-info').textContent = lista.length + ' empresa(s) na fila, das mais recentes para as mais antigas (empate: maior pontuação primeiro). A pontuação indica urgência de contato, não culpa nem dano.';
     $('f-cards').innerHTML = lista.slice(0, 300).map(function (x) {
       var e = x.e, d = x.doc, cel = x.tels.filter(celular)[0];
       var mot = String(e.motivos || '').split('; ').slice(0, 3).join(' · ');
@@ -258,6 +272,9 @@
   }
 
 
+  // Regra do usuário (10/11/2026): no painel vêm primeiro os mais novos e por último os mais antigos
+  function maisNovoPrimeiro(a, b) { return String(a.ultimo || '') < String(b.ultimo || '') ? 1 : String(a.ultimo || '') > String(b.ultimo || '') ? -1 : (b.e.pontos || 0) - (a.e.pontos || 0); }
+
   // ---------- Conferência diária (✕ / ✓) ----------
   function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function diaLocal(t) { var d = new Date(t); return isNaN(d) ? '' : d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -269,7 +286,7 @@
       if (pf === 'X') return x.pri === 'X';
       if (x.pri === 'X') return false;
       return pf === 'AB' ? (x.pri === 'A' || x.pri === 'B') : (!pf || x.pri === pf);
-    }).sort(function (a, b) { return (b.e.pontos || 0) - (a.e.pontos || 0) || (a.ultimo < b.ultimo ? 1 : -1); });
+    }).sort(maisNovoPrimeiro);
     if (forcar && porCnpj[forcar] && !porCnpj[forcar].tri) { l = l.filter(function (x) { return x.e.cnpj !== forcar; }); l.unshift(porCnpj[forcar]); }
     return l;
   }
@@ -384,10 +401,10 @@
     document.querySelectorAll('.sub-aba').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-g') === grupo ? 'true' : 'false'); });
     $('n-apr').textContent = (g.acontatar.length + g.semretorno.length) || '';
     var l = g[grupo].sort(function (a, b) {
-      if (grupo === 'acontatar') return (b.e.pontos || 0) - (a.e.pontos || 0);
+      if (grupo === 'acontatar') return maisNovoPrimeiro(a, b);
       return String(a.ultContato) < String(b.ultContato) ? (grupo === 'semretorno' ? -1 : 1) : (grupo === 'semretorno' ? 1 : -1);
     });
-    var TXT = { acontatar: 'aprovada(s) e ainda sem nenhum contato, da maior para a menor pontuação.', aguardando: 'contatada(s), aguardando resposta. Sem resposta, voltam para nova tentativa em ' + VOLTAS[0] + ' dias e depois em ' + VOLTAS[1] + ' dias.',
+    var TXT = { acontatar: 'aprovada(s) e ainda sem nenhum contato, das mais recentes para as mais antigas.', aguardando: 'contatada(s), aguardando resposta. Sem resposta, voltam para nova tentativa em ' + VOLTAS[0] + ' dias e depois em ' + VOLTAS[1] + ' dias.',
       semretorno: 'sem resposta: hora da nova tentativa, de preferência por outro canal. Se a 3ª mensagem ficar ' + VOLTAS[1] + ' dias sem resposta, a empresa vai para o lixo.', retorno: 'responderam, têm reunião marcada ou já são clientes.', encerrados: 'sem interesse ou pediram para não ser contatadas.' };
     $('a-info').textContent = l.length + ' empresa(s) ' + TXT[grupo];
     $('a-cards').innerHTML = l.map(function (x) {
@@ -473,7 +490,7 @@
           'Telefones (Receita)': x.tels.map(fmtTel).join(' / '), 'E-mail': e.email || '', 'Fonte do e-mail': e.email_fonte || (e.email ? RF : ''),
           'Site': e.site || '', 'Como o site foi confirmado': e.site_confirmacao || '', 'E-mails no site': j(sc.emails), 'Telefones no site': j((sc.telefones || []).map(fmtTel)),
           'WhatsApp no site': j((sc.whatsapp || []).map(fmtTel)), 'Redes sociais no site': j(sc.redes), 'Páginas do site lidas': j(sc.paginas), 'Site conferido em': e.site_busca_em ? br(e.site_busca_em) : '',
-          'Prioridade': e.prioridade || '', 'Pontos': e.pontos == null ? '' : e.pontos, 'Motivos da prioridade': e.motivos || '',
+          'Prioridade': e.prioridade || '', 'Pontos': e.pontos == null ? '' : e.pontos, 'Motivos da prioridade': e.motivos || '', 'Chance de licenciamento': e.chance_licenciamento || '', 'Pontos (licenciamento)': e.chance_pontos == null ? '' : e.chance_pontos, 'Motivo (licenciamento)': e.chance_motivo || '',
           'Nº de autos': x.autos.length, 'Último documento': x.ultimo ? br(x.ultimo) : '', 'Municípios dos autos': x.muns.join(', '),
           'Embargos vigentes': e.embargos_vigentes || 0, 'Prazo de defesa estimado até': e.prazo_defesa_ate ? br(e.prazo_defesa_ate) + ' (estimativa: ciência + 20 dias; confirmar na notificação)' : '',
           'Status do contato': ST[x.status] || x.status, 'Aprovado em': brDH(t.decidido_em), 'Aprovado por': t.autor_email || '', 'Fonte dos autos': IB
@@ -581,6 +598,7 @@
     if (e.situacao_receita !== 'ATIVA') avisos += '<p class="aviso-l verm">Empresa ' + esc(e.situacao_receita) + ' na Receita. Não prospectar sem conferir quem responde hoje pela atividade.</p>';
     if (e.nome_divergente) avisos += '<p class="aviso-l amar">O nome escrito no auto difere da razão social atual. Pode ser troca de nome ou CNPJ digitado errado no auto. Confira antes de contatar (HIPÓTESE, não FATO).</p>';
     if (e.individual) avisos += '<p class="aviso-l">MEI / empresário individual: o contato é da própria pessoa. Use só para tratar do auto, identifique a fonte (dados abertos do IBAMA e cadastro do CNPJ) e atenda na hora a quem pedir para não ser contatado (LGPD).</p>';
+    if (e.chance_motivo) avisos += '<p class="aviso-l"><strong>Chance de contratar licenciamento (' + esc(e.chance_licenciamento || '') + '):</strong> ' + esc(e.chance_motivo) + '. É juízo comercial, não acusação.</p>';
     if (e.motivos) avisos += '<p class="aviso-l"><strong>Por que esta prioridade:</strong> ' + esc(e.motivos) + '. A pontuação indica urgência de contato; não indica culpa nem dano.</p>';
     if (e.prazo_defesa_ate) avisos += '<p class="aviso-l amar">Prazo de defesa <strong>estimado</strong> até ' + esc(br(e.prazo_defesa_ate)) + ' (ciência + 20 dias, Decreto 6.514/2008, art. 113). Confirme na notificação.</p>';
     if (bloq) avisos += '<p class="aviso-l verm">Marcada como <strong>Não contatar</strong>. Não envie mensagens.</p>';

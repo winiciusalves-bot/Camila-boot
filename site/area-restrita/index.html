@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css?v=20261108">
-<link rel="stylesheet" href="painel.css?v=20261108">
+<link rel="stylesheet" href="painel.css?v=20261112">
 </head>
 <body class="painel-body">
 
@@ -68,7 +68,7 @@
 
     <section id="aba-conferencia" class="painel-aba" hidden>
       <div class="busca busca-conf">
-        <label class="campo"><span>Conferir</span><select id="c-pri"><option value="AB">Prioridade A e B</option><option value="A">Só A</option><option value="">Todas (sem X)</option><option value="X">Só X (descartadas)</option></select></label>
+        <label class="campo"><span>Conferir</span><select id="c-pri"><option value="AB">Prioridade A e B</option><option value="A">Só A</option><option value="">Todas</option></select></label>
       </div>
       <p class="aviso-l" id="c-aviso" hidden></p>
       <p class="res-info" id="c-info" aria-live="polite"></p>
@@ -105,7 +105,8 @@
 
     <section id="aba-fila" class="painel-aba" hidden data-antiga="substituida por Aprovados > A contatar">
       <form class="busca busca-fila" onsubmit="return false">
-        <label class="campo"><span>Prioridade</span><select id="f-pri"><option value="AB">A e B</option><option value="A">Só A</option><option value="B">Só B</option><option value="C">C</option><option value="">Todas (sem X)</option></select></label>
+        <label class="campo"><span>Prioridade</span><select id="f-pri"><option value="AB">A e B</option><option value="A">Só A</option><option value="B">Só B</option><option value="C">C</option><option value="">Todas</option></select></label>
+        <label class="campo"><span>Chance de licenciamento</span><select id="f-chance"><option value="AM">Alta e Média</option><option value="Alta">Só Alta</option><option value="">Todas</option></select></label>
         <label class="campo"><span>Município</span><select id="f-mun"><option value="">Todos</option></select></label>
         <label class="check"><input type="checkbox" id="f-novos" checked> Só quem ainda não foi contatado</label>
         <label class="check"><input type="checkbox" id="f-tel"> Só com telefone</label>
@@ -120,9 +121,9 @@
       <label class="campo campo-grande"><span>Buscar</span><input type="search" id="p-q" placeholder="Razão social, CNPJ, nº do auto"></label>
       <label class="campo"><span>Município do auto</span><select id="p-mun"><option value="">Todos</option></select></label>
       <label class="campo"><span>Status</span><select id="p-st"><option value="">Todos</option></select></label>
-      <label class="campo"><span>Prioridade</span><select id="p-pri"><option value="">Todas</option><option value="A">A (alta)</option><option value="B">B</option><option value="C">C</option><option value="X">X (descartadas)</option></select></label>
+      <label class="campo"><span>Prioridade</span><select id="p-pri"><option value="">Todas</option><option value="A">A (alta)</option><option value="B">B</option><option value="C">C</option></select></label>
       <label class="campo"><span>Ordenar</span>
-        <select id="p-ord"><option value="pontos">Pontuação</option><option value="recente">Auto mais recente</option><option value="qtd">Mais autos</option><option value="nome">Razão social</option></select>
+        <select id="p-ord"><option value="recente">Mais recentes primeiro</option><option value="pontos">Pontuação</option><option value="qtd">Mais autos</option><option value="nome">Razão social</option></select>
       </label>
       <label class="check"><input type="checkbox" id="p-ativas" checked> Só empresas ativas</label>
       <label class="check"><input type="checkbox" id="p-tel"> Só com telefone</label>
@@ -170,6 +171,6 @@
   // Prévia local: só carrega se o arquivo existir no computador (nunca publique a pasta NAO-PUBLICAR).
   if (!(window.SITE_CONFIG || {}).supabaseUrl) document.write('<script src="../NAO-PUBLICAR/dados-locais.js"><\/script>');
 </script>
-<script src="painel.js?v=20261108"></script>
+<script src="painel.js?v=20261112"></script>
 </body>
 </html>
