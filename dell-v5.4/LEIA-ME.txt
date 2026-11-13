@@ -1,7 +1,7 @@
 RADAR AMBIENTAL v5.4 - REINSTALACAO COMPLETA (13/11/2026)
 
 Montado com as versoes mais recentes guardadas no projeto, porque a pasta do Radar sumiu do Dell em 13/11/2026.
-Onde instalar: C:\Users\winicius.alves\Documents\Radar-Ambiental-v2\Radar-Ambiental
+Onde esta instalado (13/11): H:\Meu Drive\Radar-Ambiental (Google Drive do Dell). Roda de qualquer pasta: os scripts acham a propria pasta.
 Estrutura: MENU-AMBIENTAL.bat, scripts\, 01-Coletas\, 02-Base\, 04-Achados\, 05-Interno\, logs\, _backup\
 
 De onde veio cada script (pasta radar-ambiental do projeto):
