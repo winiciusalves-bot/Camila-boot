@@ -1,27 +1,22 @@
-RADAR AMBIENTAL v5.4 - DIARIO ELETRONICO DO INEA (13/11/2026)
+RADAR AMBIENTAL v5.4 - REINSTALACAO COMPLETA (13/11/2026)
 
-O QUE MUDA
-- Opcao nova [17] no MENU: le o Diario Eletronico do INEA desde a ultima leitura (na 1a vez, 30 dias).
-- Fila automatica passa a comecar pelo 17:  17 4 8 9 15 10 12  (+14 se houver a chave do Supabase).
-- Roda no Dell porque o site do INEA nao responde ao GitHub (testado 13/11: tempo esgotado fora do Brasil).
+Montado com as versoes mais recentes guardadas no projeto, porque a pasta do Radar sumiu do Dell em 13/11/2026.
+Onde instalar: C:\Users\winicius.alves\Documents\Radar-Ambiental-v2\Radar-Ambiental
+Estrutura: MENU-AMBIENTAL.bat, scripts\, 01-Coletas\, 02-Base\, 04-Achados\, 05-Interno\, logs\, _backup\
 
-COMO INSTALAR (na pasta do Radar-Ambiental do Dell)
-1. Faca backup do MENU-AMBIENTAL.bat atual.
-2. Copie scripts\c15_inea_diario.ps1 para a pasta scripts\ do Radar.
-3. Substitua o MENU-AMBIENTAL.bat por este.
-4. Rode o MENU e digite 17.
-   Historico completo (desde 29/08/2023, cerca de 20 min), no PowerShell, dentro da pasta do Radar:
-   powershell -ExecutionPolicy Bypass -File scripts\c15_inea_diario.ps1 -Desde 2023-08-29
+De onde veio cada script (pasta radar-ambiental do projeto):
+- comum, c4, c6, c7 (com e-mail), c8 (mensagem formal), c10, c11, c12, c13 -> v5.1 (06 a 08/11)
+- c1, c2, c3, c9 -> v5-prospeccao (06/11)
+- c5 (DOU + INLABS) -> v4-inlabs (06/11)
+- c14 (diarios que so abrem do PC) -> dell (12/11)
+- c15 (Diario Eletronico do INEA, opcao 17) -> novo (13/11)
+- MENU -> v5.3 de 12/11 + opcao 17 + 17 no inicio da fila automatica
 
-O QUE SAI
-- 04-Achados\inea-diario\fiscalizacao_<data>.csv  = notificacoes de FISCALIZACAO de empresas (FATO; notificacao nao e auto nem multa)
-- 04-Achados\inea-diario\licenciamento_<data>.csv = licencas emitidas, pedidos e notificacoes de licenciamento (licenciado nao e autuado)
-- 01-Coletas\inea-diario\<mes>\<dia>.json = copia bruta de cada edicao (CPF mascarado)
-- Se existir 05-Interno\supabase_secret.txt: envia as notificacoes de fiscalizacao para o site (tabela ocorrencias)
-  e as de licenciamento para a tabela inea_licenciamento (precisa rodar antes supabase/09_inea_diario.sql).
-- Pessoa fisica nao entra em nenhum arquivo de achados nem no site (so e contada).
+O QUE NAO VOLTA (estava so no PC):
+- dados ja coletados (01-Coletas, 02-Base, 04-Achados), logs e caches;
+- 05-Interno: supabase_secret.txt, login do INLABS (opcao 6), contatos_status.csv e alteracoes em excluir_cnpj.txt e modelo_mensagem.txt.
+  Os scripts recriam os arquivos padrao (excluir_cnpj.txt com a Petrobras; modelo_mensagem.txt formal).
+- qualquer ajuste feito direto no PC depois dessas datas;
+- o agendamento (opcao A) continua no Windows, mas aponta para o MENU desta mesma pasta.
 
-CUIDADOS
-- O municipio e o do ENDERECO da empresa, nao do local fiscalizado (ex.: transportadoras de SP notificadas por fumaca preta).
-- Notificacoes do setor INEA/SERVCPV sao de poluicao veicular: vem marcadas no campo assunto.
-- So a edicao do dia e lida (sem login e sem captcha). A pesquisa com filtros da pagina tem captcha e nao e usada.
+Como recuperar os dados: rodar a fila R (4 8 13 9 15 10 12) e a opcao 17 com -Desde 2023-08-29.
