@@ -1,0 +1,27 @@
+RADAR AMBIENTAL v5.4 - DIARIO ELETRONICO DO INEA (13/11/2026)
+
+O QUE MUDA
+- Opcao nova [17] no MENU: le o Diario Eletronico do INEA desde a ultima leitura (na 1a vez, 30 dias).
+- Fila automatica passa a comecar pelo 17:  17 4 8 9 15 10 12  (+14 se houver a chave do Supabase).
+- Roda no Dell porque o site do INEA nao responde ao GitHub (testado 13/11: tempo esgotado fora do Brasil).
+
+COMO INSTALAR (na pasta do Radar-Ambiental do Dell)
+1. Faca backup do MENU-AMBIENTAL.bat atual.
+2. Copie scripts\c15_inea_diario.ps1 para a pasta scripts\ do Radar.
+3. Substitua o MENU-AMBIENTAL.bat por este.
+4. Rode o MENU e digite 17.
+   Historico completo (desde 29/08/2023, cerca de 20 min), no PowerShell, dentro da pasta do Radar:
+   powershell -ExecutionPolicy Bypass -File scripts\c15_inea_diario.ps1 -Desde 2023-08-29
+
+O QUE SAI
+- 04-Achados\inea-diario\fiscalizacao_<data>.csv  = notificacoes de FISCALIZACAO de empresas (FATO; notificacao nao e auto nem multa)
+- 04-Achados\inea-diario\licenciamento_<data>.csv = licencas emitidas, pedidos e notificacoes de licenciamento (licenciado nao e autuado)
+- 01-Coletas\inea-diario\<mes>\<dia>.json = copia bruta de cada edicao (CPF mascarado)
+- Se existir 05-Interno\supabase_secret.txt: envia as notificacoes de fiscalizacao para o site (tabela ocorrencias)
+  e as de licenciamento para a tabela inea_licenciamento (precisa rodar antes supabase/09_inea_diario.sql).
+- Pessoa fisica nao entra em nenhum arquivo de achados nem no site (so e contada).
+
+CUIDADOS
+- O municipio e o do ENDERECO da empresa, nao do local fiscalizado (ex.: transportadoras de SP notificadas por fumaca preta).
+- Notificacoes do setor INEA/SERVCPV sao de poluicao veicular: vem marcadas no campo assunto.
+- So a edicao do dia e lida (sem login e sem captcha). A pesquisa com filtros da pagina tem captcha e nao e usada.
