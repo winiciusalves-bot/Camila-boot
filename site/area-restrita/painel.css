@@ -171,3 +171,27 @@
   .busca-conf{padding:10px 12px}
   .busca-conf .campo span{display:none}
 }
+
+/* Ficha editável: contatos incluídos, anotações e histórico (13/11/2026) */
+.btn-xs{padding:4px 10px;font-size:.8rem;min-height:32px}
+.btn-perigo{color:#a32020;border-color:#e2b4b4}
+.btn-perigo:hover{background:#fbeaea}
+.ficha-bloco{margin:18px 0;padding-top:4px}
+.ed-lista li{padding:8px 0 8px 12px}
+.ed-cab{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 10px}
+.ed-cab > span:first-child,.ed-cab > small:first-child{flex:1 1 200px;min-width:0}
+.ed-bts{display:inline-flex;gap:6px;flex-shrink:0}
+.fc-lin{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:4px;font-size:.92rem;word-break:break-word}
+.fc-tel{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fc-aut{display:block;color:#667;margin-top:2px}
+.anot-txt{white-space:pre-wrap;word-break:break-word}
+.ed-form{margin:6px 0}
+.ed-form .campo input,.ed-form .campo textarea,.ed-form .campo select{width:100%;box-sizing:border-box}
+.ed-novo{margin:8px 0}
+.ed-novo > summary{list-style:none;cursor:pointer;display:inline-block}
+.ed-novo > summary::-webkit-details-marker{display:none}
+.ed-novo[open] > summary{margin-bottom:6px}
+@media (max-width:600px){
+  .ed-cab > span:first-child,.ed-cab > small:first-child{flex:1 1 100%}
+  .ed-bts .btn-xs{min-height:38px;padding:6px 14px}
+}
