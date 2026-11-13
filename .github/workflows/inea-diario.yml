@@ -1,7 +1,7 @@
 name: Diário Eletrônico do INEA -> Supabase
 # Edição diária do Diário Eletrônico do INEA (mesma lista do PDF da página; sem login e sem captcha).
-# Notificação de fiscalização de PJ -> ocorrencias (vira empresa da base na coleta diária).
-# Licenças, pedidos e notificações de licenciamento -> inea_licenciamento (só contexto; licenciado não é autuado).
+# Só NOTIFICAÇÕES (pedido do usuário 13/11): fiscalização (INEA-DE) e licenciamento (INEA-DL) de PJ -> ocorrencias.
+# Licenças emitidas e pedidos são descartados.
 # 13/11/2026: o site do INEA NÃO responde ao GitHub (tempo esgotado fora do Brasil). A coleta diária roda no Dell,
 # opção [17] do MENU (c15_inea_diario.ps1). Este workflow fica só manual, como reserva, para testar se o site abriu.
 on:

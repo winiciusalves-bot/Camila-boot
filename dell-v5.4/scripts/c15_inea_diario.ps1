@@ -3,12 +3,13 @@
 # pagina usa para montar o PDF do botao "Exportar para PDF". Sem login e sem captcha. A pesquisa com filtros da
 # pagina tem reCAPTCHA e NAO e usada. Roda deste PC porque o site nao responde ao GitHub (fora do Brasil).
 #
-# Separacao (licenciado nao e autuado):
-#  - NOTIFICACAO DE FISCALIZACAO de empresa (CNPJ com DV valido) -> 04-Achados\inea-diario\fiscalizacao_*.csv
-#    e, se existir 05-Interno\supabase_secret.txt, tabela ocorrencias do site (chave INEA-DE|...), nivel FATO.
-#    Notificacao NAO e auto de infracao nem multa: o que foi exigido esta no processo (SEI).
-#  - Licenca/documento emitido, pedido e notificacao de licenciamento -> licenciamento_*.csv e tabela
-#    inea_licenciamento (se ja existir; criada pelo supabase/09_inea_diario.sql). Nunca vira lead.
+# Pedido do usuario (13/11/2026): ficar so com as NOTIFICACOES (v1.1).
+#  - NOTIFICACAO DE FISCALIZACAO -> fiscalizacao_*.csv e ocorrencias do site (chave INEA-DE|...).
+#  - NOTIFICACAO DE LICENCIAMENTO (exigencia num pedido de licenca; nao e infracao) -> licenciamento_*.csv e
+#    ocorrencias do site (chave INEA-DL|...). Ambas FATO, so empresa com DV do CNPJ valido.
+#  - Licenca emitida e pedido (requerimento): so contados no RESUMO e descartados.
+#  Notificacao NAO e auto de infracao nem multa: o que foi exigido esta no processo (SEI).
+#  Envio ao site so se existir 05-Interno\supabase_secret.txt.
 # CPF nunca vai para o site nem para os CSVs de achados (pessoa fisica so e contada). Copia bruta do dia em
 # 01-Coletas\inea-diario com CPF mascarado. O municipio e o do ENDERECO do interessado, nao do local fiscalizado.
 #
@@ -144,28 +145,24 @@ foreach ($d in $diasIn) {
     $mun = Vazio-In $x.Municipio; if ($mun -match '^(?i)todos') { $mun = '' }
     $ident = if ($numero) { $numero } else { "$(Txt-In $x.IdRequerimento)-$proc-$titulo" }
     $cnpjF = Cnpj-Fmt $doc
-    if ($cat -eq 'NOTIFICACAO DE FISCALIZACAO') {
-      $veic = $setor -match 'SERVCPV$'
-      $ch = "INEA-DE|$ident|$doc"
-      $fisc[$ch] = [pscustomobject][ordered]@{
-        chave = $ch; fonte = 'Diário Eletrônico do INEA'; orgao = 'INEA'; tipo_documento = 'NOTIFICACAO INEA (FISCALIZACAO)'
-        numero = $numero; processo = $proc; data_documento = $dpub; data_documento_status = 'data de publicação no Diário Eletrônico'
-        situacao = 'VALIDO'; cnpj = $cnpjF; nome = (Mascara-Texto $nome); municipio = $mun
-        assunto = $(if ($veic) { 'Fiscalização - poluição veicular (INEA/SERVCPV)' } else { 'Fiscalização' })
-        descricao = "Notificação publicada no Diário Eletrônico do INEA nº $ed de $($d.ToString('dd/MM/yyyy')). Setor: $(if ($setor) { $setor } else { 'não informado' }). Processo: $(if ($proc) { $proc } else { 'não informado' }). Notificação não é auto de infração nem multa; o que foi exigido está no processo (SEI). Município do endereço do interessado, não necessariamente do local fiscalizado."
-        nivel = 'FATO'; link_fonte = $linkIn; ultima_coleta = $hojeIn.ToString('yyyy-MM-dd'); origem = 'radar-pc'
-      }
-    } else {
-      $ch = "INEADE|$cat|$ident|$doc"
-      $dval = Vazio-In $x.Data_Validade
-      $lic[$ch] = [pscustomobject][ordered]@{
-        chave = $ch; categoria = $cat; ato = (Vazio-In $x.Descricao_Instrumento); titulo = $titulo; numero = $numero; processo = $proc
-        data_publicacao = $dpub; data_validade = $(if ($cat -eq 'DOCUMENTO EMITIDO' -and $dval.Length -ge 10) { $dval.Substring(0, 10) } else { $null })
-        cnpj = $cnpjF; nome = (Mascara-Texto $nome); municipio_endereco = $mun; atividade = (Vazio-In $x.Atividade)
-        codigo_atividade = (Vazio-In $x.Codigo_Atividade); classe_impacto = (Vazio-In $x.Classe_Impacto); setor = $setor
-        edicao = $ed; link_fonte = $linkIn; ultima_coleta = $hojeIn.ToString('yyyy-MM-dd')
-      }
+    if ($cat -notmatch '^NOTIFICACAO') { $fora["$($cat.ToLower()) (fora)"] = 1 + [int]$fora["$($cat.ToLower()) (fora)"]; continue }
+    $ehFisc = ($cat -eq 'NOTIFICACAO DE FISCALIZACAO')
+    $veic = $ehFisc -and ($setor -match 'SERVCPV$')
+    $ativ = Vazio-In $x.Atividade; $codAt = Vazio-In $x.Codigo_Atividade
+    $assn = if ($ehFisc) { if ($veic) { 'Fiscalização - poluição veicular (INEA/SERVCPV)' } else { 'Fiscalização' } } elseif ($titulo) { "Licenciamento - $titulo" } else { 'Licenciamento' }
+    if ($ativ) { $assn = ("$assn · atividade $codAt $ativ").Trim() }
+    if ($assn.Length -gt 200) { $assn = $assn.Substring(0, 200) }
+    $natur = if ($ehFisc) { 'Notificação não é auto de infração nem multa; o que foi exigido está no processo (SEI).' } else { 'Notificação de exigência num pedido de licença: não é infração; o que falta entregar está no processo (SEI).' }
+    $ch = "$(if ($ehFisc) { 'INEA-DE' } else { 'INEA-DL' })|$ident|$doc"
+    $linhaOc = [pscustomobject][ordered]@{
+      chave = $ch; fonte = 'Diário Eletrônico do INEA'; orgao = 'INEA'
+      tipo_documento = $(if ($ehFisc) { 'NOTIFICACAO INEA (FISCALIZACAO)' } else { 'NOTIFICACAO INEA (LICENCIAMENTO)' })
+      numero = $numero; processo = $proc; data_documento = $dpub; data_documento_status = 'data de publicação no Diário Eletrônico'
+      situacao = 'VALIDO'; cnpj = $cnpjF; nome = (Mascara-Texto $nome); municipio = $mun; assunto = $assn
+      descricao = "Notificação publicada no Diário Eletrônico do INEA nº $ed de $($d.ToString('dd/MM/yyyy')). Setor: $(if ($setor) { $setor } else { 'não informado' }). Processo: $(if ($proc) { $proc } else { 'não informado' }). $natur Município do endereço do interessado, não necessariamente do local da atividade."
+      nivel = 'FATO'; link_fonte = $linkIn; ultima_coleta = $hojeIn.ToString('yyyy-MM-dd'); origem = 'radar-pc'
     }
+    if ($ehFisc) { $fisc[$ch] = $linhaOc } else { $lic[$ch] = $linhaOc }
   }
   Progresso $k $diasIn.Count $iniLeit "$($d.ToString('dd/MM')) $($lista.Count) publicacao(oes) | notif. fiscalizacao PJ: $($fisc.Count)"
   Start-Sleep -Milliseconds 800   # nao pesar no servidor do INEA
@@ -175,13 +172,13 @@ foreach ($d in $diasIn) {
 Cabecalho-Etapa 3 4 'Gravando CSVs em 04-Achados\inea-diario' $iniGeral
 $fF = Join-Path $ACH_DIR "fiscalizacao_$STAMP_IN.csv"; $fL = Join-Path $ACH_DIR "licenciamento_$STAMP_IN.csv"
 @($fisc.Values) | Sort-Object data_documento -Descending | Export-Csv $fF -Delimiter ';' -NoTypeInformation -Encoding UTF8
-@($lic.Values) | Sort-Object data_publicacao -Descending | Export-Csv $fL -Delimiter ';' -NoTypeInformation -Encoding UTF8
+@($lic.Values) | Sort-Object data_documento -Descending | Export-Csv $fL -Delimiter ';' -NoTypeInformation -Encoding UTF8
 if ($ultimoOk -and -not $falhasIn.Count) { Set-Content $ARQ_ULT $ultimoOk.ToString('yyyy-MM-dd') -Encoding ASCII }
 elseif ($falhasIn.Count) { Set-Content $ARQ_ULT ([datetime]::ParseExact(($falhasIn | Sort-Object | Select-Object -First 1), 'yyyy-MM-dd', $null)).AddDays(-1).ToString('yyyy-MM-dd') -Encoding ASCII }
 
 # ---------- 4. site (opcional) ----------
 Cabecalho-Etapa 4 4 'Enviando ao site (se houver a chave)' $iniGeral
-$envF = 0; $envL = 'nao enviado'
+$envF = 0
 if (Test-Path $ARQ_SEGREDO) {
   $segredo = (Get-Content -LiteralPath $ARQ_SEGREDO -TotalCount 1 -Encoding UTF8 | Out-String).Trim()
   function Post-In($tabela, $linhas) {
@@ -197,10 +194,8 @@ if (Test-Path $ARQ_SEGREDO) {
     }
     return $ok
   }
-  $envF = Post-In 'ocorrencias' $fisc.Values
-  $r2 = Post-In 'inea_licenciamento' $lic.Values
-  $envL = if ($r2 -lt 0) { 'NAO enviado (rode supabase/09_inea_diario.sql no Supabase)' } else { "$r2 enviado(s)" }
-  Write-Host "  Notificacoes de fiscalizacao enviadas: $(if ($envF -lt 0) { 'ERRO, veja o log' } else { $envF }) | licenciamento: $envL"
+  $envF = Post-In 'ocorrencias' (@($fisc.Values) + @($lic.Values))
+  Write-Host "  Notificacoes enviadas ao site (fiscalizacao + licenciamento): $(if ($envF -lt 0) { 'ERRO, veja o log' } else { $envF })"
 } else { Write-Host '  Sem 05-Interno\supabase_secret.txt: so os CSVs foram gravados.' -ForegroundColor Yellow }
 
 Write-Host "`n================ RESUMO ================"
@@ -208,7 +203,7 @@ Write-Host "Publicacoes lidas: $lidosIn"
 $contaCat.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object { Write-Host ('  {0,-32} {1}' -f $_.Key, $_.Value) }
 Write-Host "Fora: $((($fora.GetEnumerator() | ForEach-Object { "$($_.Key) $($_.Value)" }) -join ', '))"
 Write-Host "Notificacoes de fiscalizacao de empresa: $($fisc.Count) ($(@($fisc.Values | Where-Object { $_.assunto -match 'veicular' }).Count) de poluicao veicular)"
-Write-Host "Atos de licenciamento de empresa: $($lic.Count)"
+Write-Host "Notificacoes de licenciamento de empresa: $($lic.Count)"
 if ($falhasIn.Count) { Write-Host "ATENCAO: $($falhasIn.Count) dia(s) sem resposta: $(($falhasIn | Select-Object -First 15) -join ', ') (serao lidos de novo na proxima vez)" -ForegroundColor Yellow }
 Write-Host "Arquivos: $fF`n          $fL"
 Write-Host "Tempo total: $(Fmt ((Get-Date) - $iniGeral).TotalSeconds)"

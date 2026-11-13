@@ -6,13 +6,13 @@ O que é lido: a EDIÇÃO DO DIA, a mesma lista que a página usa para montar o 
 Sem login e sem captcha. A pesquisa com filtros da página tem reCAPTCHA e NÃO é usada aqui.
 Primeira edição: 29/08/2023. Conferido no navegador do usuário em 13/11/2026.
 
-Separação dos atos (licenciado ≠ autuado):
-  - NOTIFICAÇÃO DE FISCALIZAÇÃO (notificação com título "Fiscalização") de pessoa jurídica com DV do CNPJ válido
-    -> tabela ocorrencias (chave INEA-DE|...), nivel FATO, situacao VALIDO. A coleta diária transforma em empresa
-       da base, como já faz com as penalidades do INEA. Notificação NÃO é auto de infração nem multa.
-  - Notificação de licenciamento (exigência num pedido de licença), licença/documento emitido e pedido (requerimento)
-    -> tabela inea_licenciamento (supabase/09_inea_diario.sql). Servem de contexto e NUNCA viram lead de autuado.
-       Se a tabela ainda não existir, o coletor avisa no log e segue.
+Pedido do usuário (13/11/2026): ficar só com as NOTIFICAÇÕES, de fiscalização e de licenciamento.
+  - NOTIFICAÇÃO DE FISCALIZAÇÃO -> ocorrencias (chave INEA-DE|...), tipo "NOTIFICACAO INEA (FISCALIZACAO)".
+  - NOTIFICAÇÃO DE LICENCIAMENTO (exigência num pedido de licença) -> ocorrencias (chave INEA-DL|...),
+    tipo "NOTIFICACAO INEA (LICENCIAMENTO)". Não é infração: é pendência num processo de licença.
+  Ambas: PJ com DV do CNPJ válido, nivel FATO, situacao VALIDO; a coleta diária transforma em empresa da base.
+  Notificação NÃO é auto de infração nem multa. Licença emitida e pedido (requerimento) são lidos só para a contagem
+  e descartados.
 Regras: CPF nunca é gravado (pessoa física fica fora); nomes passam pela máscara de CPF; registro de teste do INEA
 é descartado; o município é o do ENDEREÇO do interessado, não o do local fiscalizado (fica dito na descrição).
 O campo "Autuado" do sistema NÃO é auto de infração (só vem marcado nos pedidos) e não é usado.
@@ -91,32 +91,28 @@ def converter(x, d, hoje):
     cod_ativ = limpo(x.get('Codigo_Atividade'), 20)
     ident = numero or f"{x.get('IdRequerimento') or ''}-{processo}-{titulo}"
     link = f'{SITE} (edição nº {edicao(d)} de {d.strftime("%d/%m/%Y")})'
-    if cat == CAT_FISC:
-        veicular = setor.upper().endswith('SERVCPV')
-        return 'ocorrencias', dict(
-            chave=f'INEA-DE|{ident}|{doc}'[:300],
-            fonte='Diário Eletrônico do INEA', orgao='INEA',
-            tipo_documento='NOTIFICACAO INEA (FISCALIZACAO)',
-            numero=numero, processo=processo, data_documento=data_pub,
-            data_documento_status='data de publicação no Diário Eletrônico', data_ciencia=None,
-            prazo_defesa_fim_estimado=None, prazo_defesa_status='',
-            situacao='VALIDO', cnpj=fmt_cnpj(doc), nome=mascara(nome), municipio=mun.title() if mun.isupper() else mun,
-            cod_ibge='', valor_indicado_rs_nao_e_dano=None,
-            assunto='Fiscalização - poluição veicular (INEA/SERVCPV)' if veicular else 'Fiscalização',
-            descricao=mascara(
-                f'Notificação publicada no Diário Eletrônico do INEA nº {edicao(d)} de {d.strftime("%d/%m/%Y")}. '
-                f'Setor: {setor or "não informado"}. Processo: {processo or "não informado"}. '
-                'Notificação não é auto de infração nem multa; o que foi exigido está no processo (SEI). '
-                'Município do endereço do interessado, não necessariamente do local fiscalizado.'),
-            nivel='FATO', link_fonte=link, ultima_coleta=hoje.isoformat(), origem='coletor-online')
-    return 'inea_licenciamento', dict(
-        chave=f'INEADE|{cat}|{ident}|{doc}'[:300],
-        categoria=cat, ato=limpo(x.get('Descricao_Instrumento'), 120), titulo=titulo[:150],
-        numero=numero, processo=processo, data_publicacao=data_pub,
-        data_validade=(limpo(x.get('Data_Validade'))[:10] or None) if cat == CAT_EMIT else None,
-        cnpj=fmt_cnpj(doc), nome=mascara(nome), municipio_endereco=mun, atividade=atividade, codigo_atividade=cod_ativ,
-        classe_impacto=limpo(x.get('Classe_Impacto'), 40), setor=setor,
-        edicao=edicao(d), link_fonte=link, ultima_coleta=hoje.isoformat())
+    if cat not in (CAT_FISC, CAT_NOTLIC): return 'licença emitida ou pedido (descartado)', None
+    fisc = cat == CAT_FISC
+    veicular = fisc and setor.upper().endswith('SERVCPV')
+    if fisc: assunto = 'Fiscalização - poluição veicular (INEA/SERVCPV)' if veicular else 'Fiscalização'
+    else: assunto = f'Licenciamento - {titulo}' if titulo else 'Licenciamento'
+    if atividade: assunto += f' · atividade {cod_ativ} {atividade}'.rstrip()
+    natureza = ('Notificação não é auto de infração nem multa; o que foi exigido está no processo (SEI). ' if fisc else
+                'Notificação de exigência num pedido de licença: não é infração; o que falta entregar está no processo (SEI). ')
+    return 'ocorrencias', dict(
+        chave=f"{'INEA-DE' if fisc else 'INEA-DL'}|{ident}|{doc}"[:300],
+        fonte='Diário Eletrônico do INEA', orgao='INEA',
+        tipo_documento='NOTIFICACAO INEA (FISCALIZACAO)' if fisc else 'NOTIFICACAO INEA (LICENCIAMENTO)',
+        numero=numero, processo=processo, data_documento=data_pub,
+        data_documento_status='data de publicação no Diário Eletrônico', data_ciencia=None,
+        prazo_defesa_fim_estimado=None, prazo_defesa_status='',
+        situacao='VALIDO', cnpj=fmt_cnpj(doc), nome=mascara(nome), municipio=mun.title() if mun.isupper() else mun,
+        cod_ibge='', valor_indicado_rs_nao_e_dano=None, assunto=assunto[:200],
+        descricao=mascara(
+            f'Notificação publicada no Diário Eletrônico do INEA nº {edicao(d)} de {d.strftime("%d/%m/%Y")}. '
+            f'Setor: {setor or "não informado"}. Processo: {processo or "não informado"}. ' + natureza +
+            'Município do endereço do interessado, não necessariamente do local da atividade.'),
+        nivel='FATO', link_fonte=link, ultima_coleta=hoje.isoformat(), origem='coletor-online')
 
 
 def main():
@@ -145,7 +141,7 @@ def main():
                                              mensagem=msg), {'Prefer': 'return=minimal'})
         sys.exit(1)
 
-    occ, lic, cont, por_cat, falhas, lidos = {}, {}, collections.Counter(), collections.Counter(), [], 0
+    occ, cont, por_cat, falhas, lidos = {}, collections.Counter(), collections.Counter(), [], 0
     for k, d in enumerate(dias):
         lista = ler_dia(d)
         if lista is None: falhas.append(d.isoformat()); continue
@@ -154,42 +150,37 @@ def main():
             por_cat[categoria(x)] += 1
             destino, linha = converter(x, d, hoje)
             if linha is None: cont[destino] += 1; continue
-            (occ if destino == 'ocorrencias' else lic)[linha['chave']] = linha
+            occ[linha['chave']] = linha
         if k % 5 == 0 or k == len(dias) - 1:
             log(f'{d:%d/%m/%Y}: {len(lista)} publicação(ões) · acumulado {lidos}', 100 * (k + 1) / len(dias))
         if k < len(dias) - 1: time.sleep(PAUSA)
 
-    occ, lic = list(occ.values()), list(lic.values())
+    occ = list(occ.values())
+    nf = [o for o in occ if o['chave'].startswith('INEA-DE|')]
+    nl = [o for o in occ if o['chave'].startswith('INEA-DL|')]
     log(f'{lidos} publicação(ões) lidas · por tipo: ' + ', '.join(f'{c} {n}' for c, n in por_cat.most_common()))
     log(f'fora: ' + (', '.join(f'{c} {n}' for c, n in cont.most_common()) or 'nenhuma'))
-    log(f'{len(occ)} notificação(ões) de fiscalização de PJ ({len({o["cnpj"] for o in occ})} CNPJ) · '
-        f'{sum(1 for o in occ if "SERVCPV" in o["assunto"])} de poluição veicular · {len(lic)} ato(s) de licenciamento de PJ')
+    log(f'{len(nf)} notificação(ões) de fiscalização de PJ ({sum(1 for o in nf if "SERVCPV" in o["assunto"])} de poluição veicular) · '
+        f'{len(nl)} notificação(ões) de licenciamento de PJ · {len({o["cnpj"] for o in occ})} CNPJ')
     if falhas: log(f'ATENÇÃO: {len(falhas)} dia(s) sem resposta: {", ".join(falhas[:20])}')
 
-    resumo = f'{lidos} publicações; {len(occ)} notificações de fiscalização de PJ; {len(lic)} atos de licenciamento de PJ; dias sem resposta: {len(falhas)}'
+    resumo = f'{lidos} publicações; {len(nf)} notificações de fiscalização e {len(nl)} de licenciamento de PJ; dias sem resposta: {len(falhas)}'
     if sb:
-        ja = {o['chave'] for o in sb.todos('ocorrencias', 'chave') if o['chave'].startswith('INEA-DE|')}
+        ja = {o['chave'] for o in sb.todos('ocorrencias', 'chave') if o['chave'].startswith(('INEA-DE|', 'INEA-DL|'))}
         sb.upsert('ocorrencias', occ, 'chave')
         novas = sum(1 for o in occ if o['chave'] not in ja)
-        try:
-            sb.upsert('inea_licenciamento', lic, 'chave')
-        except RuntimeError as e:
-            log(f'tabela inea_licenciamento indisponível ({str(e)[:160]}). Rode supabase/09_inea_diario.sql no SQL Editor.')
-            resumo += '; licenciamento NÃO gravado (falta a tabela inea_licenciamento)'
         sb.req('POST', '/coletas', dict(
             fonte=f'Diário Eletrônico do INEA {SITE}',
-            metodo='edição diária (mesma lista do PDF da página, sem captcha); notificação de fiscalização de PJ com DV válido -> ocorrencias; licenças, pedidos e notificações de licenciamento -> inea_licenciamento; CPF fora',
+            metodo='edição diária (mesma lista do PDF da página, sem captcha); só notificações (fiscalização e licenciamento) de PJ com DV válido -> ocorrencias; licenças e pedidos descartados; CPF fora',
             status='ok' if not falhas else 'parcial', iniciada_em=t0.isoformat(), terminada_em=dt.datetime.now(dt.timezone.utc).isoformat(),
             autos_lidos=lidos, autos_novos=novas, mensagem=resumo[:900]), {'Prefer': 'return=minimal'})
         log(f'{novas} notificação(ões) nova(s) gravada(s) em ocorrencias')
 
     if a.amostra:
-        for o in occ[:12]:
-            log(f"   FISC {o['data_documento']} · {o['cnpj']} · {o['nome'][:45]} · {o['municipio']} · nº {o['numero']} · {o['assunto']}")
-        for l in [l for l in lic if l['categoria'] == CAT_EMIT and 'Licen' in l['ato']][:8]:
-            log(f"   LIC  {l['data_publicacao']} · {l['cnpj']} · {l['nome'][:45]} · {l['titulo'][:40]} · nº {l['numero']} · validade {l['data_validade']}")
+        for o in nf[:10] + nl[:8]:
+            log(f"   {'FISC' if o['chave'].startswith('INEA-DE') else 'LIC '} {o['data_documento']} · {o['cnpj']} · {o['nome'][:45]} · {o['municipio']} · nº {o['numero']} · {o['assunto'][:60]}")
         mun = collections.Counter(o['municipio'] for o in occ)
-        log('   municípios (endereço) das notificações: ' + ', '.join(f'{m or "?"} {n}' for m, n in mun.most_common(12)))
+        log('   municípios (endereço): ' + ', '.join(f'{m or "?"} {n}' for m, n in mun.most_common(12)))
     log('FIM', 100)
     print('\a')
     if falhas and len(falhas) == len(dias): sys.exit(1)
