@@ -2,6 +2,8 @@ name: Diário Eletrônico do INEA -> Supabase
 # Edição diária do Diário Eletrônico do INEA (mesma lista do PDF da página; sem login e sem captcha).
 # Notificação de fiscalização de PJ -> ocorrencias (vira empresa da base na coleta diária).
 # Licenças, pedidos e notificações de licenciamento -> inea_licenciamento (só contexto; licenciado não é autuado).
+# 13/11/2026: o site do INEA NÃO responde ao GitHub (tempo esgotado fora do Brasil). A coleta diária roda no Dell,
+# opção [17] do MENU (c15_inea_diario.ps1). Este workflow fica só manual, como reserva, para testar se o site abriu.
 on:
   workflow_dispatch:
     inputs:
@@ -11,8 +13,6 @@ on:
   push:                     # teste automático quando o leitor muda num ramo de trabalho (não grava)
     branches-ignore: [main]
     paths: ['coletor/inea_diario.py', '.github/workflows/inea-diario.yml']
-  schedule:
-    - cron: '15 10 * * 1-6'   # segunda a sábado, 07:15 (Brasília), antes dos diários e da coleta diária
 permissions:
   contents: read
 concurrency:
