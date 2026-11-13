@@ -10,9 +10,6 @@ on:
       dias: { description: 'Dias para trás', default: '10' }
       desde: { description: 'Carga do histórico: AAAA-MM-DD (vazio = usa Dias). Primeira edição: 2023-08-29', default: '' }
       gravar: { description: 'Gravar no Supabase? (nao = só mostra no log)', default: 'nao' }
-  push:                     # teste automático quando o leitor muda num ramo de trabalho (não grava)
-    branches-ignore: [main]
-    paths: ['coletor/inea_diario.py', '.github/workflows/inea-diario.yml']
 permissions:
   contents: read
 concurrency:
@@ -33,7 +30,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           DIAS: ${{ github.event.inputs.dias || '10' }}
           DESDE: ${{ github.event.inputs.desde || '' }}
-          GRAVAR: ${{ github.event_name == 'push' && 'nao' || github.event.inputs.gravar || 'sim' }}
+          GRAVAR: ${{ github.event.inputs.gravar || 'nao' }}
         run: |
           ARGS="--dias $DIAS"
           if [ -n "$DESDE" ]; then ARGS="--desde $DESDE"; fi
