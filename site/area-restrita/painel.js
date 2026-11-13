@@ -4,7 +4,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var ST = { novo: 'Novo', contatado: 'Contatado', respondeu: 'Respondeu', reuniao: 'Reunião marcada', cliente: 'Cliente', sem_interesse: 'Sem interesse', nao_contatar: 'Não contatar' };
   var sb = null, modo = null, usuario = '';
-  var D = { empresas: [], autos: [], contatos: [], embargos: [], ocorrencias: [] }, porCnpj = {}, aba = 'fila';
+  var D = { empresas: [], autos: [], contatos: [], embargos: [], ocorrencias: [], ficha_contatos: [], ficha_anotacoes: [] }, fichaOk = true, porCnpj = {}, aba = 'fila';
   var TRI = {}, triOk = true, desfazer = [], DIAS_REPROVADO = 45, confAtual = null, forcar = null, ocupado = false;
   var ABAS = ['conferencia', 'aprovados', 'reprovados', 'empresas', 'registro', 'fila'], grupo = 'acontatar', VOLTAS = [7, 14];   // sem resposta: volta em 7 dias, depois em 14; sem resposta de novo, vai para o lixo
 
@@ -35,6 +35,7 @@
     D.empresas = DADOS_LOCAIS.empresas; D.autos = DADOS_LOCAIS.autos; D.embargos = DADOS_LOCAIS.embargos || []; D.ocorrencias = DADOS_LOCAIS.ocorrencias || []; tirarDescartadas();
     try { D.contatos = JSON.parse(localStorage.getItem('ac_contatos') || '[]'); } catch (e) { D.contatos = []; }
     try { TRI = JSON.parse(localStorage.getItem('ac_triagem') || '{}'); } catch (e) { TRI = {}; }
+    ['ficha_contatos', 'ficha_anotacoes'].forEach(function (t) { try { D[t] = JSON.parse(localStorage.getItem('ac_' + t) || '[]'); } catch (e) { D[t] = []; } });
     usuario = 'prévia local'; montar();
   } else {
     mostrar('tela-sem-config');
@@ -74,8 +75,13 @@
       todos('contatos', 'criado_em', true),
       todos('embargos'),
       todos('ocorrencias', 'data_documento'),
-      todos('triagem')
+      todos('triagem'),
+      todos('ficha_contatos', 'criado_em', true),
+      todos('ficha_anotacoes', 'criado_em', true)
     ]).then(function (r) {
+      // contatos e anotações da ficha (SQL 08): sem a tabela, o painel funciona e avisa
+      if (r[6].error || r[7].error) { fichaOk = false; r[6] = { data: [] }; r[7] = { data: [] }; }
+      D.ficha_contatos = r[6].data; D.ficha_anotacoes = r[7].data; r = r.slice(0, 6);
       if (r[5].error) { triOk = false; r[5] = { data: [] }; }
       TRI = {}; r[5].data.forEach(function (t) { TRI[t.cnpj] = t; });
       if (r[3].error) r[3] = { data: [] };   // tabelas opcionais
@@ -94,17 +100,19 @@
       if (String(e.prioridade || '').charAt(0) === 'X' || (e.situacao_receita && e.situacao_receita !== 'ATIVA')) fora[e.cnpj] = 1;
     });
     function f(l) { return (l || []).filter(function (o) { return !fora[o.cnpj]; }); }
-    D.empresas = f(D.empresas); D.autos = f(D.autos); D.contatos = f(D.contatos); D.embargos = f(D.embargos); D.ocorrencias = f(D.ocorrencias);
+    D.empresas = f(D.empresas); D.autos = f(D.autos); D.contatos = f(D.contatos); D.embargos = f(D.embargos); D.ocorrencias = f(D.ocorrencias); D.ficha_contatos = f(D.ficha_contatos); D.ficha_anotacoes = f(D.ficha_anotacoes);
   }
 
   function indexar() {
     porCnpj = {};
-    D.empresas.forEach(function (e) { porCnpj[e.cnpj] = { e: e, autos: [], contatos: [], embargos: [], occ: [] }; });
+    D.empresas.forEach(function (e) { porCnpj[e.cnpj] = { e: e, autos: [], contatos: [], embargos: [], occ: [], fcont: [], anot: [] }; });
     if (!D.ocorrencias.length) D.ocorrencias = derivarOcorrencias();
     D.ocorrencias.forEach(function (o) { if (porCnpj[o.cnpj]) porCnpj[o.cnpj].occ.push(o); });
     (D.embargos || []).forEach(function (b) { if (porCnpj[b.cnpj]) porCnpj[b.cnpj].embargos.push(b); });
     D.autos.forEach(function (a) { if (porCnpj[a.cnpj]) porCnpj[a.cnpj].autos.push(a); });
     D.contatos.forEach(function (c) { if (porCnpj[c.cnpj]) porCnpj[c.cnpj].contatos.push(c); });
+    D.ficha_contatos.forEach(function (c) { if (porCnpj[c.cnpj]) porCnpj[c.cnpj].fcont.push(c); });
+    D.ficha_anotacoes.forEach(function (c) { if (porCnpj[c.cnpj]) porCnpj[c.cnpj].anot.push(c); });
     Object.keys(porCnpj).forEach(function (k) {
       var x = porCnpj[k];
       x.autos.sort(function (a, b) { return a.data_auto < b.data_auto ? 1 : -1; });
@@ -130,6 +138,7 @@
       x.novo = x.autos.some(function (a) { return a.primeira_coleta && a.primeira_coleta >= lim; });
       x.muns = Array.from(new Set(x.autos.map(function (a) { return a.municipio; }).concat(x.occ.map(function (o) { return o.municipio; })).filter(Boolean)));
       x.tels = telefones(x.e.telefone);
+      x.telsExtra = [].concat.apply([], x.fcont.map(function (c) { return telefones(c.telefone); }));
       x.texto = semAcento([x.e.razao_social, x.e.nome_fantasia, x.e.cnpj, x.e.cnpj.replace(/\D/g, '')].concat(x.autos.map(function (a) { return a.n_auto + ' ' + a.nome_no_auto; })).concat(x.occ.map(function (o) { return o.numero + ' ' + o.processo; })).join(' '));
     });
   }
@@ -408,13 +417,15 @@
       semretorno: 'sem resposta: hora da nova tentativa, de preferência por outro canal. Se a 3ª mensagem ficar ' + VOLTAS[1] + ' dias sem resposta, a empresa vai para o lixo.', retorno: 'responderam, têm reunião marcada ou já são clientes.', encerrados: 'sem interesse ou pediram para não ser contatadas.' };
     $('a-info').textContent = l.length + ' empresa(s) ' + TXT[grupo];
     $('a-cards').innerHTML = l.map(function (x) {
-      var e = x.e, sc = e.site_contatos || {}, cel = x.tels.filter(celular)[0] || (sc.whatsapp || [])[0], ult = x.contatos[x.contatos.length - 1];
-      var em = e.email || (sc.emails || [])[0], bloq = x.status === 'nao_contatar', usados = canaisUsados(x);
+      var e = x.e, sc = e.site_contatos || {}, cel = x.telsExtra.filter(celular)[0] || x.tels.filter(celular)[0] || (sc.whatsapp || [])[0], ult = x.contatos[x.contatos.length - 1];
+      var fc = x.fcont[x.fcont.length - 1], em = (x.fcont.filter(function (c) { return c.email; }).pop() || {}).email || e.email || (sc.emails || [])[0], bloq = x.status === 'nao_contatar', usados = canaisUsados(x);
       var diasC = ult ? Math.floor((Date.now() - new Date(ult.criado_em).getTime()) / 864e5) : null;
       return '<article class="card-f"><div class="selos-l">' + selos(e).replace(/<span class="selo selo-apr">[^<]*<\/span>/, '') + '</div>' +
         '<h3>' + esc(e.razao_social) + '</h3>' +
         '<div class="cf-meta">' + esc(e.cnpj) + ' · ' + esc(x.muns.slice(0, 2).join(', ')) + ' · ' + x.autos.length + ' auto(s), último ' + esc(br(x.ultimo)) + '</div>' +
         '<div class="cf-meta">' + [x.tels.map(fmtTel).join(' / '), em].filter(Boolean).map(esc).join(' · ') + (e.site ? ' · <a href="' + esc(e.site) + '" target="_blank" rel="noopener">site</a>' : '') + (!x.tels.length && !em ? 'Sem telefone nem e-mail' : '') + '</div>' +
+        (fc ? '<div class="cf-meta">Contato incluído: <strong>' + esc(masc([fc.nome, fc.cargo].filter(Boolean).join(', '))) + '</strong> ' + esc(telefones(fc.telefone).map(fmtTel).join(' / ')) + (x.fcont.length > 1 ? ' (+' + (x.fcont.length - 1) + ')' : '') + '</div>' : '') +
+        (x.anot.length ? '<div class="cf-meta">📝 ' + esc(masc(String(x.anot[x.anot.length - 1].texto).slice(0, 140))) + (String(x.anot[x.anot.length - 1].texto).length > 140 ? '…' : '') + '</div>' : '') +
         (ult ? '<div class="cf-mot"><span class="st st-' + esc(x.status) + '">' + esc(ST[x.status]) + '</span> ' + esc(ult.canal || '') + ' em ' + esc(brDH(ult.criado_em)) + (diasC != null ? ' (há ' + diasC + ' dia' + (diasC === 1 ? '' : 's') + ')' : '') + (x.status === 'contatado' ? ' · ' + x.tentativas + 'ª tentativa' : '') + (usados.length ? ' · canais já usados: ' + esc(usados.join(', ')) : '') + (ult.nota ? '<br>' + esc(ult.nota) : '') + '</div>' : '') +
         (bloq ? '' : '<div class="cf-acoes">' +
           (cel ? '<a class="btn btn-wa btn-sm" data-wa="' + esc(e.cnpj) + '" target="_blank" rel="noopener" href="https://wa.me/55' + cel + '?text=' + encodeURIComponent(mensagemPadrao(x)) + '">WhatsApp</a>' : '') +
@@ -493,6 +504,8 @@
           'Prioridade': e.prioridade || '', 'Pontos': e.pontos == null ? '' : e.pontos, 'Motivos da prioridade': e.motivos || '', 'Chance de licenciamento': e.chance_licenciamento || '', 'Pontos (licenciamento)': e.chance_pontos == null ? '' : e.chance_pontos, 'Motivo (licenciamento)': e.chance_motivo || '',
           'Nº de autos': x.autos.length, 'Último documento': x.ultimo ? br(x.ultimo) : '', 'Municípios dos autos': x.muns.join(', '),
           'Embargos vigentes': e.embargos_vigentes || 0, 'Prazo de defesa estimado até': e.prazo_defesa_ate ? br(e.prazo_defesa_ate) + ' (estimativa: ciência + 20 dias; confirmar na notificação)' : '',
+          'Contatos incluídos pela equipe': x.fcont.map(function (c) { return masc([c.nome, c.cargo, c.telefone, c.email, c.obs].filter(Boolean).join(' · ')); }).join(' | '),
+          'Anotações': x.anot.map(function (a) { return brDH(a.criado_em) + ': ' + masc(a.texto); }).join(' | '),
           'Status do contato': ST[x.status] || x.status, 'Aprovado em': brDH(t.decidido_em), 'Aprovado por': t.autor_email || '', 'Fonte dos autos': IB
         };
       });
@@ -628,22 +641,74 @@
         '<p>' + esc(masc(a.descricao)) + '</p></li>';
     }).join('');
 
+    var CANAIS = ['WhatsApp', 'Telefone', 'E-mail', 'Presencial', 'Outro'];
+    var opSel = function (lst, sel, rot) { return lst.map(function (k) { return '<option value="' + esc(k) + '"' + (k === sel ? ' selected' : '') + '>' + esc(rot ? rot[k] : k) + '</option>'; }).join(''); };
+    var editado = function (c) { return c.editado_em ? ' · editado ' + esc(brDH(c.editado_em)) : ''; };
+    var botoes = function (tipo, id) { return alvo ? '' : '<span class="ed-bts"><button type="button" class="btn btn-linha btn-xs" data-ed="' + tipo + '|' + esc(id) + '">Editar</button><button type="button" class="btn btn-linha btn-xs btn-perigo" data-ex="' + tipo + '|' + esc(id) + '">Excluir</button></span>'; };
+    var avisoFicha = fichaOk ? '' : '<p class="aviso-l amar">Para salvar contatos e anotações, falta rodar o arquivo <strong>supabase/08_ficha_editavel.sql</strong> no Supabase (SQL Editor).</p>';
+
+    // Histórico (tabela contatos): agora com editar e excluir
     var hist = x.contatos.slice().reverse().map(function (c) {
-      return '<li><span class="st st-' + esc(c.status) + '">' + esc(ST[c.status] || c.status) + '</span> <small>' + esc(brDH(c.criado_em)) + ' · ' + esc(c.autor_email || '') + (c.canal ? ' · ' + esc(c.canal) : '') + '</small>' + (c.nota ? '<p>' + esc(c.nota) + '</p>' : '') + '</li>';
+      return '<li data-item="h|' + esc(c.id) + '"><div class="ed-cab"><span><span class="st st-' + esc(c.status) + '">' + esc(ST[c.status] || c.status) + '</span> <small>' + esc(brDH(c.criado_em)) + ' · ' + esc(c.autor_email || '') + (c.canal ? ' · ' + esc(c.canal) : '') + editado(c) + '</small></span>' + (c.id != null ? botoes('h', c.id) : '') + '</div>' + (c.nota ? '<p>' + esc(masc(c.nota)) + '</p>' : '') + '</li>';
     }).join('') || '<li><small>Nenhum contato registrado.</small></li>';
 
+    // Contatos incluídos pela equipe (depois da aprovação / conversa com o cliente)
+    var fcont = x.fcont.slice().reverse().map(function (c) {
+      var ts = telefones(c.telefone);
+      return '<li data-item="c|' + esc(c.id) + '"><div class="ed-cab"><span><strong>' + esc(masc(c.nome || 'Sem nome')) + '</strong>' + (c.cargo ? ' <small>· ' + esc(masc(c.cargo)) + '</small>' : '') + '</span>' + botoes('c', c.id) + '</div>' +
+        '<div class="fc-lin">' + ts.map(function (t) { return '<span class="fc-tel">' + esc(fmtTel(t)) + ' <a class="btn btn-linha btn-xs" href="tel:+55' + t + '">Ligar</a>' + (celular(t) && !bloq ? ' <a class="btn btn-wa btn-xs js-wa-g" data-tel="55' + t + '" href="#">WhatsApp</a>' : '') + '</span>'; }).join('') +
+        (!ts.length && c.telefone ? '<span>' + esc(masc(c.telefone)) + '</span>' : '') +
+        (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + '</div>' +
+        (c.obs ? '<p>' + esc(masc(c.obs)) + '</p>' : '') + '<small class="fc-aut">Incluído em ' + esc(brDH(c.criado_em)) + ' · ' + esc(c.autor_email || '') + editado(c) + '</small></li>';
+    }).join('');
+    var formContato = function (c) {
+      c = c || {};
+      return '<form class="g-form ed-form" data-form="c|' + esc(c.id == null ? '' : c.id) + '"><div class="duas">' +
+        '<label class="campo"><span>Nome</span><input name="nome" maxlength="120" value="' + esc(c.nome || '') + '" placeholder="Ex.: Maria (gerente)"></label>' +
+        '<label class="campo"><span>Cargo / setor</span><input name="cargo" maxlength="80" value="' + esc(c.cargo || '') + '" placeholder="Ex.: setor ambiental"></label>' +
+        '<label class="campo"><span>Telefone / WhatsApp</span><input name="telefone" type="tel" inputmode="tel" maxlength="60" value="' + esc(c.telefone || '') + '" placeholder="(21) 99999-0000"></label>' +
+        '<label class="campo"><span>E-mail</span><input name="email" type="email" maxlength="120" value="' + esc(c.email || '') + '"></label></div>' +
+        '<label class="campo"><span>Observação</span><textarea name="obs" rows="2" maxlength="1000">' + esc(c.obs || '') + '</textarea></label>' +
+        '<button class="btn btn-wa btn-sm" type="submit">' + (c.id == null ? 'Incluir contato' : 'Salvar alteração') + '</button> ' + (c.id == null ? '' : '<button class="btn btn-linha btn-sm" type="button" data-cancela>Cancelar</button> ') + '<small class="erro" hidden></small></form>';
+    };
+    var anot = x.anot.slice().reverse().map(function (a) {
+      return '<li data-item="a|' + esc(a.id) + '"><div class="ed-cab"><small>' + esc(brDH(a.criado_em)) + ' · ' + esc(a.autor_email || '') + editado(a) + '</small>' + botoes('a', a.id) + '</div><p class="anot-txt">' + esc(masc(a.texto)) + '</p></li>';
+    }).join('');
+    var formAnot = function (a) {
+      a = a || {};
+      return '<form class="g-form ed-form" data-form="a|' + esc(a.id == null ? '' : a.id) + '"><label class="campo"><span>' + (a.id == null ? 'Nova anotação' : 'Editar anotação') + '</span><textarea name="texto" rows="3" maxlength="4000" placeholder="Ex.: cliente pediu proposta de licenciamento até sexta; falar com Maria">' + esc(a.texto || '') + '</textarea></label>' +
+        '<button class="btn btn-wa btn-sm" type="submit">' + (a.id == null ? 'Salvar anotação' : 'Salvar alteração') + '</button> ' + (a.id == null ? '' : '<button class="btn btn-linha btn-sm" type="button" data-cancela>Cancelar</button> ') + '<small class="erro" hidden></small></form>';
+    };
+    var formHist = function (c) {
+      return '<form class="g-form ed-form" data-form="h|' + esc(c.id) + '"><div class="duas">' +
+        '<label class="campo"><span>Status</span><select name="status">' + opSel(Object.keys(ST), c.status, ST) + '</select></label>' +
+        '<label class="campo"><span>Canal</span><select name="canal">' + opSel(CANAIS.indexOf(c.canal) < 0 && c.canal ? CANAIS.concat(c.canal) : CANAIS, c.canal) + '</select></label></div>' +
+        '<label class="campo"><span>Anotação</span><textarea name="nota" rows="2" maxlength="2000">' + esc(c.nota || '') + '</textarea></label>' +
+        '<button class="btn btn-wa btn-sm" type="submit">Salvar alteração</button> <button class="btn btn-linha btn-sm" type="button" data-cancela>Cancelar</button> <small class="erro" hidden></small></form>';
+    };
+
+    formContatoHtml = formContato; formAnotHtml = formAnot; formHistHtml = formHist;
+    var fichaHtml = alvo
+      ? ((x.fcont.length ? '<h3>Contatos incluídos (' + x.fcont.length + ')</h3><ul class="hist ed-lista">' + fcont + '</ul>' : '') + (x.anot.length ? '<h3>Anotações (' + x.anot.length + ')</h3><ul class="hist ed-lista">' + anot + '</ul>' : ''))
+      : '<section class="ficha-bloco"><h3>Contatos incluídos pela equipe' + (x.fcont.length ? ' (' + x.fcont.length + ')' : '') + '</h3>' + avisoFicha +
+        '<p class="nota">Pessoas e números passados pelo cliente ou achados depois da aprovação. Não substituem o cadastro da Receita.</p>' +
+        (fcont ? '<ul class="hist ed-lista">' + fcont + '</ul>' : '') +
+        '<details class="ed-novo"' + (x.fcont.length ? '' : ' open') + '><summary class="btn btn-linha btn-sm">+ Incluir contato</summary>' + formContato() + '</details></section>' +
+        '<section class="ficha-bloco"><h3>Anotações' + (x.anot.length ? ' (' + x.anot.length + ')' : '') + '</h3>' + formAnot() + (anot ? '<ul class="hist ed-lista">' + anot + '</ul>' : '') + '</section>';
+
     var formHtml = alvo ? '' : '<h3>Registrar contato</h3><form class="g-form" id="g-form"><div class="duas">' +
-      '<label class="campo"><span>Status</span><select id="g-st">' + Object.keys(ST).map(function (k) { return '<option value="' + k + '"' + (k === x.status ? ' selected' : '') + '>' + ST[k] + '</option>'; }).join('') + '</select></label>' +
-      '<label class="campo"><span>Canal</span><select id="g-canal"><option>WhatsApp</option><option>Telefone</option><option>E-mail</option><option>Presencial</option><option>Outro</option></select></label></div>' +
+      '<label class="campo"><span>Status</span><select id="g-st">' + opSel(Object.keys(ST), x.status, ST) + '</select></label>' +
+      '<label class="campo"><span>Canal</span><select id="g-canal">' + opSel(CANAIS) + '</select></label></div>' +
       '<label class="campo"><span>Anotação</span><textarea id="g-nota" rows="2" placeholder="Ex.: falei com o setor ambiental, pediram proposta"></textarea></label>' +
       '<button class="btn btn-wa btn-sm" type="submit">Salvar registro</button> <small class="erro" id="g-erro" hidden></small></form>' +
-      '<h3>Histórico</h3><ul class="hist">' + hist + '</ul>';
+      '<h3>Histórico</h3><p class="nota">Editar ou excluir um registro muda o status e os grupos de Aprovados (o status vale pelo registro mais recente).</p><ul class="hist ed-lista">' + hist + '</ul>';
     var corpo = alvo || $('gaveta-corpo');
     corpo.innerHTML = (alvo ? '<div class="selos-l">' + selos(e) + '</div>' : '') +
       '<h2 id="g-tit">' + esc(e.razao_social) + '</h2>' +
       '<p class="g-sub">' + esc(e.cnpj) + (e.nome_fantasia ? ' · ' + esc(e.nome_fantasia) : '') + '<br>' + esc(e.atividade || '') + '<br>Sede: ' + esc(e.municipio_sede || '') + ' · ' + esc(e.situacao_receita || '') + '</p>' +
       (e.socios ? '<p class="g-sub"><strong>Sócios (QSA):</strong> ' + esc(masc(e.socios)) + '</p>' : '') +
       avisos + contato +
+      fichaHtml +
       formHtml +
       (x.embargos.length ? '<h3>Termos de embargo (' + x.embargos.length + ')</h3><ul class="autos">' + x.embargos.map(function (b) {
         return '<li class="auto' + (b.status === 'CANCELADO' ? ' auto-canc' : '') + '"><div class="auto-cab"><strong>TAD ' + esc(b.num_tad) + '</strong><span>' + esc(br(b.data_embargo)) + ' · ' + esc(b.municipio) + '</span></div><div class="auto-meta">' + esc(b.status) + (b.data_desembargo ? ' em ' + esc(br(b.data_desembargo)) : '') + (b.tipo_area ? ' · ' + esc(b.tipo_area) : '') + '</div></li>';
@@ -659,7 +724,7 @@
       '<h3>Autos (' + x.autos.length + ')</h3><p class="nota">Auto de infração não é condenação. Valor indicado não é dano.</p><ul class="autos">' + autos + '</ul>' +
       '<p class="nota">Fonte: <a href="https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-auto-de-infracao" target="_blank" rel="noopener">IBAMA Dados Abertos</a>. Confira o auto na <a href="https://servicos.ibama.gov.br/ctf/publico/areasembargadas/ConsultaPublicaAreasEmbargadas.php" target="_blank" rel="noopener">consulta pública do IBAMA</a>.</p>';
 
-    if (!alvo) { $('gaveta').hidden = false; $('gaveta-fundo').hidden = false; $('gaveta').scrollTop = 0; }
+    if (!alvo) { $('gaveta').hidden = false; $('gaveta-fundo').hidden = false; $('gaveta').scrollTop = manterRolagem ? manterRolagem : 0; manterRolagem = 0; gavetaCnpj = cnpj; }
 
     corpo.querySelectorAll('.js-wa-g').forEach(function (a) {
       a.addEventListener('click', function (ev) {
@@ -674,14 +739,77 @@
       var reg = { cnpj: cnpj, status: $('g-st').value, canal: $('g-canal').value, nota: $('g-nota').value.trim() };
       salvar(reg).then(function (ok) {
         if (!ok) return;
-        indexar(); render(); abrir(cnpj);
+        reabrir(cnpj);
       });
     });
   }
 
+  // ---------- Contatos, anotações e histórico: incluir, editar, excluir ----------
+  var manterRolagem = 0, gavetaCnpj = null, formContatoHtml, formAnotHtml, formHistHtml;
+  var TAB = { c: 'ficha_contatos', a: 'ficha_anotacoes', h: 'contatos' };
+  var NOME = { c: 'este contato', a: 'esta anotação', h: 'este registro do histórico' };
+  function reabrir(cnpj) { manterRolagem = $('gaveta').scrollTop; indexar(); render(); abrir(cnpj); }
+  function achar(t, id) { return D[TAB[t]].filter(function (r) { return String(r.id) === String(id); })[0]; }
+  function limpo(v) { return masc(String(v == null ? '' : v).trim()); }   // CPF digitado por engano sai mascarado
+  function gravar(t, id, dados) {
+    var tab = TAB[t], lst = D[tab];
+    if (modo === 'local') {
+      var agora = new Date().toISOString();
+      if (id == null) { dados.id = Date.now(); dados.criado_em = agora; dados.autor_email = 'prévia local'; lst.push(dados); }
+      else if (dados === null) D[tab] = lst.filter(function (r) { return String(r.id) !== String(id); });
+      else { var r0 = achar(t, id); Object.keys(dados).forEach(function (k) { r0[k] = dados[k]; }); r0.editado_em = agora; r0.editado_por = 'prévia local'; }
+      try { localStorage.setItem('ac_' + tab, JSON.stringify(D[tab])); } catch (e) {}
+      return Promise.resolve({ ok: true });
+    }
+    if (t !== 'h' && !fichaOk) return Promise.resolve({ erro: 'falta rodar o arquivo supabase/08_ficha_editavel.sql no Supabase' });
+    var q = id == null ? sb.from(tab).insert(dados).select() : dados === null ? sb.from(tab).delete().eq('id', id).select() : sb.from(tab).update(dados).eq('id', id).select();
+    return q.then(function (r) {
+      if (r.error) return { erro: r.error.message };
+      if (id != null && (!r.data || !r.data.length)) return { erro: t === 'h' ? 'o banco não deixou alterar. Falta rodar o arquivo supabase/08_ficha_editavel.sql no Supabase.' : 'registro não encontrado (atualize a página).' };
+      if (id == null) lst.push(r.data[0]);
+      else if (dados === null) D[tab] = lst.filter(function (x) { return String(x.id) !== String(id); });
+      else { var r1 = achar(t, id); Object.keys(r.data[0]).forEach(function (k) { r1[k] = r.data[0][k]; }); }
+      return { ok: true };
+    });
+  }
+  var corpoG = $('gaveta-corpo');
+  corpoG.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-ed],[data-ex],[data-cancela]'); if (!b || !gavetaCnpj) return;
+    if (b.hasAttribute('data-cancela')) { reabrir(gavetaCnpj); return; }
+    var p = (b.getAttribute('data-ed') || b.getAttribute('data-ex')).split('|'), t = p[0], id = p[1], reg = achar(t, id);
+    if (!reg) return;
+    if (b.hasAttribute('data-ex')) {
+      var resumo = t === 'a' ? String(reg.texto).slice(0, 80) : t === 'c' ? [reg.nome, reg.telefone, reg.email].filter(Boolean).join(' · ') : (ST[reg.status] || reg.status) + ' em ' + brDH(reg.criado_em);
+      if (!confirm('Excluir ' + NOME[t] + '?\n\n' + masc(resumo) + '\n\nNão dá para desfazer.')) return;
+      b.disabled = true;
+      gravar(t, id, null).then(function (r) { if (r.erro) { alert('Não foi possível excluir: ' + r.erro); b.disabled = false; return; } reabrir(gavetaCnpj); });
+      return;
+    }
+    abrirForm(b.closest('[data-item]'), t, reg);
+  });
+  function abrirForm(li, t, reg) {
+    var html = t === 'h' ? formHistHtml(reg) : t === 'c' ? formContatoHtml(reg) : formAnotHtml(reg);
+    li.innerHTML = html;
+    var f = li.querySelector('input,textarea,select'); if (f) f.focus();
+  }
+  corpoG.addEventListener('submit', function (ev) {
+    var f = ev.target.closest('[data-form]'); if (!f || !gavetaCnpj) return;
+    ev.preventDefault();
+    var p = f.getAttribute('data-form').split('|'), t = p[0], id = p[1] === '' ? null : p[1], v = {}, erro = f.querySelector('.erro');
+    Array.prototype.forEach.call(f.elements, function (el) { if (el.name) v[el.name] = el.tagName === 'SELECT' ? el.value : limpo(el.value); });
+    if (t === 'c' && !v.nome && !v.telefone && !v.email) { erro.textContent = 'Preencha ao menos nome, telefone ou e-mail.'; erro.hidden = false; return; }
+    if (t === 'a' && !v.texto) { erro.textContent = 'Escreva a anotação.'; erro.hidden = false; return; }
+    if (id == null) v.cnpj = gavetaCnpj;
+    var bt = f.querySelector('[type=submit]'); bt.disabled = true;
+    gravar(t, id, v).then(function (r) {
+      if (r.erro) { erro.textContent = 'Não foi possível salvar: ' + r.erro; erro.hidden = false; bt.disabled = false; return; }
+      reabrir(gavetaCnpj);
+    });
+  });
+
   function salvar(reg) {
     if (modo === 'local') {
-      reg.criado_em = new Date().toISOString(); reg.autor_email = 'prévia local';
+      reg.id = Date.now(); reg.criado_em = new Date().toISOString(); reg.autor_email = 'prévia local';
       D.contatos.push(reg);
       try { localStorage.setItem('ac_contatos', JSON.stringify(D.contatos)); } catch (e) {}
       return Promise.resolve(true);
