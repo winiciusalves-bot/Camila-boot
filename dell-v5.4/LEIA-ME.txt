@@ -1,0 +1,22 @@
+RADAR AMBIENTAL v5.4 - REINSTALACAO COMPLETA (13/11/2026)
+
+Montado com as versoes mais recentes guardadas no projeto, porque a pasta do Radar sumiu do Dell em 13/11/2026.
+Onde esta instalado (13/11): H:\Meu Drive\Radar-Ambiental (Google Drive do Dell). Roda de qualquer pasta: os scripts acham a propria pasta.
+Estrutura: MENU-AMBIENTAL.bat, scripts\, 01-Coletas\, 02-Base\, 04-Achados\, 05-Interno\, logs\, _backup\
+
+De onde veio cada script (pasta radar-ambiental do projeto):
+- comum, c4, c6, c7 (com e-mail), c8 (mensagem formal), c10, c11, c12, c13 -> v5.1 (06 a 08/11)
+- c1, c2, c3, c9 -> v5-prospeccao (06/11)
+- c5 (DOU + INLABS) -> v4-inlabs (06/11)
+- c14 (diarios que so abrem do PC) -> dell (12/11)
+- c15 (Diario Eletronico do INEA, opcao 17) -> novo (13/11)
+- MENU -> v5.3 de 12/11 + opcao 17 + 17 no inicio da fila automatica
+
+O QUE NAO VOLTA (estava so no PC):
+- dados ja coletados (01-Coletas, 02-Base, 04-Achados), logs e caches;
+- 05-Interno: supabase_secret.txt, login do INLABS (opcao 6), contatos_status.csv e alteracoes em excluir_cnpj.txt e modelo_mensagem.txt.
+  Os scripts recriam os arquivos padrao (excluir_cnpj.txt com a Petrobras; modelo_mensagem.txt formal).
+- qualquer ajuste feito direto no PC depois dessas datas;
+- o agendamento (opcao A) continua no Windows, mas aponta para o MENU desta mesma pasta.
+
+Como recuperar os dados: rodar a fila R (4 8 13 9 15 10 12) e a opcao 17 com -Desde 2023-08-29.

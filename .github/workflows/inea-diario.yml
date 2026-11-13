@@ -1,0 +1,38 @@
+name: Diário Eletrônico do INEA -> Supabase
+# Edição diária do Diário Eletrônico do INEA (mesma lista do PDF da página; sem login e sem captcha).
+# Só NOTIFICAÇÕES (pedido do usuário 13/11): fiscalização (INEA-DE) e licenciamento (INEA-DL) de PJ -> ocorrencias.
+# Licenças emitidas e pedidos são descartados.
+# 13/11/2026: o site do INEA NÃO responde ao GitHub (tempo esgotado fora do Brasil). A coleta diária roda no Dell,
+# opção [17] do MENU (c15_inea_diario.ps1). Este workflow fica só manual, como reserva, para testar se o site abriu.
+on:
+  workflow_dispatch:
+    inputs:
+      dias: { description: 'Dias para trás', default: '10' }
+      desde: { description: 'Carga do histórico: AAAA-MM-DD (vazio = usa Dias). Primeira edição: 2023-08-29', default: '' }
+      gravar: { description: 'Gravar no Supabase? (nao = só mostra no log)', default: 'nao' }
+permissions:
+  contents: read
+concurrency:
+  group: supabase-escrita
+  cancel-in-progress: false
+jobs:
+  inea-diario:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ler o Diário Eletrônico do INEA
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DIAS: ${{ github.event.inputs.dias || '10' }}
+          DESDE: ${{ github.event.inputs.desde || '' }}
+          GRAVAR: ${{ github.event.inputs.gravar || 'nao' }}
+        run: |
+          ARGS="--dias $DIAS"
+          if [ -n "$DESDE" ]; then ARGS="--desde $DESDE"; fi
+          if [ "$GRAVAR" = "sim" ]; then python -I coletor/inea_diario.py $ARGS
+          else python -I coletor/inea_diario.py $ARGS --sem-supabase --amostra; fi

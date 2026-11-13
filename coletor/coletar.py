@@ -318,7 +318,8 @@ def pontuar_occ(e, occs, hoje, status_contato, excluidas):
     tem('DEMOLICAO', 99999, 15, 'termo de demolição')
     tem('APREENSAO', 365, 10, 'termo de apreensão em 12 meses')
     tem('ACIDENTE', 730, 10, 'acidente ambiental em 24 meses')
-    inea = [o for o in val if sem_acento(o.get('orgao') or '') == 'INEA']
+    # notificação do Diário Eletrônico do INEA não é penalidade: pontua só como notificação (+8, acima)
+    inea = [o for o in val if sem_acento(o.get('orgao') or '') == 'INEA' and 'NOTIFICACAO' not in tipo(o)]
     if any(dias(o) <= 365 for o in inea): pts += 15; mot.append('penalidade do INEA em 12 meses (+15)')
     elif inea: pts += 5; mot.append('penalidade do INEA antiga (+5)')
     if any('LICENCA' in tipo(o) for o in fatos): pts += 3; mot.append('licença federal registrada (+3)')
