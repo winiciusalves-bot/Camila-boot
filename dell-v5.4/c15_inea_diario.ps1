@@ -15,7 +15,46 @@
 # Uso pelo MENU: opcao 17 (le desde o ultimo dia lido; na 1a vez, 30 dias).
 # Historico completo (desde 29/08/2023, ~800 dias, ~20 min):  ... c15_inea_diario.ps1 -Desde 2023-08-29
 param([string]$Desde = '', [int]$Dias = 0)
-. "$PSScriptRoot\comum.ps1"
+if (Test-Path "$PSScriptRoot\comum.ps1") { . "$PSScriptRoot\comum.ps1" }
+else {
+  # Modo sozinho (sem o Radar-Ambiental): as funcoes que este script usa, iguais as do comum.ps1 v5.1
+  $ErrorActionPreference = 'Continue'
+  $RAIZ = Split-Path -Parent $PSScriptRoot
+  $UA = 'Mozilla/5.0 (Gabinete ALERJ - levantamento de transparencia publica)'
+  function Set-Tls($com13) { $p = [Net.SecurityProtocolType]::Tls12; if ($com13) { try { $p = $p -bor [Net.SecurityProtocolType]'Tls13' } catch {} }; [Net.ServicePointManager]::SecurityProtocol = $p }
+  function Erro-Texto($e) { try { $m = $e.Exception.Message } catch { $m = "$e" }; return ($m -replace '\s+', ' ').Trim() }
+  function Fmt($s) { $t = [TimeSpan]::FromSeconds([int]$s); '{0:00}:{1:00}:{2:00}' -f [int][math]::Floor($t.TotalHours), $t.Minutes, $t.Seconds }
+  function Progresso($i, $total, $ini, $txt) {
+    $dec = ((Get-Date) - $ini).TotalSeconds; $eta = $dec / $i * ($total - $i)
+    $fim = (Get-Date).AddSeconds($eta).ToString('HH:mm')
+    Write-Host ('[{0,5:N1}%] {1}/{2} {3} | decorrido {4} | faltam ~{5} | termino ~{6}' -f ($i / $total * 100), $i, $total, $txt, (Fmt $dec), (Fmt $eta), $fim)
+  }
+  function Som { try { [console]::beep(880,300); [console]::beep(988,300); [console]::beep(1175,400) } catch {} }
+  function Cnpj-Ok($c) {
+    $d = ($c -replace '\D', ''); if ($d.Length -ne 14 -or $d -match '^(\d)\1{13}$') { return $false }
+    $p1 = 5,4,3,2,9,8,7,6,5,4,3,2; $p2 = ,6 + $p1
+    $dv = { param($b, $p) $s = 0; for ($k = 0; $k -lt $p.Count; $k++) { $s += [int][string]$b[$k] * $p[$k] }; $r = $s % 11; if ($r -lt 2) { 0 } else { 11 - $r } }
+    return ([int][string]$d[12] -eq (& $dv $d $p1)) -and ([int][string]$d[13] -eq (& $dv $d $p2))
+  }
+  function Cnpj-Fmt($c) { $d = $c -replace '\D', ''; '{0}.{1}.{2}/{3}-{4}' -f $d.Substring(0,2), $d.Substring(2,3), $d.Substring(5,3), $d.Substring(8,4), $d.Substring(12) }
+  function Mascara-Cpf($t) { [regex]::Replace($t, '(?<![\d./])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?![\d/])', '***.$2.$3-**') }
+  function Cpf-Ok($c) {
+    $d = ($c -replace '\D', ''); if ($d.Length -ne 11 -or $d -match '^(\d)\1{10}$') { return $false }
+    foreach ($n in 9, 10) { $s = 0; for ($i = 0; $i -lt $n; $i++) { $s += [int][string]$d[$i] * ($n + 1 - $i) }; if ((($s * 10) % 11) % 10 -ne [int][string]$d[$n]) { return $false } }
+    return $true
+  }
+  function Mascara-Texto($t) {
+    if ($null -eq $t) { return $t }
+    $t = [string]$t
+    $t = [regex]::Replace($t, '(?i)(CPF\s*[:nº°.]*\s*)\d{3}\.?\d{3}\.?\d{3}(-?\d{2})?', '$1[CPF omitido]')
+    $t = [regex]::Replace($t, '(?<![\d/])\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?![\d/])', { param($m) if (Cpf-Ok $m.Value) { '[CPF omitido]' } else { $m.Value } })
+    return $t.Trim()
+  }
+  function Cabecalho-Etapa($n, $tot, $txt, $ini) {
+    $dec = ((Get-Date) - $ini).TotalSeconds
+    Write-Host ('[{0}/{1}] {2,-55} | {3,5:N1}% | decorrido {4}' -f $n, $tot, $txt, (($n - 1) / $tot * 100), (Fmt $dec)) -ForegroundColor Cyan
+  }
+}
 Set-Tls $true
 $SITE_INEA = 'https://diarioeletronico.inea.rj.gov.br/'
 $API_INEA = $SITE_INEA + 'DiarioEletronico.Api/Processo/BuscaProcessosDiaAnterior'
