@@ -1,12 +1,5 @@
 {
- "pinheiral_atosgov": "https://atosgov.com.br/pmpinheiral/diario",
- "pinheiral_atosgov_raiz": "https://atosgov.com.br/pmpinheiral",
- "volta_redonda": "https://www.voltaredonda.rj.gov.br/diario-oficial",
- "silva_jardim": "https://www.silvajardim.rj.gov.br/",
- "padua": "https://www.santoantoniodepadua.rj.gov.br/",
- "italva": "https://www.italva.rj.gov.br/",
- "cardoso_moreira": "https://www.cardosomoreira.rj.gov.br/",
- "laje": "https://portal.laje.rj.gov.br/",
- "ssalto": "https://ssalto.rj.gov.br/",
- "porto_real": "https://portoreal.rj.gov.br/"
+ "pinheiral_edicao": "https://atosgov.com.br/pmpinheiral/diario/3fbe846a-6c4f-4b10-aa12-88a5acf30f06",
+ "pinheiral_lista": "https://atosgov.com.br/pmpinheiral/diario",
+ "volta_redonda": "https://www.voltaredonda.rj.gov.br/diario-oficial"
 }
