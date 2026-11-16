@@ -246,7 +246,8 @@ def main():
             for f in it.get('files') or []:
                 edicoes.append(dict(municipio=mun, data=it.get('date'), edicao=it.get('edition_number') or '',
                                     extra=it.get('is_extra_edition'), url=f.get('url') or (it.get('file_urls') or [''])[0],
-                                    caminho=f.get('path')))
+                                    caminho=f.get('path'), sha_pdf=f.get('checksum') if len(f.get('checksum') or '') == 64 else None,
+                                    bytes_pdf=f.get('bytes')))
     log(f'{len(edicoes)} edições baixadas')
 
     achados, resumo, t0, t_ocr = [], {}, time.time(), 0.0
@@ -271,6 +272,10 @@ def main():
                         + (f' (limite de {OCR_MAX_PAG})' if tot > lidas else '') + f', {len(txt.strip())} caracteres')
                 else:
                     log(f"OCR {ed['municipio']} {ed['data']}: pulado, limite de {OCR_MAX_MIN:.0f} min de OCR atingido")
+        elif ed['caminho'] and os.environ.get('TEXTOS_STORE'):   # PC 1.2: só o texto veio (o PDF ficou no PC)
+            t = os.path.join(os.environ['TEXTOS_STORE'], ed['caminho'] + '.txt')
+            if os.path.exists(t):
+                txt = open(t, encoding='utf-8', errors='ignore').read()
         if txt.strip(): r['com_texto'] += 1
         cn = cnpjs_em(txt)
         if ed['caminho'] and os.path.exists(pdf):
@@ -281,6 +286,10 @@ def main():
                                       _k=k, _paginas=(paginas(pdf) or (txt.count('\f') + 1 if txt.strip() else None)),
                                       _extra=bool(ed.get('extra')), _arquivo=ed['caminho']))
             except Exception: pass
+        elif ed.get('sha_pdf') and txt.strip():   # só o texto veio do PC: o SHA-256 é o do PDF, medido no PC (jsonl)
+            manifesto.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], edicao=ed['edicao'], link=ed['url'],
+                                  sha256=ed['sha_pdf'], bytes=ed.get('bytes_pdf'), texto='sim', _k=k,
+                                  _paginas=txt.count('\f') + 1, _extra=bool(ed.get('extra')), _arquivo=ed['caminho']))
         for c in dict.fromkeys(c for c, _ in cn):
             i = next(i for cc, i in cn if cc == c)
             citados.append(dict(data=ed['data'], fonte='DOM', ente=ed['municipio'], cnpj=fmt(c), razao_receita=base.get(c, ''),
