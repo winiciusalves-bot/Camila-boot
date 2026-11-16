@@ -1,6 +1,12 @@
 {
- "tangua": "https://webtangua.supernova.com.br:8443/contaspublicas/pages/publicacao_demais_relatorio.xhtml?faces-redirect=true&idTipoRelatorio=1",
- "mage_bio": "https://mage.rj.gov.br/bio/",
- "mage_bioextra": "https://mage.rj.gov.br/bioextra/",
- "mage_biosantigos": "https://mage.rj.gov.br/biosantigos"
+ "pinheiral_atosgov": "https://atosgov.com.br/pmpinheiral/diario",
+ "pinheiral_atosgov_raiz": "https://atosgov.com.br/pmpinheiral",
+ "volta_redonda": "https://www.voltaredonda.rj.gov.br/diario-oficial",
+ "silva_jardim": "https://www.silvajardim.rj.gov.br/",
+ "padua": "https://www.santoantoniodepadua.rj.gov.br/",
+ "italva": "https://www.italva.rj.gov.br/",
+ "cardoso_moreira": "https://www.cardosomoreira.rj.gov.br/",
+ "laje": "https://portal.laje.rj.gov.br/",
+ "ssalto": "https://ssalto.rj.gov.br/",
+ "porto_real": "https://portoreal.rj.gov.br/"
 }
