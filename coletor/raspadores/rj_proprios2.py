@@ -311,7 +311,7 @@ class RjMageBioSpider(_Base2):
     TERRITORY_ID = '3302502'
     allowed_domains = ['mage.rj.gov.br']
     start_date = date(2025, 1, 1)
-    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1}
+    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1, 'RETRY_TIMES': 8, 'DOWNLOAD_TIMEOUT': 120}  # site oscila (timeout em 16/11)
     BASE = 'https://mage.rj.gov.br'
 
     async def start(self):
