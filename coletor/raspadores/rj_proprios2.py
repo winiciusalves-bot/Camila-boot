@@ -206,6 +206,19 @@ class RjItatiaiaWpSpider(_WpMediaSpider):
     BUSCA = 'diario'
     RX_ARQ = re.compile(r'^Diario[-_ ](Regular|Extra|Oficial)', re.I)
 
+class RjSaoSebastiaoDoAltoWpSpider(_WpMediaSpider):
+    """São Sebastião do Alto: não tem diário oficial próprio achado (16/11/2026). O site (WordPress) publica os atos
+    (decretos, leis, contratos, atas, homologações, editais) como PDF de mídia: 618 PDFs entre 15/11/2025 e 16/11/2026.
+    Cada PDF entra como uma "edição"; a data é a do nome do arquivo quando houver, senão a da publicação no site.
+    É publicação no site, não diário oficial: registrar assim no relatório."""
+    name = 'rj_sao_sebastiao_do_alto_wp'
+    TERRITORY_ID = '3305307'
+    allowed_domains = ['ssalto.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    BASE = 'https://ssalto.rj.gov.br'
+    RX_ARQ = re.compile(r'.')
+
+
 # Guapimirim: coberto pelo rj_guapimirim_seq (rj_proprios.py); a API de mídia do WordPress respondeu 401 em 10/11/2026.
 
 
