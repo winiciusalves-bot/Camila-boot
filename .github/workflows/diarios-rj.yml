@@ -53,7 +53,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Preparar raspadores e leitor de PDF
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils tesseract-ocr tesseract-ocr-por >/dev/null   # OCR para diário escaneado
+          # OCR para diário escaneado. O espelho do Ubuntu às vezes cai (11/11: 10 de 12 blocos perdidos): tenta 4 vezes antes de desistir
+          for t in 1 2 3 4; do sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils tesseract-ocr tesseract-ocr-por >/dev/null && break; [ $t = 4 ] && exit 1; echo "apt falhou (tentativa $t), nova tentativa em 60 s"; sleep 60; done
           git clone -q --depth 1 https://github.com/okfn-brasil/querido-diario qd
           # robôs próprios (reservas) entram junto com os do Querido Diário
           cp coletor/raspadores/*.py qd/querido_diario_raspadores/gazette/spiders/rj/
