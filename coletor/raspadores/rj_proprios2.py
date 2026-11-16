@@ -300,3 +300,112 @@ class RjCambuciSpider(_TranspExibirSpider):
     start_date = date(2021, 1, 1)
     BASE = 'https://prefeituradecambuci.rj.gov.br'
     SECAO = '53'
+
+
+class RjMageBioSpider(_Base2):
+    """Magé: Boletim Informativo Oficial (BIO), quinzenal, nas páginas públicas /bio/ (BIO<N>.pdf) e /bioextra/
+    (BIO-EXTRA-DD-MM-AAAA.pdf). Achado em 16/11/2026. A edição regular não traz data no nome nem na página
+    (só a última, como período "16 à 31 de Outubro de 2026"); a data usada é o Last-Modified do PDF no servidor
+    (data em que a prefeitura subiu o arquivo), anotada como método. Extra: data do nome do arquivo."""
+    name = 'rj_mage_bio'
+    TERRITORY_ID = '3302502'
+    allowed_domains = ['mage.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1}
+    BASE = 'https://mage.rj.gov.br'
+
+    async def start(self):
+        yield scrapy.Request(f'{self.BASE}/bio/', callback=self.parse_lista)
+        yield scrapy.Request(f'{self.BASE}/bioextra/', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        vistos = set()
+        for url in re.findall(r'href="([^"]*/BIO/\d{4}/[^"]*\.pdf)"', response.text):
+            if url in vistos:
+                continue
+            vistos.add(url)
+            nome = url.rsplit('/', 1)[-1]
+            m = re.match(r'BIO-EXTRA-(\d{2})-(\d{2})-(\d{4})', nome, re.I)
+            if m:
+                try:
+                    d = date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+                except ValueError:
+                    continue
+                if self.dentro(d):
+                    yield Gazette(date=d, edition_number='', is_extra_edition=True, file_urls=[url], power='executive')
+                continue
+            m = re.match(r'BIO(\d{1,5})', nome, re.I)
+            ano = re.search(r'/BIO/(\d{4})/', url)
+            if not m or not ano or int(ano.group(1)) < self.start_date.year:
+                continue
+            yield scrapy.Request(url, method='HEAD', callback=self.parse_head, cb_kwargs=dict(url=url, ed=str(int(m.group(1)))),
+                                 dont_filter=True)
+
+    def parse_head(self, response, url, ed):
+        lm = response.headers.get('Last-Modified', b'').decode()
+        try:
+            d = datetime.strptime(lm, '%a, %d %b %Y %H:%M:%S GMT').date()
+        except ValueError:
+            self.logger.error(f'BIO {ed}: sem Last-Modified ({lm!r}); edição não entra')
+            return
+        if self.dentro(d):
+            yield Gazette(date=d, edition_number=ed, is_extra_edition=False, file_urls=[url], power='executive')
+
+
+_MESES_PT = dict(janeiro=1, fevereiro=2, marco=3, abril=4, maio=5, junho=6, julho=7, agosto=8, setembro=9, outubro=10,
+                 novembro=11, dezembro=12)
+_MESES_PT['março'] = 3
+
+
+def _data_extenso(s):   # "13 de novembro de 2026"
+    m = re.search(r'(\d{1,2})\s+de\s+([A-Za-zçÇ]+)\s+de\s+(\d{4})', s or '')
+    if not m or m.group(2).lower() not in _MESES_PT:
+        return None
+    try:
+        return date(int(m.group(3)), _MESES_PT[m.group(2).lower()], int(m.group(1)))
+    except ValueError:
+        return None
+
+
+class RjNovaFriburgoSiteSpider(_Base2):
+    """Nova Friburgo: diário próprio em diario.novafriburgo.rj.gov.br (link do site da prefeitura, serviço 11).
+    Lista paginada /diario-oficial/index?page=N (mais novo primeiro), com 'Edição nº N/AAAA', data por extenso e
+    o PDF assinado em /diario-oficial/versao-pdf/<id>. Achado em 16/11/2026; o robô Dioenet não achava edição."""
+    name = 'rj_nova_friburgo_site'
+    TERRITORY_ID = '3303401'
+    allowed_domains = ['diario.novafriburgo.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1}
+    BASE = 'https://diario.novafriburgo.rj.gov.br'
+    RX = re.compile(r'Edi[çc][ãa]o n[ºo°]\s*([\d.]+)(?:/\d{4})?\s*([^<]*)</h4>\s*([^<]+)<.*?href="(/diario-oficial/versao-pdf/\d+)"', re.S | re.I)
+
+    async def start(self):
+        yield scrapy.Request(f'{self.BASE}/diario-oficial/index?page=1', callback=self.parse_pagina, cb_kwargs=dict(pagina=1))
+
+    def parse_pagina(self, response, pagina):
+        mais_velha = None
+        for ed, resto, dtx, link in self.RX.findall(response.text):
+            d = _data_extenso(dtx)
+            if d is None:
+                continue
+            mais_velha = d if mais_velha is None else min(mais_velha, d)
+            if self.dentro(d):
+                extra = bool(re.search(r'extra|suplement', resto + dtx, re.I))
+                yield Gazette(date=d, edition_number=ed.replace('.', ''), is_extra_edition=extra,
+                              file_urls=[self.BASE + link], power='executive')
+        if mais_velha is None:
+            self.logger.error(f'página {pagina} sem edição reconhecida')
+            return
+        if mais_velha >= self.start_date and pagina < 300:
+            yield scrapy.Request(f'{self.BASE}/diario-oficial/index?page={pagina + 1}', callback=self.parse_pagina,
+                                 cb_kwargs=dict(pagina=pagina + 1))
+
+
+class RjValencaApiSpider(RjDuqueDeCaxiasApiSpider):
+    """Valença: mesmo sistema do portal de transparência de Duque de Caxias ("Boletins Oficiais do Município",
+    diario_oficial_get.php com mesano=M/AAAA e PDF em diario_oficial_get_anexo.php). Achado e conferido em 16/11/2026."""
+    name = 'rj_valenca_api'
+    TERRITORY_ID = '3306107'
+    allowed_domains = ['portaltransparencia.valenca.rj.gov.br']
+    start_date = date(2025, 1, 1)
+    BASE = 'https://portaltransparencia.valenca.rj.gov.br'
