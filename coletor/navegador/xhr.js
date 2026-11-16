@@ -17,8 +17,8 @@ const LIXO = /google|clarity|userway|facebook|twitter|allorigins|cdn-cgi|popular
     try {
       await pg.goto(url, { timeout: 60000, waitUntil: 'networkidle' }).catch(() => null);
       await pg.waitForTimeout(5000);
-      const pdfs = await pg.$$eval('a', as => as.map(a => [a.textContent.replace(/\s+/g, ' ').trim().slice(0, 80), a.href])
-        .filter(([t, h]) => process.env.TODOS_LINKS || /\.pdf|download|arquivo|visualiz|di[aá]rio|edi[cç]/i.test(h) || /edi[cç][aã]o|di[aá]rio oficial|baixar|download/i.test(t)));
+      const pdfs = await pg.$$eval('a', (as, todos) => as.map(a => [a.textContent.replace(/\s+/g, ' ').trim().slice(0, 80), a.href])
+        .filter(([t, h]) => todos || /\.pdf|download|arquivo|visualiz|di[aá]rio|edi[cç]/i.test(h) || /edi[cç][aã]o|di[aá]rio oficial|baixar|download/i.test(t)), !!process.env.TODOS_LINKS);
       const forms = await pg.$$eval('form', fs => fs.map(f => ({ action: f.action, method: f.method, campos: [...f.elements].map(e => e.name + '=' + (e.value || '').slice(0, 20)).slice(0, 15) })));
       const texto = (await pg.innerText('body').catch(() => '')).replace(/\s+/g, ' ').slice(0, 1500);
       const cliques = await pg.$$eval('[onclick],button,input[type=submit],a[id*=":"]', es => es.map(e => (e.tagName + '#' + (e.id || '') + ' ' + (e.textContent || e.value || '').replace(/\s+/g, ' ').trim().slice(0, 40) + ' ' + (e.getAttribute('onclick') || '').slice(0, 160))).slice(0, 25));
