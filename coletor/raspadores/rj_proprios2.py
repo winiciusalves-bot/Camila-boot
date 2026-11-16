@@ -409,3 +409,35 @@ class RjValencaApiSpider(RjDuqueDeCaxiasApiSpider):
     allowed_domains = ['portaltransparencia.valenca.rj.gov.br']
     start_date = date(2025, 1, 1)
     BASE = 'https://portaltransparencia.valenca.rj.gov.br'
+
+
+class RjVoltaRedondaVrdSpider(_Base2):
+    """Volta Redonda: o diário oficial é o "VR Destaque". A página pública /vrdestaque/index.php traz todas as edições
+    desde 2019 num campo de seleção, com o PDF em /images/Documentos/VRDestaques/<pasta>/AAAA-MM-DD_<N>[EXTRA].pdf
+    (a pasta nem sempre é o ano: 2025 e 2026 ficam em /2024/). Achado pelo navegador do robô em 16/11/2026."""
+    name = 'rj_volta_redonda_vrd'
+    TERRITORY_ID = '3306305'
+    allowed_domains = ['www.voltaredonda.rj.gov.br', 'voltaredonda.rj.gov.br']
+    start_date = date(2019, 1, 1)
+    custom_settings = {'ROBOTSTXT_OBEY': False, 'DOWNLOAD_DELAY': 1}
+    BASE = 'https://www.voltaredonda.rj.gov.br'
+    RX = re.compile(r'/(\d{4})-(\d{2})-(\d{2})[_\- ]+(\d{3,5})([^/]*)\.pdf$', re.I)
+
+    async def start(self):
+        yield scrapy.Request(f'{self.BASE}/vrdestaque/index.php', callback=self.parse_lista)
+
+    def parse_lista(self, response):
+        vistos = set()
+        for url in re.findall(r'<option[^>]*value="([^"]+\.pdf)"', response.text, re.I):
+            m = self.RX.search(url)
+            if not m:
+                continue
+            try:
+                d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                continue
+            if not self.dentro(d) or url in vistos:
+                continue
+            vistos.add(url)
+            yield Gazette(date=d, edition_number=m.group(4), is_extra_edition=bool(re.search(r'extra|part|par\d', m.group(5), re.I)),
+                          file_urls=[response.urljoin(url)], power='executive')
