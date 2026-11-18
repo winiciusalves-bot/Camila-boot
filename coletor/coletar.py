@@ -15,6 +15,8 @@ import argparse, csv, datetime as dt, io, json, os, re, sys, tempfile, time, uni
 import importlib.util as _ilu   # coletor/chance.py (o workflow roda com python -I, que não põe a pasta do script no sys.path)
 _sp = _ilu.spec_from_file_location('chance', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chance.py'))
 _ch = _ilu.module_from_spec(_sp); _sp.loader.exec_module(_ch); chance_licenciamento = _ch.chance
+_sp2 = _ilu.spec_from_file_location('fila_diarios', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fila_diarios.py'))
+_fd = _ilu.module_from_spec(_sp2); _sp2.loader.exec_module(_fd)   # fila "Diários a conferir" (18/11/2026)
 csv.field_size_limit(2**31 - 1)   # descrições muito longas em alguns CSVs do IBAMA
 
 FONTE_URL = 'https://stibamadadosabertosprd.blob.core.windows.net/dados-abertos/dados/SIFISC/auto_infracao/auto_infracao/auto_infracao_csv.zip'
@@ -746,8 +748,12 @@ def main():
         # outras fontes oficiais gravadas por coletores próprios (coletor/inea.py: INEA; coletor/dou.py: editais do DOU)
         # também viram empresa da base quando o documento é FATO, válido e dos últimos 12 meses
         corte_out = (hoje - dt.timedelta(days=365)).isoformat()
+        # fila "Diários a conferir": achados novos entram como INDÍCIO; o que uma pessoa conferiu como FATO vira ocorrência DOMF|
+        if sb:
+            try: _fd.sincronizar(sb, hoje, log); _fd.promover(sb, hoje, log)
+            except Exception as e: log(f'fila de diários: etapa pulada ({e})')
         occ_inea = [o for o in (sb.todos('ocorrencias', 'chave,cnpj,nome,data_documento,nivel,situacao') if sb else [])
-                    if o['chave'].startswith(('INEA-', 'DOU3|')) and (o.get('nivel') or 'FATO') == 'FATO' and o.get('situacao') == 'VALIDO'
+                    if o['chave'].startswith(('INEA-', 'DOU3|', 'DOMF|')) and (o.get('nivel') or 'FATO') == 'FATO' and o.get('situacao') in ('VALIDO', 'VIGENTE')
                     and str(o.get('data_documento') or '')[:10] >= corte_out and dv_cnpj(o.get('cnpj'))]
 
         # 3) cadastro: empresas novas ou com cadastro de mais de 30 dias

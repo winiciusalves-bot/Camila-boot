@@ -195,3 +195,8 @@
   .ed-cab > span:first-child,.ed-cab > small:first-child{flex:1 1 100%}
   .ed-bts .btn-xs{min-height:38px;padding:6px 14px}
 }
+/* Fila "Diários a conferir" (18/11/2026): formulário do "É FATO" empilhado dentro do cartão */
+.busca.d-form{grid-template-columns:1fr;padding:12px;margin-top:4px;box-shadow:none}
+.busca.d-form .campo-grande{grid-column:auto}
+.card-f .cf-mot mark{background:#fff3b0;padding:0 2px;border-radius:3px}
+#aba-diarios .cf-mot{max-height:14em;overflow:auto}
