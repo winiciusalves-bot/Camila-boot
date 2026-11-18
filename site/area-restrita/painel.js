@@ -6,7 +6,7 @@
   var sb = null, modo = null, usuario = '';
   var D = { empresas: [], autos: [], contatos: [], embargos: [], ocorrencias: [], ficha_contatos: [], ficha_anotacoes: [] }, fichaOk = true, porCnpj = {}, aba = 'fila';
   var TRI = {}, triOk = true, desfazer = [], DIAS_REPROVADO = 45, confAtual = null, forcar = null, ocupado = false;
-  var ABAS = ['conferencia', 'aprovados', 'reprovados', 'empresas', 'registro', 'fila'], grupo = 'acontatar', VOLTAS = [7, 14];   // sem resposta: volta em 7 dias, depois em 14; sem resposta de novo, vai para o lixo
+  var ABAS = ['conferencia', 'aprovados', 'reprovados', 'empresas', 'registro', 'diarios', 'fila'], grupo = 'acontatar', VOLTAS = [7, 14];   // sem resposta: volta em 7 dias, depois em 14; sem resposta de novo, vai para o lixo
 
   var TIPO_CURTO = { 'AUTO DE INFRACAO': 'auto de infração', 'TERMO DE EMBARGO': 'termo de embargo', 'NOTIFICACAO': 'notificação', 'TERMO DE SUSPENSAO': 'termo de suspensão',
     'TERMO DE DEMOLICAO': 'termo de demolição', 'TERMO DE APREENSAO': 'termo de apreensão', 'ACIDENTE AMBIENTAL (SIEMA)': 'registro de acidente ambiental', 'PENALIDADE INEA': 'penalidade do INEA', 'MENCAO NO DOU': 'menção no Diário Oficial' };
@@ -165,6 +165,7 @@
     document.querySelectorAll('.aba').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-aba') === n ? 'true' : 'false'); });
     ABAS.forEach(function (k) { $('aba-' + k).hidden = k !== n; });
     try { localStorage.setItem('ac_aba', n); } catch (e) {}
+    if (n === 'diarios' && window.FilaDiarios) window.FilaDiarios.abrir(sb);   // fila-diarios.js
   }
 
   function montar() {

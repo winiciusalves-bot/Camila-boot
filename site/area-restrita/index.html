@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css?v=20261108">
-<link rel="stylesheet" href="painel.css?v=20261113">
+<link rel="stylesheet" href="painel.css?v=20261118">
 </head>
 <body class="painel-body">
 
@@ -64,6 +64,7 @@
       <span class="aba-sep" aria-hidden="true"></span>
       <button type="button" role="tab" class="aba aba-sec" data-aba="empresas" aria-selected="false">Base completa</button>
       <button type="button" role="tab" class="aba aba-sec" data-aba="registro" aria-selected="false">Documentos</button>
+      <button type="button" role="tab" class="aba aba-sec" data-aba="diarios" aria-selected="false">Diários a conferir <span class="aba-n" id="n-dia"></span></button>
     </nav>
 
     <section id="aba-conferencia" class="painel-aba" hidden>
@@ -101,6 +102,18 @@
       <p class="res-info" id="x-info" aria-live="polite"></p>
       <div class="tabela-wrap"><table class="tabela p-tabela"><thead><tr><th>Empresa</th><th>Desde</th><th>Sai do banco em</th><th></th></tr></thead><tbody id="x-linhas"></tbody></table></div>
       <p class="nota">Aqui ficam as reprovadas na conferência e as que não responderam depois de 3 tentativas (volta em 7 dias, depois em 14). Depois de 45 dias o coletor apaga autos, embargos e cadastro dessa empresa e guarda só o CNPJ marcado, para ela não voltar. Se sair auto novo depois da reprovação, ela volta para a Conferência.</p>
+    </section>
+
+    <section id="aba-diarios" class="painel-aba" hidden>
+      <p class="nota">Autos de infração, embargos e interdições achados nos <strong>diários oficiais das prefeituras</strong>. Tudo aqui é <strong>INDÍCIO</strong>: o robô achou o CNPJ perto da palavra, o que não prova nada. Abra o diário, leia o ato e decida. Só o que você marcar como <strong>É FATO</strong> vira empresa no painel (na coleta do dia seguinte). A pré-triagem só ordena a fila; ela não decide.</p>
+      <form class="busca" onsubmit="return false">
+        <label class="campo"><span>Situação</span><select id="d-st"><option value="a_conferir">A conferir</option><option value="fato">Conferidos: É FATO</option><option value="descartado">Descartados</option><option value="">Todos</option></select></label>
+        <label class="campo"><span>Pré-triagem</span><select id="d-pre"><option value="">Todas</option><option value="provavel">Provável ambiental</option><option value="duvidoso">Duvidoso</option><option value="provavel_falso">Provável não ambiental</option></select></label>
+        <label class="campo"><span>Município</span><select id="d-mun"><option value="">Todos</option></select></label>
+        <label class="campo campo-grande"><span>Buscar</span><input type="search" id="d-q" placeholder="Nome, CNPJ, palavra do trecho"></label>
+      </form>
+      <p class="res-info" id="d-info" aria-live="polite"></p>
+      <div class="fila" id="d-cards"></div>
     </section>
 
     <section id="aba-fila" class="painel-aba" hidden data-antiga="substituida por Aprovados > A contatar">
@@ -171,6 +184,7 @@
   // Prévia local: só carrega se o arquivo existir no computador (nunca publique a pasta NAO-PUBLICAR).
   if (!(window.SITE_CONFIG || {}).supabaseUrl) document.write('<script src="../NAO-PUBLICAR/dados-locais.js"><\/script>');
 </script>
-<script src="painel.js?v=20261113"></script>
+<script src="fila-diarios.js?v=20261118"></script>
+<script src="painel.js?v=20261118"></script>
 </body>
 </html>
